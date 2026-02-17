@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc:*)",
+      "Bash(python:*)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(where:*)",
+      "Bash(git config:*)",
+      "mcp__plugin_github_github__get_me",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)"
+    ]
+  }
+}
