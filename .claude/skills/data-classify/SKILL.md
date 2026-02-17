@@ -1,3 +1,8 @@
+---
+name: data-classify
+description: "对清洗后的数据进行领域分类（11类）、细粒度标签提取和热度指数评估（0-100）。触发词：/data-classify、分类、classify、打标签、tag items、热度评分。"
+---
+
 # data-classify — 分类标签与热度评估
 
 ## 触发条件

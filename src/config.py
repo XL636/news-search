@@ -1,5 +1,6 @@
 """InsightRadar configuration."""
 
+import os
 from pathlib import Path
 
 # Paths
@@ -16,6 +17,7 @@ for d in [RAW_DIR, PROCESSED_DIR, OUTPUT_DIR]:
 
 # GitHub Search API
 GITHUB_API_BASE = "https://api.github.com"
+GITHUB_TOKEN = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN", "")  # 环境变量读取，有则用，无则匿名
 GITHUB_SEARCH_QUERY = "stars:>100 pushed:>{date}"  # filled at runtime
 GITHUB_MAX_ITEMS = 30
 

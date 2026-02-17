@@ -1,3 +1,8 @@
+---
+name: report-gen
+description: "基于分类后的数据生成全球创新日报 Markdown 文件。包含执行摘要、热度 Top 10、领域细分、跨平台信号。触发词：/report-gen、生成报告、generate report、日报、digest。"
+---
+
 # report-gen — 全球创新日报生成
 
 ## 触发条件

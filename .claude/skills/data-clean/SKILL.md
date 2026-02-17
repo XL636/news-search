@@ -1,3 +1,8 @@
+---
+name: data-clean
+description: "对 InsightRadar 采集的原始数据进行清洗去重。包含时间过滤、语义去重（跨平台合并）、冲突消解。触发词：/data-clean、清洗数据、clean data、去重、deduplicate。"
+---
+
 # data-clean — 数据清洗与语义去重
 
 ## 触发条件

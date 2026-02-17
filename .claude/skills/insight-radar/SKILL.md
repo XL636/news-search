@@ -1,3 +1,9 @@
+---
+name: insight-radar
+description: "InsightRadar 全流程一键编排。从 GitHub/HN/RSS 采集数据，经清洗去重、分类标签、热度评估后，生成全球创新日报。触发词：/insight-radar、每日扫描、全流程、一键日报、run insight radar。"
+argument-hint: "[可选: 指定数据源 github/hackernews/rss]"
+---
+
 # insight-radar — 全流程编排
 
 ## 触发条件

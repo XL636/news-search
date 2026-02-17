@@ -36,6 +36,7 @@ GitHub API + HN API + RSS → Python collectors → SQLite (raw_items)
 - `python src/pipeline.py collect --source github` — 仅采集 GitHub
 - `python src/pipeline.py status` — 查看数据库状态
 - `python src/pipeline.py export` — 导出数据为 JSON
+- `python -m uvicorn src.server:app --host 127.0.0.1 --port 8000` — 启动 Web Dashboard
 - `/insight-radar` — 全流程：采集 → 清洗 → 分类 → 报告
 
 ## 目录结构
@@ -44,11 +45,13 @@ GitHub API + HN API + RSS → Python collectors → SQLite (raw_items)
 - `src/collectors/` — 采集器（github, hackernews, rss）
 - `src/storage/store.py` — SQLite 存储层
 - `src/pipeline.py` — CLI 入口
+- `src/server.py` — FastAPI Web Dashboard 后端
+- `src/static/index.html` — Dashboard 前端（中英文双语）
 - `data/` — 运行时数据（gitignore）
 - `output/digests/` — 生成的日报
 
 ## 技术栈
-Python 3.14 | httpx | feedparser | pydantic | python-dateutil | SQLite
+Python 3.14 | httpx | feedparser | pydantic | python-dateutil | SQLite | FastAPI | uvicorn
 
 ## 项目追踪文件
 - `TASKS.md` — 任务状态 + 优化方案（每次改动必更新）

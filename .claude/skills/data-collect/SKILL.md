@@ -1,3 +1,9 @@
+---
+name: data-collect
+description: "运行 InsightRadar 数据采集管道，从 GitHub、Hacker News、RSS 获取最新技术动态。触发词：/data-collect、采集数据、collect data、抓取、fetch sources。"
+argument-hint: "[可选: github / hackernews / rss]"
+---
+
 # data-collect — 数据采集编排
 
 ## 触发条件

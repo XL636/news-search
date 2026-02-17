@@ -17,6 +17,12 @@
 | 7 | 5 个 Claude Skills | 2026-02-17 | data-collect, data-clean, data-classify, report-gen, insight-radar |
 | 8 | Python 环境搭建 | 2026-02-17 | .venv + 4 个依赖安装成功 |
 | 9 | 冒烟测试 | 2026-02-17 | 164 条数据采集成功（GitHub 30 + HN 54 + RSS 80） |
+| 10 | 全功能测试 | 2026-02-17 | 33 项测试全部通过，详见 test.md |
+| 11 | 端到端全流程验证 | 2026-02-17 | 186→119→119，日报已生成 output/digests/2026-02-17-digest.md |
+| 12 | SKILL.md 添加 YAML frontmatter | 2026-02-17 | 5 个 Skill 全部补齐 name/description 字段 |
+| 13 | GitHub Token 支持 | 2026-02-17 | 环境变量 GITHUB_PERSONAL_ACCESS_TOKEN，速率 60→5000/h |
+| 14 | Web Dashboard | 2026-02-18 | FastAPI + 前端页面，领域过滤/搜索/排序 |
+| 15 | 中英文双语 i18n | 2026-02-18 | 语言切换按钮，中文默认，localStorage 持久化 |
 
 ### 进行中 🔄
 
@@ -28,7 +34,8 @@
 
 | # | 任务 | 优先级 | 说明 |
 |---|------|--------|------|
-| 10 | 端到端全流程验证 | P0 | 运行 `/insight-radar` 产出完整日报 |
+| 16 | 修复 Skill 注册问题 | P1 | YAML frontmatter 格式正确但 Claude Code 未加载 |
+| 17 | 清理临时脚本 | P2 | 删除 src/classify_run.py |
 
 ---
 
@@ -36,10 +43,8 @@
 
 ### 短期优化（MVP 阶段可做）
 
-1. **GitHub Token 支持**
-   - 当前未使用认证，API 速率限制 60 次/小时
-   - 方案：在 `config.py` 增加环境变量 `GITHUB_TOKEN`，通过 Header 传递
-   - 收益：速率限制提升到 5000 次/小时
+1. **~~GitHub Token 支持~~** ✅ 已完成
+   - 环境变量 `GITHUB_PERSONAL_ACCESS_TOKEN`，config.py 读取，github_trending.py 自动加 Bearer header
 
 2. **采集器错误重试**
    - 当前单次失败即跳过
@@ -68,9 +73,9 @@
    - 多日数据对比，识别上升/下降趋势
    - 需要 classified_items 增加 `date` 索引
 
-7. **Web 界面**
-   - 简单的 Flask/FastAPI 服务 + HTML 页面
-   - 展示日报 + 历史趋势图表
+7. **~~Web 界面~~** ✅ 已完成
+   - FastAPI 后端 `src/server.py` + 前端 `src/static/index.html`
+   - 领域过滤、搜索、多排序、暗色主题
 
 8. **定时调度**
    - 系统级 cron / Windows Task Scheduler
@@ -82,6 +87,7 @@
    - 根据用户关注领域定制日报内容
    - 关键词订阅 + 推送通知
 
-10. **多语言支持**
+10. **多语言支持**（部分完成）
+    - ~~Dashboard UI 中英文切换~~ ✅ 已完成
     - 日报支持中英文双版本
     - 数据源支持日文/韩文技术社区

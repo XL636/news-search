@@ -9,6 +9,7 @@ import httpx
 from src.config import (
     GITHUB_API_BASE,
     GITHUB_MAX_ITEMS,
+    GITHUB_TOKEN,
     HTTP_TIMEOUT,
     HTTP_USER_AGENT,
 )
@@ -32,6 +33,8 @@ class GitHubCollector(BaseCollector):
             "Accept": "application/vnd.github+json",
             "User-Agent": HTTP_USER_AGENT,
         }
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
 
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
             try:
