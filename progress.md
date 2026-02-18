@@ -61,6 +61,16 @@ docx 脚本：generate_docx.py（Calibri 字体、深蓝主题、表格样式）
 新增依赖：python-docx>=1.1
 ```
 
+### 首次 AI Coding 报告生成（2026-02-18）
+
+```
+报告类型：自定义关键词 (AI coding)
+数据来源：MCP 等效接口 → SQLite classified_items
+匹配条目：55 条（关键词: ai, coding）
+章节结构：执行摘要 → AI 编程工具 → 代码生成模型 → Vibe Coding → 开源争议 → 投融资
+输出文件：output/digests/2026-02-18-ai-coding-report.docx (40KB)
+```
+
 ---
 
 ## 里程碑

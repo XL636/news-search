@@ -4,6 +4,14 @@
 
 ---
 
+## [0.6.1] - 2026-02-18
+
+### Added
+- 首次使用 report-gen v2 生成 AI Coding 领域 .docx 报告
+- 通过 MCP 等效接口（get_items keyword search）从 SQLite 获取 55 条匹配数据
+- 按 `template-custom.md` 元指令自适应生成跨领域（AI/ML + DevTools）报告结构
+- 输出 `output/digests/2026-02-18-ai-coding-report.docx`（6 章节，40KB）
+
 ## [0.6.0] - 2026-02-18
 
 ### Added

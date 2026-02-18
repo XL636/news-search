@@ -33,6 +33,7 @@
 | 24 | MCP Server | 2026-02-18 | FastMCP 暴露 5 个工具，项目级注册自动加载 |
 | 25 | Skill: mcp-digest | 2026-02-18 | 基于 MCP 工具的日报生成 Skill |
 | 26 | report-gen 改造: Word 文档 + 领域模板 | 2026-02-18 | .docx 输出、11 领域模板、自定义关键词、generate_docx.py 脚本 |
+| 27 | 首次 AI Coding .docx 报告生成 | 2026-02-18 | 通过 MCP 等效接口获取数据，自定义关键词模板，55 条匹配，40KB docx |
 
 ### 进行中 🔄
 
