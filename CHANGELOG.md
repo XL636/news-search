@@ -4,6 +4,12 @@
 
 ---
 
+## [0.5.1] - 2026-02-18
+
+### Added
+- MCP Server `src/mcp_server.py`：基于 FastMCP，暴露 5 个工具（get_items、get_domains、get_stats、collect_data、translate_text）
+- `.claude/settings.local.json` 注册 `insight-radar` MCP server，新会话自动加载
+
 ## [0.5.0] - 2026-02-18
 
 ### Added

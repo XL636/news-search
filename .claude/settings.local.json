@@ -10,7 +10,34 @@
       "Bash(git config:*)",
       "mcp__plugin_github_github__get_me",
       "Bash(git init:*)",
-      "Bash(git remote add:*)"
+      "Bash(git remote add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(\"D:/claude/news-search/.venv/Scripts/python\" -c \"import httpx, feedparser, pydantic, dateutil; print\\(''deps OK''\\)\")",
+      "WebSearch",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(curl:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_evaluate",
+      "Bash(git add:*)",
+      "Bash(.venv/Scripts/pip:*)",
+      "Bash(pip install:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(pip show:*)"
     ]
+  },
+  "mcpServers": {
+    "insight-radar": {
+      "command": "python",
+      "args": ["D:/claude/news-search/src/mcp_server.py"],
+      "cwd": "D:/claude/news-search"
+    }
   }
 }

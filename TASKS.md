@@ -30,6 +30,7 @@
 | 21 | Dashboard 刷新数据按钮 | 2026-02-18 | POST /api/collect + 前端刷新按钮 + toast 提示 |
 | 22 | Dashboard UI 优化 | 2026-02-18 | 2列布局、分页、卡片重设计、域名横向滚动 |
 | 23 | Dashboard 翻译功能 | 2026-02-18 | translations 表 + Google Translate API + 前端翻译开关 |
+| 24 | MCP Server | 2026-02-18 | FastMCP 暴露 5 个工具，项目级注册自动加载 |
 
 ### 进行中 🔄
 
