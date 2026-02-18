@@ -44,6 +44,7 @@
 | Dashboard v3 视觉重设计 | ✅ 完成 | 100% |
 | Dashboard AI 搜索功能 | ✅ 完成 | 100% |
 | API Key 管理 UI | ✅ 完成 | 100% |
+| Dashboard 暖色主题 | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -104,6 +105,18 @@ UI：Perplexity 风格 — hero 欢迎语 + 建议 chips + 流式 Markdown + [N]
 前端：#ai-key-setup 配置面板 — Glass 风格卡片、密码输入框、保存/状态提示
 流程：无 key 搜索 → needsApiKey → 显示面板 → 保存 → 自动重试搜索
 i18n：中英双语（aiKeyTitle/aiKeyDesc/aiKeySaveBtn/aiKeyPlaceholder/aiKeySaved/aiKeySaveError）
+```
+
+### Dashboard 暖色主题（2026-02-18）
+
+```
+色调：冷色（indigo/slate）→ 暖色（amber/stone）
+背景：#12110f 暖深灰，Glass rgba(22,21,18,.7)
+强调色：amber-600 (#d97706) 统一 Tab/按钮/引用
+文字：#d4d0c8 暖白 + #a8a29e 暖灰副文字
+光球：amber #d97706 + brown #92400e ambient 渐变
+领域色：AI/ML 琥珀金、Security 暖黄、DevTools 暖绿、Web 暖灰
+热度：正常 #b08d57 暖铜、高热 amber 渐变、低热 #78716c
 ```
 
 ---

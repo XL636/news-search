@@ -4,6 +4,18 @@
 
 ---
 
+## [0.8.2] - 2026-02-18
+
+### Changed
+- **暖色主题重设计**：整体色调从冷色（indigo/slate）切换到暖色（amber/stone）
+- 背景色改为暖灰 `#12110f`，文字色改为暖白 `#d4d0c8`
+- 主强调色从 indigo-500 改为 amber-600 (`#d97706`)，Tab/按钮/搜索栏/引用徽章全部统一
+- Glass-morphism 底色从冷蓝灰改为暖棕灰 `rgba(22,21,18,.7)`
+- Ambient 背景光球从 indigo/violet 改为 amber/brown 渐变
+- 领域配色全面调整：AI/ML 琥珀金、Security 暖黄、Web 暖灰、Mobile 橙色等
+- 热度条配色：正常 `#b08d57`（暖铜）、高热 amber 渐变、低热 `#78716c`（暖灰）
+- Tailwind 配置 surface 色板替换为暖色系
+
 ## [0.8.1] - 2026-02-18
 
 ### Added
