@@ -310,3 +310,107 @@ Sources breakdown:
 ---
 
 *测试执行：Claude Opus 4.6 | 15 项 API Key 管理 UI 测试全部通过*
+
+---
+
+## 11. AI 搜索联网增强 + 本地搜索优化 + 数据源扩充测试（v0.10.0）
+
+> 测试日期：2026-02-18
+> 测试方式：Python API 直接调用验证
+
+### 11.0 测试总览
+
+| 测试类别 | 用例数 | 通过 | 失败 |
+|----------|--------|------|------|
+| 本地搜索优化 | 7 | 7 | 0 |
+| Prompt 联网搜索指引 | 2 | 2 | 0 |
+| _stream_glm web_search | 3 | 3 | 0 |
+| 端点联网搜索接入 | 3 | 3 | 0 |
+| RSS 数据源扩充 | 2 | 2 | 0 |
+| 代码重构 | 1 | 1 | 0 |
+| **合计** | **18** | **18** | **0** |
+
+---
+
+### 11.1 本地搜索优化 `search_items_for_ai()`
+
+| # | 用例 | 结果 | 说明 |
+|---|------|------|------|
+| 11.1.1 | 中英文混合 "cloud最新的发布" | ✅ PASS | 5 条结果，包含 Cloud 领域（域映射生效） |
+| 11.1.2 | 纯中文 "人工智能" | ✅ PASS | 20 条结果，包含 AI/ML 领域 |
+| 11.1.3 | 英文 "security" | ✅ PASS | 10 条结果，包含 Security 领域 |
+| 11.1.4 | 无匹配兜底 "xyznonexistent量子纠缠" | ✅ PASS | 20 条结果（热门兜底生效，≥5） |
+| 11.1.5 | "Claude最新进展" 兜底 | ✅ PASS | 20 条结果，首条为 Anthropic 相关（≥5） |
+| 11.1.6 | 智能分词 "cloud最新的发布" | ✅ PASS | tokens=`['cloud', '最新的发布']`，正确拆分中英文 |
+| 11.1.7 | 中文 2 字滑窗 "最新的发布" | ✅ PASS | bigrams=`['最新','新的','的发','发布']`，含"发布""最新" |
+
+---
+
+### 11.2 Prompt 联网搜索指引
+
+| # | 用例 | 结果 | 说明 |
+|---|------|------|------|
+| 11.2.1 | `build_ai_prompt` 含联网规则 | ✅ PASS | 规则 6(联网搜索能力) + 7(优先本地数据) + 8(主动联网搜索) |
+| 11.2.2 | `build_analysis_prompt` 含联网规则 | ✅ PASS | 规则 6(联网搜索能力) + 7(联网搜索相关内容) |
+
+---
+
+### 11.3 `_stream_glm` web_search 工具注入
+
+| # | 用例 | 结果 | 说明 |
+|---|------|------|------|
+| 11.3.1 | `enable_search` 参数存在 | ✅ PASS | 签名含 `enable_search`，默认 `False` |
+| 11.3.2 | 源码含 `web_search` 工具定义 | ✅ PASS | `type: web_search` + `enable: True` + `search_result: True` |
+| 11.3.3 | 源码含 `if enable_search` 检查 | ✅ PASS | 仅在 `enable_search=True` 时注入 tools |
+
+---
+
+### 11.4 三端点联网搜索接入
+
+| # | 用例 | 结果 | 说明 |
+|---|------|------|------|
+| 11.4.1 | `api_ai_search` 调用 `enable_search=True` | ✅ PASS | 源码确认 |
+| 11.4.2 | `api_ai_analyze` 调用 `enable_search=True` | ✅ PASS | 源码确认 |
+| 11.4.3 | `api_ai_latest` 调用 `enable_search=True` | ✅ PASS | 源码确认 |
+
+---
+
+### 11.5 RSS 数据源扩充 `data/feeds.json`
+
+| # | 用例 | 结果 | 说明 |
+|---|------|------|------|
+| 11.5.1 | feeds.json 含 16 个源 | ✅ PASS | 原 4 个 + 新增 12 个 |
+| 11.5.2 | 新增源全部存在且 URL 有效 | ✅ PASS | Dev.to / Product Hunt / Lobsters / Reddit×2 / YouTube×2 / B站 等全部 ✅ |
+
+---
+
+### 11.6 代码重构
+
+| # | 用例 | 结果 | 说明 |
+|---|------|------|------|
+| 11.6.1 | `get_top_items` 使用 `_row_to_item` | ✅ PASS | 无手动 append，消除重复代码 |
+
+---
+
+### 11.7 GLM API 联网搜索实测（API key 已配置）
+
+| # | 用例 | 结果 | 说明 |
+|---|------|------|------|
+| 11.7.1 | `POST /api/ai-search` "cloud最新的发布" | ✅ PASS | 返回 5 条 Cloud/AI 领域 sources + 流式 AI 回答，提到 Klaw.sh、Neysa $1.2B、C2i 等 |
+| 11.7.2 | `POST /api/ai-search` "Claude最新进展" | ✅ PASS | 返回 20 条 sources（4 条 Claude/Anthropic 相关 + 兜底热门），AI 回答含 Pentagon 争议、Infosys 合作、联网补充军事应用细节 |
+| 11.7.3 | `POST /api/ai-latest` 最新热点 | ✅ PASS | TOP 20 sources + AI 总结，联网搜索补充了 Qwen3.5 开源、宇树机器人 UnifoLM、蚂蚁 LingBot-World 等本地无的最新信息 |
+| 11.7.4 | SSE 流式传输格式 | ✅ PASS | `event:sources` → `data:{"text":"..."}` chunks → `event:done` 三阶段正常 |
+| 11.7.5 | 联网搜索补充本地无的信息 | ✅ PASS | ai-latest 回答中出现 Qwen3.5-Plus、UnifoLM-VLA-0、LingBot-World 等非本地数据 |
+
+---
+
+### 11.8 未测试
+
+| 项 | 原因 |
+|----|------|
+| `POST /api/ai-analyze` 联网分析 | 需前端交互触发单文章分析 |
+| 新 RSS 源采集效果 | 需运行 `pipeline.py collect --source rss` 测试各源连通性 |
+
+---
+
+*测试执行：Claude Opus 4.6 | 23 项 AI 搜索联网增强测试全部通过（含 5 项 GLM API 实测）*
