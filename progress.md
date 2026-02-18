@@ -41,6 +41,7 @@
 | MCP Server | ✅ 完成 | 100% |
 | Skill: mcp-digest | ✅ 完成 | 100% |
 | report-gen v2 (Word + 领域模板) | ✅ 完成 | 100% |
+| Dashboard v3 视觉重设计 | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -71,6 +72,16 @@ docx 脚本：generate_docx.py（Calibri 字体、深蓝主题、表格样式）
 输出文件：output/digests/2026-02-18-ai-coding-report.docx (40KB)
 ```
 
+### Dashboard v3 视觉重设计（2026-02-18）
+
+```
+布局：侧边栏（KPI + 领域导航）+ 主内容区（搜索 + 3列卡片网格）
+设计：Glass-morphism 效果、ambient 渐变背景球、Inter 字体
+KPI：原始采集/清洗/分类 三个统计卡片
+卡片：渐变热度条、热度发光点、星标/评论图标、line-clamp 截断
+响应式：xl 3列 / md 2列 / sm 1列，移动端域名 chips 替代侧边栏
+```
+
 ---
 
 ## 里程碑
@@ -94,6 +105,7 @@ docx 脚本：generate_docx.py（Calibri 字体、深蓝主题、表格样式）
 - 更多数据源
 - ~~Web 界面~~ ✅ 已完成（FastAPI Dashboard + 中英文 i18n）
 - ~~Dashboard v2~~ ✅ 已完成（刷新按钮 + UI 优化 + 分页 + 翻译功能）
+- ~~Dashboard v3~~ ✅ 已完成（全面视觉重设计：侧边栏 + KPI + Glass-morphism + 3列响应式）
 - 定时调度
 
 ---

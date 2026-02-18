@@ -34,6 +34,7 @@
 | 25 | Skill: mcp-digest | 2026-02-18 | 基于 MCP 工具的日报生成 Skill |
 | 26 | report-gen 改造: Word 文档 + 领域模板 | 2026-02-18 | .docx 输出、11 领域模板、自定义关键词、generate_docx.py 脚本 |
 | 27 | 首次 AI Coding .docx 报告生成 | 2026-02-18 | 通过 MCP 等效接口获取数据，自定义关键词模板，55 条匹配，40KB docx |
+| 28 | Dashboard v3 — 全面视觉重设计 | 2026-02-18 | 侧边栏布局、KPI 卡片、Glass-morphism、3列响应式、ambient 背景 |
 
 ### 进行中 🔄
 
@@ -77,10 +78,11 @@
    - 多日数据对比，识别上升/下降趋势
    - 需要 classified_items 增加 `date` 索引
 
-7. **~~Web 界面~~** ✅ 已完成（含 v2 升级）
+7. **~~Web 界面~~** ✅ 已完成（含 v3 重设计）
    - FastAPI 后端 `src/server.py` + 前端 `src/static/index.html`
    - 领域过滤、搜索、多排序、暗色主题
    - v2: 刷新数据按钮、分页加载更多、翻译功能、UI 优化（2列布局、卡片重设计）
+   - v3: 侧边栏导航、KPI 统计卡片、Glass-morphism、3列响应式、ambient 渐变背景
 
 8. **定时调度**
    - 系统级 cron / Windows Task Scheduler

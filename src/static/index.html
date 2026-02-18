@@ -5,123 +5,236 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>InsightRadar Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            surface: { 50: '#f8fafc', 100: '#f1f5f9', 800: '#141828', 900: '#0c0f1d', 950: '#080a14' },
+          },
+        },
+      },
+    }
+  </script>
   <style>
-    :root { --accent: #6366f1; }
-    body { background: #0f172a; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
-    .chip { transition: all .15s; }
-    .chip:hover { transform: translateY(-1px); }
-    .chip.active { background: #6366f1; color: #fff; border-color: #6366f1; }
-    .card { transition: all .2s; border: 1px solid #1e293b; }
-    .card:hover { border-color: #6366f1; box-shadow: 0 8px 25px rgba(99,102,241,.15); }
-    .heat-bar { height: 4px; border-radius: 2px; transition: width .5s ease; }
-    .source-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; }
-    .tag-pill { font-size: 11px; padding: 1px 8px; border-radius: 10px; }
-    .fade-in { animation: fadeIn .3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .skeleton { background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    /* === Base === */
+    body { background: #080a14; color: #cbd5e1; }
+    ::selection { background: rgba(99,102,241,.3); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+    /* === Glass === */
+    .glass { background: rgba(15, 23, 42, .6); backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(148,163,184,.08); }
+    .glass-light { background: rgba(30, 41, 59, .4); backdrop-filter: blur(12px); border: 1px solid rgba(148,163,184,.06); }
+
+    /* === Cards === */
+    .card { background: rgba(15, 23, 42, .5); border: 1px solid rgba(148,163,184,.06); border-radius: 16px; transition: all .25s cubic-bezier(.4,0,.2,1); }
+    .card:hover { border-color: rgba(99,102,241,.3); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,.3), 0 0 0 1px rgba(99,102,241,.1); }
+    .card-hot { border-left: 3px solid #ef4444; }
+
+    /* === Chips === */
+    .chip { transition: all .2s; border-radius: 10px; }
+    .chip:hover { background: rgba(99,102,241,.12); border-color: rgba(99,102,241,.3); }
+    .chip.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border-color: transparent; box-shadow: 0 2px 12px rgba(99,102,241,.3); }
+
+    /* === KPI Cards === */
+    .kpi-card { background: linear-gradient(135deg, rgba(30,41,59,.6), rgba(15,23,42,.8)); border: 1px solid rgba(148,163,184,.08); border-radius: 16px; transition: all .25s; }
+    .kpi-card:hover { border-color: rgba(99,102,241,.2); }
+    .kpi-value { background: linear-gradient(135deg, #e2e8f0, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* === Animations === */
+    .fade-in { animation: fadeIn .4s cubic-bezier(.4,0,.2,1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .skeleton { background: linear-gradient(90deg, rgba(30,41,59,.5) 25%, rgba(51,65,85,.5) 50%, rgba(30,41,59,.5) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 16px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .lang-btn { transition: all .15s; }
-    .lang-btn:hover { background: #334155; }
-    .lang-btn.active { background: #6366f1; color: #fff; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 1s linear infinite; }
-    .hot-border { border-left: 3px solid #ef4444; }
-    .details-toggle { cursor: pointer; user-select: none; }
-    .details-content { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
+    /* === Heat Bar === */
+    .heat-bar-bg { height: 3px; border-radius: 2px; background: rgba(30,41,59,.8); }
+    .heat-bar-fill { height: 3px; border-radius: 2px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+
+    /* === Source Badges === */
+    .source-badge { font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 500; letter-spacing: .3px; }
+
+    /* === Tags === */
+    .tag-pill { font-size: 10px; padding: 2px 8px; border-radius: 8px; background: rgba(30,41,59,.8); color: #94a3b8; border: 1px solid rgba(148,163,184,.08); }
+
+    /* === Details === */
+    .details-content { max-height: 0; overflow: hidden; transition: max-height .3s cubic-bezier(.4,0,.2,1); }
     .details-content.open { max-height: 500px; }
-    .toast-enter { animation: toastIn .3s ease; }
+
+    /* === Toast === */
+    .toast-enter { animation: toastIn .3s cubic-bezier(.4,0,.2,1); }
     @keyframes toastIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
     .toast-exit { animation: toastOut .3s ease forwards; }
     @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(50px); } }
+
+    /* === Button === */
+    .btn-ghost { border: 1px solid rgba(148,163,184,.12); background: rgba(30,41,59,.3); color: #94a3b8; transition: all .2s; border-radius: 10px; }
+    .btn-ghost:hover { border-color: rgba(99,102,241,.3); color: #c7d2fe; background: rgba(99,102,241,.08); }
+    .btn-ghost.active { background: rgba(99,102,241,.15); border-color: rgba(99,102,241,.4); color: #a5b4fc; }
+
+    /* === Lang Toggle === */
+    .lang-toggle { background: rgba(30,41,59,.5); border: 1px solid rgba(148,163,184,.08); border-radius: 10px; padding: 2px; }
+    .lang-btn { transition: all .2s; border-radius: 8px; }
+    .lang-btn.active { background: rgba(99,102,241,.8); color: #fff; }
+
+    /* === Gradient Orbs (ambient background) === */
+    .orb { position: fixed; border-radius: 50%; filter: blur(100px); opacity: .15; pointer-events: none; z-index: 0; }
+    .orb-1 { width: 600px; height: 600px; background: #6366f1; top: -200px; right: -200px; }
+    .orb-2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -100px; left: -150px; }
+
+    /* === Sidebar domain list === */
+    .domain-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 10px; cursor: pointer; transition: all .2s; font-size: 13px; color: #94a3b8; }
+    .domain-item:hover { background: rgba(99,102,241,.08); color: #c7d2fe; }
+    .domain-item.active { background: rgba(99,102,241,.12); color: #a5b4fc; font-weight: 600; }
+    .domain-item .count { font-size: 11px; background: rgba(30,41,59,.8); padding: 1px 8px; border-radius: 8px; color: #64748b; }
+    .domain-item.active .count { background: rgba(99,102,241,.2); color: #a5b4fc; }
+
+    /* === Responsive === */
+    @media (max-width: 1023px) {
+      .sidebar { display: none !important; }
+      .mobile-domain-bar { display: flex !important; }
+    }
+    @media (min-width: 1024px) {
+      .mobile-domain-bar { display: none !important; }
+    }
   </style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen relative overflow-x-hidden">
+  <!-- Ambient Background Orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
   <!-- Toast Container -->
   <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
 
   <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+  <header class="glass sticky top-0 z-50 border-b border-white/[.04]">
+    <div class="max-w-[1400px] mx-auto px-4 lg:px-6 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center font-bold text-white text-sm">IR</div>
-        <h1 class="text-xl font-bold text-white">InsightRadar</h1>
-        <span id="subtitle" class="text-xs text-slate-500 hidden sm:inline"></span>
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-indigo-500/20">IR</div>
+        <div>
+          <h1 class="text-base font-bold text-white tracking-tight">InsightRadar</h1>
+          <p id="subtitle" class="text-[10px] text-slate-500 font-medium tracking-wide uppercase"></p>
+        </div>
       </div>
-      <div class="flex items-center gap-3">
-        <!-- Refresh Button -->
-        <button id="refresh-btn" onclick="doRefresh()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-600 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition-all">
+      <div class="flex items-center gap-2">
+        <!-- Refresh -->
+        <button id="refresh-btn" onclick="doRefresh()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
           <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
-          <span id="refresh-text"></span>
+          <span id="refresh-text" class="hidden sm:inline"></span>
         </button>
-        <!-- Translate Button -->
-        <button id="translate-btn" onclick="toggleTranslate()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-600 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition-all">
+        <!-- Translate -->
+        <button id="translate-btn" onclick="toggleTranslate()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
           </svg>
-          <span id="translate-text"></span>
+          <span id="translate-text" class="hidden sm:inline"></span>
         </button>
-        <!-- Language Switcher -->
-        <div class="flex items-center bg-slate-800 rounded-lg border border-slate-700 p-0.5">
-          <button class="lang-btn px-2.5 py-1 rounded-md text-xs font-medium text-slate-400" data-lang="zh" onclick="setLang('zh')">中文</button>
-          <button class="lang-btn px-2.5 py-1 rounded-md text-xs font-medium text-slate-400" data-lang="en" onclick="setLang('en')">EN</button>
+        <!-- Language -->
+        <div class="lang-toggle flex items-center">
+          <button class="lang-btn px-2.5 py-1.5 text-[11px] font-medium text-slate-400" data-lang="zh" onclick="setLang('zh')">中文</button>
+          <button class="lang-btn px-2.5 py-1.5 text-[11px] font-medium text-slate-400" data-lang="en" onclick="setLang('en')">EN</button>
         </div>
       </div>
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-4 py-6">
-    <!-- Controls -->
-    <div class="flex flex-col sm:flex-row gap-4 mb-6">
-      <!-- Search -->
-      <div class="relative flex-1">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-        </svg>
-        <input id="search-input" type="text"
-               class="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+  <!-- Main Layout -->
+  <div class="max-w-[1400px] mx-auto px-4 lg:px-6 py-5 flex gap-6 relative z-10">
+
+    <!-- Sidebar (desktop) -->
+    <aside class="sidebar w-56 shrink-0 sticky top-[72px] self-start hidden lg:block" style="max-height: calc(100vh - 88px); overflow-y: auto;">
+      <!-- KPI Stats -->
+      <div class="mb-5">
+        <div class="grid grid-cols-1 gap-2">
+          <div class="kpi-card px-3.5 py-3">
+            <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-raw"></div>
+            <div class="kpi-value text-xl font-bold" id="kpi-raw">—</div>
+          </div>
+          <div class="kpi-card px-3.5 py-3">
+            <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-clean"></div>
+            <div class="kpi-value text-xl font-bold" id="kpi-clean">—</div>
+          </div>
+          <div class="kpi-card px-3.5 py-3">
+            <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-classified"></div>
+            <div class="kpi-value text-xl font-bold" id="kpi-classified">—</div>
+          </div>
+        </div>
       </div>
-      <!-- Sort -->
-      <select id="sort-select" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
-      </select>
-    </div>
 
-    <!-- Domain Filters -->
-    <div id="domain-filters" class="flex gap-2 mb-4 overflow-x-auto pb-2" style="scrollbar-width: thin; scrollbar-color: #334155 transparent;">
-      <button class="chip active px-3 py-1.5 rounded-full text-xs font-medium border border-slate-600 bg-slate-800 whitespace-nowrap" data-domain="All"></button>
-    </div>
+      <!-- Domain Navigation -->
+      <div class="mb-4">
+        <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2" id="sidebar-domain-label"></div>
+        <nav id="sidebar-domains" class="flex flex-col gap-0.5">
+          <!-- filled by JS -->
+        </nav>
+      </div>
+    </aside>
 
-    <!-- Stats Bar -->
-    <div id="stats-bar" class="flex gap-4 text-xs text-slate-500 mb-4">
-      <span id="stat-total"></span>
-    </div>
+    <!-- Content Area -->
+    <main class="flex-1 min-w-0">
+      <!-- Mobile Domain Bar -->
+      <div class="mobile-domain-bar hidden overflow-x-auto gap-2 mb-4 pb-2" id="mobile-domain-filters" style="scrollbar-width: thin; scrollbar-color: #1e293b transparent;">
+        <!-- filled by JS -->
+      </div>
 
-    <!-- Item Count -->
-    <div class="flex items-center justify-between mb-4">
-      <p id="item-count" class="text-sm text-slate-400"></p>
-    </div>
+      <!-- Search + Sort Bar -->
+      <div class="glass-light rounded-2xl p-3 mb-5 flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-1">
+          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input id="search-input" type="text"
+                 class="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/[.06] rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all">
+        </div>
+        <select id="sort-select"
+                class="bg-slate-900/50 border border-white/[.06] rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer min-w-[160px]">
+        </select>
+      </div>
 
-    <!-- Items Grid -->
-    <div id="items-grid" class="grid gap-5 md:grid-cols-2">
-      <div class="skeleton h-48"></div>
-      <div class="skeleton h-48"></div>
-      <div class="skeleton h-48"></div>
-      <div class="skeleton h-48"></div>
-    </div>
+      <!-- Item Count -->
+      <div class="flex items-center justify-between mb-4 px-1">
+        <p id="item-count" class="text-xs text-slate-500 font-medium"></p>
+      </div>
 
-    <!-- Load More -->
-    <div id="load-more-container" class="hidden text-center py-8">
-      <p id="shown-count" class="text-xs text-slate-500 mb-3"></p>
-      <button id="load-more-btn" onclick="loadMore()" class="px-6 py-2.5 rounded-lg text-sm font-medium border border-slate-600 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition-all"></button>
-    </div>
+      <!-- Items Grid -->
+      <div id="items-grid" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="skeleton h-52"></div>
+        <div class="skeleton h-52"></div>
+        <div class="skeleton h-52"></div>
+        <div class="skeleton h-52"></div>
+        <div class="skeleton h-52"></div>
+        <div class="skeleton h-52"></div>
+      </div>
 
-    <!-- Empty State -->
-    <div id="empty-state" class="hidden text-center py-16">
-      <p id="empty-title" class="text-slate-500 text-lg"></p>
-      <p id="empty-sub" class="text-slate-600 text-sm mt-1"></p>
-    </div>
-  </main>
+      <!-- Load More -->
+      <div id="load-more-container" class="hidden text-center py-8">
+        <p id="shown-count" class="text-xs text-slate-500 mb-3"></p>
+        <button id="load-more-btn" onclick="loadMore()" class="btn-ghost px-8 py-2.5 text-sm font-medium"></button>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="hidden text-center py-20">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
+          <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <p id="empty-title" class="text-slate-400 text-base font-medium"></p>
+        <p id="empty-sub" class="text-slate-600 text-sm mt-1"></p>
+      </div>
+    </main>
+  </div>
 
   <script>
     // ========== i18n ==========
@@ -129,28 +242,29 @@
       zh: {
         subtitle: '全球创新与开源情报',
         searchPlaceholder: '搜索标题、描述、标签...',
-        sortHeat: '排序：热度指数',
-        sortStars: '排序：Stars',
-        sortComments: '排序：评论数',
-        sortRecent: '排序：最新发布',
+        sortHeat: '热度指数',
+        sortStars: 'Stars',
+        sortComments: '评论数',
+        sortRecent: '最新发布',
         allDomain: '全部',
-        itemCount: (n) => `共 ${n} 条`,
-        shownCount: (shown, total) => `已显示 ${shown} / ${total} 条`,
+        itemCount: (n) => `共 ${n} 条情报`,
+        shownCount: (shown, total) => `已加载 ${shown} / ${total}`,
         loadMore: '加载更多',
         emptyTitle: '未找到相关内容',
         emptySub: '尝试调整筛选条件或搜索关键词',
-        statsRaw: '原始',
-        statsClean: '清洗',
-        statsClassified: '分类',
-        refreshBtn: '刷新数据',
+        statsRaw: '原始采集',
+        statsClean: '清洗数据',
+        statsClassified: '分类数据',
+        refreshBtn: '刷新',
         refreshing: '采集中...',
         refreshDone: '采集完成',
         refreshError: '采集失败',
         translateBtn: '翻译',
         translateOn: '翻译中',
         translateOff: '翻译',
-        expand: '展开',
+        expand: '展开详情',
         collapse: '收起',
+        domainLabel: '领域分类',
         domainNames: {
           'AI/ML': '人工智能', 'DevTools': '开发工具', 'Hardware': '硬件',
           'Cloud': '云计算', 'Security': '安全', 'Web': 'Web 开发',
@@ -165,30 +279,31 @@
       en: {
         subtitle: 'Global Innovation Intelligence',
         searchPlaceholder: 'Search titles, descriptions, tags...',
-        sortHeat: 'Sort: Heat Index',
-        sortStars: 'Sort: Stars',
-        sortComments: 'Sort: Comments',
-        sortRecent: 'Sort: Most Recent',
+        sortHeat: 'Heat Index',
+        sortStars: 'Stars',
+        sortComments: 'Comments',
+        sortRecent: 'Most Recent',
         allDomain: 'All',
         itemCount: (n) => `${n} items`,
-        shownCount: (shown, total) => `Showing ${shown} of ${total}`,
+        shownCount: (shown, total) => `Loaded ${shown} of ${total}`,
         loadMore: 'Load More',
         emptyTitle: 'No items found',
         emptySub: 'Try adjusting your filters or search query',
         statsRaw: 'Raw',
-        statsClean: 'Clean',
+        statsClean: 'Cleaned',
         statsClassified: 'Classified',
         refreshBtn: 'Refresh',
         refreshing: 'Collecting...',
-        refreshDone: 'Collection done',
-        refreshError: 'Collection failed',
+        refreshDone: 'Done',
+        refreshError: 'Failed',
         translateBtn: 'Translate',
         translateOn: 'Translating',
         translateOff: 'Translate',
-        expand: 'Expand',
+        expand: 'Details',
         collapse: 'Collapse',
+        domainLabel: 'Domains',
         domainNames: {
-          'AI/ML': 'AI/ML', 'DevTools': 'DevTools', 'Hardware': 'Hardware',
+          'AI/ML': 'AI / ML', 'DevTools': 'DevTools', 'Hardware': 'Hardware',
           'Cloud': 'Cloud', 'Security': 'Security', 'Web': 'Web',
           'Mobile': 'Mobile', 'Data': 'Data', 'Blockchain': 'Blockchain',
           'Biotech': 'Biotech', 'Other': 'Other',
@@ -222,6 +337,12 @@
       document.getElementById('refresh-text').textContent = s.refreshBtn;
       document.getElementById('translate-text').textContent = translateMode ? s.translateOn : s.translateBtn;
       document.getElementById('load-more-btn').textContent = s.loadMore;
+      document.getElementById('sidebar-domain-label').textContent = s.domainLabel;
+
+      // KPI labels
+      document.getElementById('kpi-label-raw').textContent = s.statsRaw;
+      document.getElementById('kpi-label-clean').textContent = s.statsClean;
+      document.getElementById('kpi-label-classified').textContent = s.statsClassified;
 
       const sel = document.getElementById('sort-select');
       const curVal = sel.value || 'heat';
@@ -239,41 +360,40 @@
     }
 
     // ========== Config ==========
+    const DOMAIN_ICONS = {
+      'AI/ML': '&#x1F916;', 'DevTools': '&#x1F6E0;', 'Hardware': '&#x1F4BB;',
+      'Cloud': '&#x2601;', 'Security': '&#x1F512;', 'Web': '&#x1F310;',
+      'Mobile': '&#x1F4F1;', 'Data': '&#x1F4CA;', 'Blockchain': '&#x26D3;',
+      'Biotech': '&#x1F9EC;', 'Other': '&#x1F4E6;',
+    };
+
     const DOMAIN_COLORS = {
-      'AI/ML': { bg: '#312e81', text: '#a5b4fc', border: '#4338ca' },
-      'DevTools': { bg: '#1e3a5f', text: '#7dd3fc', border: '#0369a1' },
-      'Hardware': { bg: '#3b1f2b', text: '#fda4af', border: '#9f1239' },
-      'Cloud': { bg: '#1a2e35', text: '#5eead4', border: '#0f766e' },
-      'Security': { bg: '#3b2f12', text: '#fcd34d', border: '#a16207' },
-      'Web': { bg: '#1e2a3a', text: '#93c5fd', border: '#2563eb' },
-      'Mobile': { bg: '#2d1b4e', text: '#c4b5fd', border: '#7c3aed' },
-      'Data': { bg: '#1a3329', text: '#86efac', border: '#15803d' },
-      'Blockchain': { bg: '#352318', text: '#fdba74', border: '#c2410c' },
-      'Biotech': { bg: '#2a1e35', text: '#f0abfc', border: '#a21caf' },
-      'Other': { bg: '#1e293b', text: '#94a3b8', border: '#475569' },
+      'AI/ML': { bg: 'rgba(99,102,241,.12)', text: '#a5b4fc', border: 'rgba(99,102,241,.3)', accent: '#6366f1' },
+      'DevTools': { bg: 'rgba(56,189,248,.1)', text: '#7dd3fc', border: 'rgba(56,189,248,.25)', accent: '#38bdf8' },
+      'Hardware': { bg: 'rgba(251,113,133,.1)', text: '#fda4af', border: 'rgba(251,113,133,.25)', accent: '#fb7185' },
+      'Cloud': { bg: 'rgba(45,212,191,.1)', text: '#5eead4', border: 'rgba(45,212,191,.25)', accent: '#2dd4bf' },
+      'Security': { bg: 'rgba(250,204,21,.1)', text: '#fde047', border: 'rgba(250,204,21,.2)', accent: '#facc15' },
+      'Web': { bg: 'rgba(96,165,250,.1)', text: '#93c5fd', border: 'rgba(96,165,250,.25)', accent: '#60a5fa' },
+      'Mobile': { bg: 'rgba(167,139,250,.1)', text: '#c4b5fd', border: 'rgba(167,139,250,.25)', accent: '#a78bfa' },
+      'Data': { bg: 'rgba(74,222,128,.1)', text: '#86efac', border: 'rgba(74,222,128,.25)', accent: '#4ade80' },
+      'Blockchain': { bg: 'rgba(251,146,60,.1)', text: '#fdba74', border: 'rgba(251,146,60,.25)', accent: '#fb923c' },
+      'Biotech': { bg: 'rgba(232,121,249,.1)', text: '#f0abfc', border: 'rgba(232,121,249,.25)', accent: '#e879f9' },
+      'Other': { bg: 'rgba(148,163,184,.08)', text: '#94a3b8', border: 'rgba(148,163,184,.15)', accent: '#94a3b8' },
     };
 
-    const SOURCE_COLORS = {
-      'github': { bg: '#1a1a2e', text: '#c9d1d9' },
-      'hackernews': { bg: '#2d1a00', text: '#ff6600' },
-      'rss': { bg: '#1a2e1a', text: '#86efac' },
-    };
-
-    const HEAT_COLORS = {
-      hot: '#ef4444', warm: '#f59e0b', medium: '#6366f1', cool: '#475569',
+    const SOURCE_STYLES = {
+      'github': { bg: 'rgba(110,118,129,.15)', text: '#c9d1d9', label: 'GitHub' },
+      'hackernews': { bg: 'rgba(255,102,0,.12)', text: '#ff8c40', label: 'HN' },
+      'rss': { bg: 'rgba(74,222,128,.1)', text: '#86efac', label: 'RSS' },
     };
 
     let currentDomain = 'All';
     let currentSearch = '';
     let currentSort = 'heat';
     let debounceTimer = null;
-
-    // Pagination state
     const PAGE_SIZE = 20;
     let currentOffset = 0;
     let totalItems = 0;
-
-    // Translation state
     let translateMode = false;
     const translationCache = {};
 
@@ -281,27 +401,25 @@
     function showToast(msg, type = 'info') {
       const container = document.getElementById('toast-container');
       const colors = {
-        info: 'bg-slate-800 border-slate-600 text-slate-200',
-        success: 'bg-emerald-900/80 border-emerald-700 text-emerald-200',
-        error: 'bg-red-900/80 border-red-700 text-red-200',
+        info: 'glass text-slate-200',
+        success: 'bg-emerald-900/80 border border-emerald-700/50 text-emerald-200',
+        error: 'bg-red-900/80 border border-red-700/50 text-red-200',
       };
       const el = document.createElement('div');
-      el.className = `toast-enter px-4 py-3 rounded-lg border text-sm ${colors[type] || colors.info}`;
+      el.className = `toast-enter px-4 py-3 rounded-xl text-sm font-medium ${colors[type] || colors.info}`;
       el.textContent = msg;
       container.appendChild(el);
       setTimeout(() => {
         el.classList.remove('toast-enter');
         el.classList.add('toast-exit');
         setTimeout(() => el.remove(), 300);
-      }, 5000);
+      }, 4000);
     }
 
-    // ========== Time Formatting ==========
+    // ========== Time ==========
     function timeAgo(dateStr) {
       if (!dateStr) return '';
-      const now = new Date();
-      const date = new Date(dateStr);
-      const diff = Math.floor((now - date) / 1000);
+      const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
       const u = t().timeAgo;
       if (diff < 60) return diff + u.s;
       if (diff < 3600) return Math.floor(diff / 60) + u.m;
@@ -309,79 +427,92 @@
       return Math.floor(diff / 86400) + u.d;
     }
 
-    // ========== Render ==========
+    // ========== Heat ==========
     function getHeatColor(heat) {
-      if (heat >= 70) return HEAT_COLORS.hot;
-      if (heat >= 50) return HEAT_COLORS.warm;
-      if (heat >= 30) return HEAT_COLORS.medium;
-      return HEAT_COLORS.cool;
+      if (heat >= 70) return '#ef4444';
+      if (heat >= 50) return '#f59e0b';
+      if (heat >= 30) return '#6366f1';
+      return '#475569';
     }
 
-    function domainLabel(key) {
-      return t().domainNames[key] || key;
+    function getHeatGradient(heat) {
+      if (heat >= 70) return 'linear-gradient(90deg, #ef4444, #f97316)';
+      if (heat >= 50) return 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+      if (heat >= 30) return 'linear-gradient(90deg, #6366f1, #818cf8)';
+      return 'linear-gradient(90deg, #475569, #64748b)';
     }
 
-    function sourceLabel(key) {
-      return t().sourceNames[key] || key;
-    }
+    function domainLabel(key) { return t().domainNames[key] || key; }
+    function sourceLabel(key) { return t().sourceNames[key] || key; }
 
+    // ========== Card Render ==========
     function renderCard(item) {
       const dc = DOMAIN_COLORS[item.domain] || DOMAIN_COLORS['Other'];
       const heatColor = getHeatColor(item.heat_index);
+      const heatGrad = getHeatGradient(item.heat_index);
       const isHot = item.heat_index >= 70;
 
-      const sourceBadges = item.sources.map(s => {
-        const sc = SOURCE_COLORS[s] || SOURCE_COLORS['rss'];
-        return `<span class="source-badge" style="background:${sc.bg};color:${sc.text}">${sourceLabel(s)}</span>`;
+      const badges = item.sources.map(s => {
+        const st = SOURCE_STYLES[s] || SOURCE_STYLES['rss'];
+        return `<span class="source-badge" style="background:${st.bg};color:${st.text}">${sourceLabel(s)}</span>`;
       }).join('');
 
-      const tags = (item.tags || []).slice(0, 6).map(tag =>
-        `<span class="tag-pill bg-slate-800 text-slate-400">${tag}</span>`
+      const tags = (item.tags || []).slice(0, 5).map(tag =>
+        `<span class="tag-pill">${tag}</span>`
       ).join('');
 
       const desc = item.description
-        ? (item.description.length > 200 ? item.description.substring(0, 200) + '...' : item.description)
+        ? (item.description.length > 160 ? item.description.substring(0, 160) + '...' : item.description)
         : '';
 
-      const starsStr = item.stars > 0 ? `<span class="text-yellow-500">${item.stars.toLocaleString()}</span>` : '';
-      const commentsStr = item.comments_count > 0 ? `<span class="text-blue-400">${item.comments_count}</span>` : '';
       const ago = timeAgo(item.published_at);
-      const authorStr = item.author ? `<span class="text-slate-500">${item.author}</span>` : '';
-
       const detailId = 'detail-' + item.id;
       const hasDetails = tags || item.heat_reason;
 
       return `
-        <div class="card rounded-xl bg-slate-900 p-5 fade-in ${isHot ? 'hot-border' : ''}">
-          <div class="flex items-start justify-between gap-2 mb-2">
-            <span class="text-xs font-medium px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text};border:1px solid ${dc.border}">${domainLabel(item.domain)}</span>
-            <div class="flex items-center gap-1 shrink-0">
-              <span class="text-lg font-bold" style="color:${heatColor}">${item.heat_index}</span>
+        <div class="card p-5 fade-in ${isHot ? 'card-hot' : ''}">
+          <!-- Top row: domain + heat -->
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style="background:${dc.bg};color:${dc.text};border:1px solid ${dc.border}">${domainLabel(item.domain)}</span>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-full" style="background:${heatColor};${isHot ? 'box-shadow:0 0 8px ' + heatColor : ''}"></div>
+              <span class="text-sm font-bold tabular-nums" style="color:${heatColor}">${item.heat_index}</span>
             </div>
           </div>
-          <a href="${item.url}" target="_blank" rel="noopener" class="card-title block text-sm font-semibold text-white mb-1.5 leading-snug hover:text-indigo-400 transition-colors" data-original="${item.title.replace(/"/g, '&quot;')}">${item.title}</a>
-          <p class="card-desc text-xs text-slate-400 mb-3 leading-relaxed" data-original="${desc.replace(/"/g, '&quot;')}">${desc}</p>
-          <div class="heat-bar w-full bg-slate-800 mb-3">
-            <div class="heat-bar" style="width:${item.heat_index}%;background:${heatColor}"></div>
+
+          <!-- Title -->
+          <a href="${item.url}" target="_blank" rel="noopener"
+             class="card-title block text-[13px] font-semibold text-slate-100 mb-2 leading-snug hover:text-indigo-400 transition-colors line-clamp-2"
+             data-original="${item.title.replace(/"/g, '&quot;')}">${item.title}</a>
+
+          <!-- Description -->
+          ${desc ? `<p class="card-desc text-xs text-slate-400 mb-3 leading-relaxed line-clamp-3" data-original="${desc.replace(/"/g, '&quot;')}">${desc}</p>` : '<div class="mb-3"></div>'}
+
+          <!-- Heat bar -->
+          <div class="heat-bar-bg w-full mb-3">
+            <div class="heat-bar-fill" style="width:${Math.min(item.heat_index, 100)}%;background:${heatGrad}"></div>
           </div>
-          <div class="flex items-center justify-between text-xs">
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between text-[11px]">
             <div class="flex items-center gap-2">
-              ${sourceBadges}
+              ${badges}
               ${ago ? `<span class="text-slate-500">${ago}</span>` : ''}
-              ${authorStr}
             </div>
-            <div class="flex items-center gap-3">
-              ${starsStr ? `<span title="${t().stars}">${starsStr}</span>` : ''}
-              ${commentsStr ? `<span title="${t().comments}">${commentsStr}</span>` : ''}
-              ${item.language ? `<span class="text-slate-500">${item.language}</span>` : ''}
+            <div class="flex items-center gap-3 text-slate-500">
+              ${item.stars > 0 ? `<span class="flex items-center gap-1" title="${t().stars}"><svg class="w-3 h-3 text-yellow-500/70" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>${item.stars.toLocaleString()}</span>` : ''}
+              ${item.comments_count > 0 ? `<span class="flex items-center gap-1" title="${t().comments}"><svg class="w-3 h-3 text-blue-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>${item.comments_count}</span>` : ''}
+              ${item.language ? `<span>${item.language}</span>` : ''}
             </div>
           </div>
+
+          <!-- Expandable details -->
           ${hasDetails ? `
-          <div class="mt-3 pt-3 border-t border-slate-800">
-            <button class="details-toggle text-xs text-indigo-400 hover:text-indigo-300" onclick="toggleDetails('${detailId}', this)">${t().expand}</button>
+          <div class="mt-3 pt-3 border-t border-white/[.04]">
+            <button class="details-toggle text-[11px] text-indigo-400/80 hover:text-indigo-300 font-medium transition-colors" onclick="toggleDetails('${detailId}', this)">${t().expand}</button>
             <div id="${detailId}" class="details-content mt-2">
-              ${tags ? `<div class="flex flex-wrap gap-1 mb-2">${tags}</div>` : ''}
-              ${item.heat_reason ? `<p class="text-xs text-slate-500 italic">${item.heat_reason}</p>` : ''}
+              ${tags ? `<div class="flex flex-wrap gap-1.5 mb-2">${tags}</div>` : ''}
+              ${item.heat_reason ? `<p class="text-[11px] text-slate-500 italic leading-relaxed">${item.heat_reason}</p>` : ''}
             </div>
           </div>` : ''}
         </div>
@@ -400,7 +531,7 @@
       const icon = document.getElementById('refresh-icon');
       const text = document.getElementById('refresh-text');
       btn.disabled = true;
-      btn.classList.add('opacity-60');
+      btn.style.opacity = '.5';
       icon.classList.add('spin');
       text.textContent = t().refreshing;
 
@@ -408,8 +539,7 @@
         const resp = await fetch('/api/collect', { method: 'POST' });
         const data = await resp.json();
         if (data.status === 'ok') {
-          const stats = data.stats;
-          showToast(`${t().refreshDone}: ${stats.new || 0} new / ${stats.total || 0} total`, 'success');
+          showToast(`${t().refreshDone}: ${data.stats?.new || 0} new`, 'success');
           resetAndLoadItems();
           loadDomains();
           loadStats();
@@ -422,7 +552,7 @@
         showToast(`${t().refreshError}: ${e.message}`, 'error');
       } finally {
         btn.disabled = false;
-        btn.classList.remove('opacity-60');
+        btn.style.opacity = '1';
         icon.classList.remove('spin');
         text.textContent = t().refreshBtn;
       }
@@ -444,20 +574,17 @@
           translationCache[key] = data.translated;
           return data.translated;
         }
-      } catch (e) { /* fall through */ }
+      } catch (e) {}
       return text;
     }
 
     async function translateVisibleCards() {
-      const titles = document.querySelectorAll('.card-title');
-      const descs = document.querySelectorAll('.card-desc');
-      // Translate in batches to avoid overwhelming the API
-      for (const el of titles) {
+      for (const el of document.querySelectorAll('.card-title')) {
         const original = el.dataset.original || el.textContent;
         el.dataset.original = original;
         el.textContent = await translateText(original);
       }
-      for (const el of descs) {
+      for (const el of document.querySelectorAll('.card-desc')) {
         const original = el.dataset.original || el.textContent;
         el.dataset.original = original;
         el.textContent = await translateText(original);
@@ -477,13 +604,12 @@
       translateMode = !translateMode;
       const btn = document.getElementById('translate-btn');
       const text = document.getElementById('translate-text');
-
       if (translateMode) {
-        btn.classList.add('border-indigo-500', 'text-indigo-400');
+        btn.classList.add('active');
         text.textContent = t().translateOn;
         await translateVisibleCards();
       } else {
-        btn.classList.remove('border-indigo-500', 'text-indigo-400');
+        btn.classList.remove('active');
         text.textContent = t().translateBtn;
         restoreOriginalText();
       }
@@ -493,35 +619,72 @@
     async function loadDomains() {
       const resp = await fetch('/api/domains');
       const domains = await resp.json();
-      const container = document.getElementById('domain-filters');
 
       let total = 0;
       domains.forEach(d => total += d.count);
 
-      let html = `<button class="chip active px-3 py-1.5 rounded-full text-xs font-medium border border-slate-600 bg-slate-800 whitespace-nowrap" data-domain="All">${t().allDomain} (${total})</button>`;
+      // Sidebar domains (desktop)
+      const sidebar = document.getElementById('sidebar-domains');
+      let sidebarHtml = `<div class="domain-item ${currentDomain === 'All' ? 'active' : ''}" data-domain="All">
+        <span>${t().allDomain}</span><span class="count">${total}</span>
+      </div>`;
       for (const d of domains) {
-        const dc = DOMAIN_COLORS[d.domain] || DOMAIN_COLORS['Other'];
-        html += `<button class="chip px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap" data-domain="${d.domain}" style="border-color:${dc.border};color:${dc.text};background:${dc.bg}">${domainLabel(d.domain)} (${d.count})</button>`;
+        const icon = DOMAIN_ICONS[d.domain] || '';
+        sidebarHtml += `<div class="domain-item ${currentDomain === d.domain ? 'active' : ''}" data-domain="${d.domain}">
+          <span>${domainLabel(d.domain)}</span><span class="count">${d.count}</span>
+        </div>`;
       }
-      container.innerHTML = html;
-
-      container.querySelectorAll('.chip').forEach(btn => {
-        if (btn.dataset.domain === currentDomain) btn.classList.add('active');
-        else btn.classList.remove('active');
-        btn.addEventListener('click', () => {
-          container.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentDomain = btn.dataset.domain;
+      sidebar.innerHTML = sidebarHtml;
+      sidebar.querySelectorAll('.domain-item').forEach(el => {
+        el.addEventListener('click', () => {
+          sidebar.querySelectorAll('.domain-item').forEach(e => e.classList.remove('active'));
+          el.classList.add('active');
+          currentDomain = el.dataset.domain;
+          // sync mobile
+          syncMobileDomainActive();
           resetAndLoadItems();
         });
+      });
+
+      // Mobile domain chips
+      const mobile = document.getElementById('mobile-domain-filters');
+      const dc0 = currentDomain === 'All' ? 'active' : '';
+      let mobileHtml = `<button class="chip ${dc0} px-3 py-1.5 text-xs font-medium border border-white/[.06] bg-slate-800/50 whitespace-nowrap" data-domain="All">${t().allDomain} (${total})</button>`;
+      for (const d of domains) {
+        const act = currentDomain === d.domain ? 'active' : '';
+        mobileHtml += `<button class="chip ${act} px-3 py-1.5 text-xs font-medium border border-white/[.06] bg-slate-800/50 whitespace-nowrap" data-domain="${d.domain}">${domainLabel(d.domain)} (${d.count})</button>`;
+      }
+      mobile.innerHTML = mobileHtml;
+      mobile.querySelectorAll('.chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          mobile.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentDomain = btn.dataset.domain;
+          // sync sidebar
+          syncSidebarDomainActive();
+          resetAndLoadItems();
+        });
+      });
+    }
+
+    function syncSidebarDomainActive() {
+      document.querySelectorAll('#sidebar-domains .domain-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.domain === currentDomain);
+      });
+    }
+
+    function syncMobileDomainActive() {
+      document.querySelectorAll('#mobile-domain-filters .chip').forEach(el => {
+        el.classList.toggle('active', el.dataset.domain === currentDomain);
       });
     }
 
     function resetAndLoadItems() {
       currentOffset = 0;
       document.getElementById('items-grid').innerHTML = `
-        <div class="skeleton h-48"></div><div class="skeleton h-48"></div>
-        <div class="skeleton h-48"></div><div class="skeleton h-48"></div>
+        <div class="skeleton h-52"></div><div class="skeleton h-52"></div>
+        <div class="skeleton h-52"></div><div class="skeleton h-52"></div>
+        <div class="skeleton h-52"></div><div class="skeleton h-52"></div>
       `;
       loadItems(false);
     }
@@ -544,6 +707,7 @@
       const countEl = document.getElementById('item-count');
       const loadMoreContainer = document.getElementById('load-more-container');
       const shownCountEl = document.getElementById('shown-count');
+      const loadMoreBtn = document.getElementById('load-more-btn');
 
       if (!append && items.length === 0) {
         grid.innerHTML = '';
@@ -563,18 +727,17 @@
         grid.innerHTML = newHtml;
       }
 
-      // Update shown count
       const shownSoFar = currentOffset + items.length;
       if (shownSoFar < totalItems) {
         loadMoreContainer.classList.remove('hidden');
+        loadMoreBtn.classList.remove('hidden');
         shownCountEl.textContent = t().shownCount(shownSoFar, totalItems);
       } else {
         loadMoreContainer.classList.remove('hidden');
         shownCountEl.textContent = t().shownCount(shownSoFar, totalItems);
-        document.getElementById('load-more-btn').classList.add('hidden');
+        loadMoreBtn.classList.add('hidden');
       }
 
-      // Auto-translate new cards if translate mode is on
       if (translateMode && items.length > 0) {
         await translateVisibleCards();
       }
@@ -588,9 +751,9 @@
     async function loadStats() {
       const resp = await fetch('/api/stats');
       const stats = await resp.json();
-      const s = t();
-      document.getElementById('stat-total').textContent =
-        `${s.statsRaw}: ${stats.raw_items} | ${s.statsClean}: ${stats.cleaned_items} | ${s.statsClassified}: ${stats.classified_items}`;
+      document.getElementById('kpi-raw').textContent = stats.raw_items?.toLocaleString() || '0';
+      document.getElementById('kpi-clean').textContent = stats.cleaned_items?.toLocaleString() || '0';
+      document.getElementById('kpi-classified').textContent = stats.classified_items?.toLocaleString() || '0';
     }
 
     // ========== Events ==========
