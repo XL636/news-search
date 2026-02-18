@@ -4,6 +4,25 @@
 
 ---
 
+## [0.6.0] - 2026-02-18
+
+### Added
+- `report-gen` Skill 改造为 Word 文档输出：生成格式化 .docx 报告替代 Markdown
+- `generate_docx.py` 脚本：接收结构化 JSON，输出带 Calibri 字体、深蓝主题色、Light Grid Accent 1 表格样式的 .docx 文件
+- 13 个领域报告模板 `references/template-*.md`：AI/ML、Security、DevTools、Cloud、Hardware、Web、Mobile、Data、Blockchain、Biotech、Other、自定义关键词元模板、全领域概览
+- 支持 3 种报告模式：预定义领域（11 类）、自定义关键词过滤、全领域概览
+- `python-docx>=1.1` 依赖添加到 `requirements.txt`
+
+### Changed
+- `report-gen/SKILL.md` 重写：新增参数解析、SQLite 数据过滤（domain 精确匹配 / keyword LIKE 搜索）、模板分发、JSON 生成、docx 脚本调用流程
+- `insight-radar/SKILL.md` Phase 4 更新：输出改为 .docx，支持可选 domain 参数
+- 报告输出路径从 `{date}-digest.md` 改为 `{date}-{topic-slug}-report.docx`
+
+## [0.5.2] - 2026-02-18
+
+### Added
+- Skill: `mcp-digest` — 基于 MCP 工具的日报生成 Skill，通过 get_stats/get_domains/get_items 拉取数据后生成结构化 Markdown 日报
+
 ## [0.5.1] - 2026-02-18
 
 ### Added

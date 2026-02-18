@@ -31,6 +31,8 @@
 | 22 | Dashboard UI 优化 | 2026-02-18 | 2列布局、分页、卡片重设计、域名横向滚动 |
 | 23 | Dashboard 翻译功能 | 2026-02-18 | translations 表 + Google Translate API + 前端翻译开关 |
 | 24 | MCP Server | 2026-02-18 | FastMCP 暴露 5 个工具，项目级注册自动加载 |
+| 25 | Skill: mcp-digest | 2026-02-18 | 基于 MCP 工具的日报生成 Skill |
+| 26 | report-gen 改造: Word 文档 + 领域模板 | 2026-02-18 | .docx 输出、11 领域模板、自定义关键词、generate_docx.py 脚本 |
 
 ### 进行中 🔄
 
@@ -42,7 +44,7 @@
 
 | # | 任务 | 优先级 | 说明 |
 |---|------|--------|------|
-| 16 | 修复 Skill 注册问题 | P1 | YAML frontmatter 格式正确但 Claude Code 未加载 |
+| 16 | 修复 Skill 注册问题 | P2 | YAML frontmatter 格式正确但 Claude Code 未加载 |
 
 ---
 

@@ -39,6 +39,8 @@
 | Dashboard UI 优化 | ✅ 完成 | 100% |
 | Dashboard 翻译功能 | ✅ 完成 | 100% |
 | MCP Server | ✅ 完成 | 100% |
+| Skill: mcp-digest | ✅ 完成 | 100% |
+| report-gen v2 (Word + 领域模板) | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -47,6 +49,16 @@
 清洗：186 → 119 条（去除 58 条过旧 + 9 组跨平台合并）
 分类：119 条全部标注（10 个领域，平均热度 33.6）
 日报：output/digests/2026-02-17-digest.md 已生成
+```
+
+### report-gen v2 改造（2026-02-18）
+
+```
+输出格式：Markdown → Word 文档 (.docx)
+报告模式：3 种（全领域概览 / 预定义领域 / 自定义关键词）
+领域模板：13 个 references/template-*.md
+docx 脚本：generate_docx.py（Calibri 字体、深蓝主题、表格样式）
+新增依赖：python-docx>=1.1
 ```
 
 ---

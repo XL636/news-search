@@ -62,16 +62,16 @@ conn.close()
 3. 将结果写入 SQLite classified_items 表，同时保存到 `data/processed/{date}/classified.json`
 
 ### Phase 4: 报告生成
-执行 report-gen Skill 的完整流程：
+执行 report-gen Skill 的完整流程，生成 Word 文档(.docx)格式报告：
 
 1. 读取 classified_items
-2. 生成 Markdown 日报，包含：
-   - 执行摘要（3-5 条最大进展）
-   - 热度排行 Top 10（含分析）
-   - 领域细分动态
-   - 跨平台强信号
-   - 数据概览统计
-3. 写入 `output/digests/{YYYY-MM-DD}-digest.md`
+2. 确定报告模式：
+   - 默认（无参数）：全领域概览报告
+   - 指定领域参数（如 `AI/ML`、`Security`）：生成该领域专属报告
+   - 自定义关键词（如 `AI coding`）：按关键词过滤并自适应生成
+3. 按对应模板（`references/template-*.md`）生成结构化 JSON
+4. 调用 `generate_docx.py` 将 JSON 转换为格式化 .docx 文件
+5. 输出至 `output/digests/{YYYY-MM-DD}-{topic-slug}-report.docx`
 
 ### Phase 5: 完成确认
 向用户展示：
@@ -89,4 +89,4 @@ conn.close()
 - 数据库：`D:/claude/news-search/data/insight_radar.db`
 - 原始数据：`D:/claude/news-search/data/raw/{date}/`
 - 处理数据：`D:/claude/news-search/data/processed/{date}/`
-- 日报输出：`D:/claude/news-search/output/digests/{date}-digest.md`
+- 日报输出：`D:/claude/news-search/output/digests/{date}-{topic-slug}-report.docx`
