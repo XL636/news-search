@@ -23,6 +23,10 @@
 | 13 | GitHub Token 支持 | 2026-02-17 | 环境变量 GITHUB_PERSONAL_ACCESS_TOKEN，速率 60→5000/h |
 | 14 | Web Dashboard | 2026-02-18 | FastAPI + 前端页面，领域过滤/搜索/排序 |
 | 15 | 中英文双语 i18n | 2026-02-18 | 语言切换按钮，中文默认，localStorage 持久化 |
+| 17 | 清理临时脚本 | 2026-02-18 | 删除 src/classify_run.py |
+| 18 | 采集器错误重试 | 2026-02-18 | BaseCollector max_retries=3 + 指数退避 |
+| 19 | RSS 源可配置化 | 2026-02-18 | data/feeds.json，fallback 到默认源 |
+| 20 | 增量采集支持 | 2026-02-18 | collect_meta 表记录每个源最后采集时间 |
 
 ### 进行中 🔄
 
@@ -35,7 +39,6 @@
 | # | 任务 | 优先级 | 说明 |
 |---|------|--------|------|
 | 16 | 修复 Skill 注册问题 | P1 | YAML frontmatter 格式正确但 Claude Code 未加载 |
-| 17 | 清理临时脚本 | P2 | 删除 src/classify_run.py |
 
 ---
 
@@ -46,20 +49,14 @@
 1. **~~GitHub Token 支持~~** ✅ 已完成
    - 环境变量 `GITHUB_PERSONAL_ACCESS_TOKEN`，config.py 读取，github_trending.py 自动加 Bearer header
 
-2. **采集器错误重试**
-   - 当前单次失败即跳过
-   - 方案：在 `BaseCollector` 中增加 `max_retries` + 指数退避
-   - 收益：网络波动时更稳定
+2. **~~采集器错误重试~~** ✅ 已完成
+   - BaseCollector 新增 `collect_with_retry()`，max_retries=3 + 指数退避（1s→2s→4s）
 
-3. **RSS 源可配置化**
-   - 当前硬编码 4 个 RSS 源
-   - 方案：将 RSS 源列表移到 `data/feeds.json` 或 `.env` 文件
-   - 收益：用户可自定义关注的信息源
+3. **~~RSS 源可配置化~~** ✅ 已完成
+   - RSS 源从 `data/feeds.json` 加载，文件缺失或损坏时回退默认源
 
-4. **增量采集优化**
-   - 当前每次全量采集，靠 UNIQUE 约束去重
-   - 方案：记录各数据源最后采集时间，仅获取增量
-   - 收益：减少 API 调用，加快采集速度
+4. **~~增量采集优化~~** ✅ 已完成
+   - `collect_meta` 表记录每个源最后采集时间，pipeline 日志显示增量状态
 
 ### 中期优化（MVP 后）
 

@@ -30,6 +30,21 @@
 - GitHub 采集器 topics 字段解析：`repo["topics"]` 是字符串列表，移除错误的 `t["name"]` 访问
 - Pipeline CLI 中 `datetime.utcnow()` 弃用警告，改用 `datetime.now()`
 
+## [0.4.0] - 2026-02-18
+
+### Added
+- 采集器错误重试机制：BaseCollector 新增 `collect_with_retry()`，max_retries=3 + 指数退避（1s→2s→4s）
+- RSS 源可配置化：从 `data/feeds.json` 加载 RSS 源列表，文件不存在或解析失败时回退到默认源
+- 增量采集支持：新增 `collect_meta` 表记录每个源的最后采集时间，pipeline 日志显示上次采集时间
+- 存储层新增 `get_last_collect_time()` / `set_last_collect_time()` 函数
+
+### Removed
+- 删除临时脚本 `src/classify_run.py`
+
+### Changed
+- Pipeline `cmd_collect()` 改用 `collect_with_retry()` 代替直接 `collect()`
+- `config.py` RSS_FEEDS 从硬编码改为文件优先加载
+
 ## [0.3.0] - 2026-02-18
 
 ### Added

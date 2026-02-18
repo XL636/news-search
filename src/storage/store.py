@@ -78,6 +78,11 @@ def init_db(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (cleaned_item_id) REFERENCES cleaned_items(id)
         );
 
+        CREATE TABLE IF NOT EXISTS collect_meta (
+            source TEXT PRIMARY KEY,
+            last_collected_at TEXT NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_raw_source ON raw_items(source);
         CREATE INDEX IF NOT EXISTS idx_raw_collected ON raw_items(collected_at);
         CREATE INDEX IF NOT EXISTS idx_classified_domain ON classified_items(domain);
@@ -303,6 +308,25 @@ def get_stats(conn: sqlite3.Connection) -> dict:
     stats["sources"] = {row["source"]: row["cnt"] for row in rows}
 
     return stats
+
+
+def get_last_collect_time(conn: sqlite3.Connection, source: str) -> str | None:
+    """Get the last collection timestamp for a source."""
+    row = conn.execute(
+        "SELECT last_collected_at FROM collect_meta WHERE source = ?", (source,)
+    ).fetchone()
+    return row["last_collected_at"] if row else None
+
+
+def set_last_collect_time(conn: sqlite3.Connection, source: str) -> None:
+    """Record the current time as last collection time for a source."""
+    now = datetime.utcnow().isoformat()
+    conn.execute(
+        """INSERT INTO collect_meta (source, last_collected_at) VALUES (?, ?)
+           ON CONFLICT(source) DO UPDATE SET last_collected_at = excluded.last_collected_at""",
+        (source, now),
+    )
+    conn.commit()
 
 
 def clear_processed(conn: sqlite3.Connection) -> None:

@@ -1,7 +1,11 @@
 """InsightRadar configuration."""
 
+import json
+import logging
 import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -28,13 +32,24 @@ HN_SHOW_STORIES_URL = f"{HN_API_BASE}/showstories.json"
 HN_ITEM_URL = f"{HN_API_BASE}/item/{{item_id}}.json"
 HN_MAX_ITEMS = 30
 
-# RSS Feeds
-RSS_FEEDS = [
+# RSS Feeds — load from data/feeds.json if available, otherwise use defaults
+_FEEDS_FILE = DATA_DIR / "feeds.json"
+_DEFAULT_RSS_FEEDS = [
     {"name": "TechCrunch", "url": "https://techcrunch.com/feed/"},
     {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index"},
     {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml"},
     {"name": "Hacker News Best", "url": "https://hnrss.org/best"},
 ]
+
+if _FEEDS_FILE.exists():
+    try:
+        RSS_FEEDS = json.loads(_FEEDS_FILE.read_text(encoding="utf-8"))
+        logger.info("Loaded %d RSS feeds from %s", len(RSS_FEEDS), _FEEDS_FILE)
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning("Failed to load %s (%s), using defaults", _FEEDS_FILE, e)
+        RSS_FEEDS = _DEFAULT_RSS_FEEDS
+else:
+    RSS_FEEDS = _DEFAULT_RSS_FEEDS
 
 # Heat index weights
 HEAT_WEIGHTS = {

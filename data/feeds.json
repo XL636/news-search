@@ -1,0 +1,6 @@
+[
+  {"name": "TechCrunch", "url": "https://techcrunch.com/feed/"},
+  {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index"},
+  {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml"},
+  {"name": "Hacker News Best", "url": "https://hnrss.org/best"}
+]

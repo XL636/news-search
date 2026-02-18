@@ -17,10 +17,12 @@ from src.collectors.hackernews import HackerNewsCollector
 from src.collectors.rss_feeds import RSSCollector
 from src.storage.store import (
     get_connection,
+    get_last_collect_time,
     get_raw_items,
     get_stats,
     init_db,
     insert_raw_item,
+    set_last_collect_time,
 )
 
 logging.basicConfig(
@@ -53,12 +55,17 @@ async def cmd_collect(sources: list[str] | None = None) -> dict:
     stats = {"total": 0, "new": 0, "duplicate": 0, "sources": {}}
 
     for name, collector_cls in active.items():
-        logger.info("Collecting from %s...", name)
+        last_time = get_last_collect_time(conn, name)
+        if last_time:
+            logger.info("Collecting from %s (last run: %s)...", name, last_time)
+        else:
+            logger.info("Collecting from %s (first run)...", name)
+
         collector = collector_cls()
         try:
-            items = await collector.collect()
+            items = await collector.collect_with_retry()
         except Exception as e:
-            logger.error("Collector %s failed: %s", name, e)
+            logger.error("Collector %s failed after retries: %s", name, e)
             stats["sources"][name] = {"collected": 0, "error": str(e)}
             continue
 
@@ -76,6 +83,7 @@ async def cmd_collect(sources: list[str] | None = None) -> dict:
             "new": new_count,
             "duplicate": len(items) - new_count,
         }
+        set_last_collect_time(conn, name)
         logger.info("  %s: %d items (%d new, %d duplicate)",
                      name, len(items), new_count, len(items) - new_count)
 
