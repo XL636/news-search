@@ -35,12 +35,15 @@
 | 26 | report-gen 改造: Word 文档 + 领域模板 | 2026-02-18 | .docx 输出、11 领域模板、自定义关键词、generate_docx.py 脚本 |
 | 27 | 首次 AI Coding .docx 报告生成 | 2026-02-18 | 通过 MCP 等效接口获取数据，自定义关键词模板，55 条匹配，40KB docx |
 | 28 | Dashboard v3 — 全面视觉重设计 | 2026-02-18 | 侧边栏布局、KPI 卡片、Glass-morphism、3列响应式、ambient 背景 |
+| 29 | Dashboard AI 搜索功能 | 2026-02-18 | GLM-4-Plus 流式 SSE + 双视图 Tab + Perplexity 风格引用 |
 
 ### 进行中 🔄
 
 | # | 任务 | 开始日期 | 状态 |
 |---|------|----------|------|
 | — | 暂无 | — | — |
+
+> **已完成**: #29 Dashboard AI 搜索功能（GLM-4-Plus + 双视图）— 2026-02-18
 
 ### 待办 📋
 

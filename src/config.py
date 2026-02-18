@@ -84,3 +84,9 @@ SOURCE_AUTHORITY = {
 # HTTP settings
 HTTP_TIMEOUT = 30  # seconds
 HTTP_USER_AGENT = "InsightRadar/0.1 (https://github.com/insight-radar)"
+
+# ZhipuAI GLM-4-Plus
+ZHIPUAI_API_KEY = os.environ.get("ZHIPUAI_API_KEY", "")
+ZHIPUAI_BASE_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+ZHIPUAI_MODEL = "glm-4-plus"
+AI_SEARCH_MAX_ITEMS = 20

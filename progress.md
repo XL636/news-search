@@ -42,6 +42,7 @@
 | Skill: mcp-digest | ✅ 完成 | 100% |
 | report-gen v2 (Word + 领域模板) | ✅ 完成 | 100% |
 | Dashboard v3 视觉重设计 | ✅ 完成 | 100% |
+| Dashboard AI 搜索功能 | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -80,6 +81,18 @@ docx 脚本：generate_docx.py（Calibri 字体、深蓝主题、表格样式）
 KPI：原始采集/清洗/分类 三个统计卡片
 卡片：渐变热度条、热度发光点、星标/评论图标、line-clamp 截断
 响应式：xl 3列 / md 2列 / sm 1列，移动端域名 chips 替代侧边栏
+```
+
+### Dashboard AI 搜索功能（2026-02-18）
+
+```
+后端：POST /api/ai-search SSE 流式端点 + ZhipuAI GLM-4-Plus
+搜索：SQL LIKE 分词匹配 classified_items，按 heat_index DESC
+流式：httpx.AsyncClient.stream() → SSE (sources → text chunks → done)
+并发：asyncio.Semaphore(3) 限制最多 3 个并发搜索
+前端：双视图 Tab（AI 搜索 / 信息流），默认 AI 搜索
+UI：Perplexity 风格 — hero 欢迎语 + 建议 chips + 流式 Markdown + [N] 引用徽章 + 来源卡片
+渲染：轻量 regex Markdown 解析 + streaming cursor 动画
 ```
 
 ---

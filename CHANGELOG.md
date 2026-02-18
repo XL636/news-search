@@ -4,6 +4,29 @@
 
 ---
 
+## [0.8.0] - 2026-02-18
+
+### Added
+- **AI 搜索功能**：Dashboard 新增交互式 AI 搜索视图，支持自然语言查询科技新闻和开源项目
+- 后端 `POST /api/ai-search` SSE 流式端点：搜索 classified_items → 构建 prompt → 调用 ZhipuAI GLM-4-Plus 流式 API
+- `src/config.py` 新增 ZhipuAI 配置：`ZHIPUAI_API_KEY`、`ZHIPUAI_BASE_URL`、`ZHIPUAI_MODEL`、`AI_SEARCH_MAX_ITEMS`
+- SQL LIKE 分词搜索：按空格分词 + 完整 query 宽匹配，支持中英文关键词
+- SSE 事件流协议：`event:sources` → `data:{"text":"..."}` chunks → `event:done`
+- `asyncio.Semaphore(3)` 并发控制，最多 3 个并发 AI 搜索
+- 前端双视图 Tab 架构：Header 中央 Tab 导航（AI 搜索 / 信息流），默认显示 AI 搜索
+- Hero 欢迎区：渐变 AI 图标 + "今天想了解什么？" 问候语 + 建议 chips
+- Perplexity 风格 AI 回答面板：流式 Markdown 渲染 + `[N]` 引用徽章（可点击滚动到来源）
+- 来源卡片网格：2 列布局展示匹配的新闻/项目，含领域标签、热度分数、Stars/评论数
+- 轻量 Markdown 渲染器：regex 解析 `###` / `**bold**` / `- list` / `[N]` 引用
+- 流式打字效果：`streaming-cursor` 闪烁光标动画
+- 完善的错误处理：API key 未配置、无匹配数据、GLM API 超时/错误均有友好提示
+- i18n 新增键：tabAISearch、tabFeed、aiGreeting、aiSubtitle、aiSearchPlaceholder、aiSearchBtn、aiSearching、aiSourcesLabel、aiQueryLabel、aiNewSearch、aiSuggestions
+
+### Changed
+- Header 布局调整：刷新/翻译按钮仅在 Feed 视图显示，语言切换两个视图共用
+- Feed 视图数据懒加载：首次切换到 Feed Tab 时才加载数据，提升初始加载速度
+- Feed 视图内容包裹进 `#view-feed` div，AI 搜索视图为 `#view-ai-search` div
+
 ## [0.7.0] - 2026-02-18
 
 ### Changed

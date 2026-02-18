@@ -97,6 +97,52 @@
     .domain-item .count { font-size: 11px; background: rgba(30,41,59,.8); padding: 1px 8px; border-radius: 8px; color: #64748b; }
     .domain-item.active .count { background: rgba(99,102,241,.2); color: #a5b4fc; }
 
+    /* === Tab Navigation === */
+    .tab-nav { background: rgba(30,41,59,.5); border: 1px solid rgba(148,163,184,.08); border-radius: 10px; padding: 2px; }
+    .tab-btn { transition: all .2s; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 500; color: #94a3b8; cursor: pointer; white-space: nowrap; }
+    .tab-btn:hover { color: #c7d2fe; }
+    .tab-btn.active { background: rgba(99,102,241,.8); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,.25); }
+
+    /* === View Toggle === */
+    .view.hidden { display: none !important; }
+
+    /* === AI Search === */
+    .ai-hero-icon { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(99,102,241,.3); }
+    .ai-search-box { background: rgba(15,23,42,.6); backdrop-filter: blur(16px); border: 1px solid rgba(148,163,184,.1); border-radius: 16px; transition: border-color .2s; }
+    .ai-search-box:focus-within { border-color: rgba(99,102,241,.4); box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+    .ai-search-input { background: transparent; border: none; outline: none; color: #e2e8f0; font-size: 15px; width: 100%; }
+    .ai-search-input::placeholder { color: #475569; }
+    .ai-search-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 12px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .ai-search-btn:hover { box-shadow: 0 4px 16px rgba(99,102,241,.4); transform: translateY(-1px); }
+    .ai-search-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .suggestion-chip { background: rgba(30,41,59,.5); border: 1px solid rgba(148,163,184,.08); border-radius: 10px; padding: 6px 14px; font-size: 12px; color: #94a3b8; cursor: pointer; transition: all .2s; }
+    .suggestion-chip:hover { background: rgba(99,102,241,.12); border-color: rgba(99,102,241,.3); color: #c7d2fe; }
+
+    /* AI Answer */
+    .ai-answer-panel { background: rgba(15,23,42,.5); border: 1px solid rgba(148,163,184,.06); border-radius: 16px; }
+    #ai-answer-content h3 { font-size: 15px; font-weight: 700; color: #e2e8f0; margin: 20px 0 8px 0; }
+    #ai-answer-content h3:first-child { margin-top: 0; }
+    #ai-answer-content p { font-size: 14px; line-height: 1.75; color: #cbd5e1; margin: 8px 0; }
+    #ai-answer-content ul { margin: 8px 0; padding-left: 20px; }
+    #ai-answer-content li { font-size: 14px; line-height: 1.75; color: #cbd5e1; margin: 4px 0; }
+    #ai-answer-content strong { color: #e2e8f0; }
+    #ai-answer-content a { color: #818cf8; text-decoration: underline; text-underline-offset: 2px; }
+
+    .citation { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; font-size: 10px; font-weight: 700; background: rgba(99,102,241,.2); color: #a5b4fc; border-radius: 5px; cursor: pointer; vertical-align: super; margin: 0 1px; transition: all .15s; line-height: 1; }
+    .citation:hover { background: rgba(99,102,241,.4); color: #fff; }
+
+    .ai-source-card { background: rgba(30,41,59,.4); border: 1px solid rgba(148,163,184,.06); border-radius: 12px; padding: 14px; transition: all .2s; cursor: pointer; }
+    .ai-source-card:hover { border-color: rgba(99,102,241,.3); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+    .ai-source-card.highlight { border-color: rgba(99,102,241,.5); box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .streaming-cursor { display: inline-block; width: 2px; height: 16px; background: #818cf8; margin-left: 2px; vertical-align: text-bottom; animation: blink .8s step-end infinite; }
+
+    .ai-loading-dots span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #6366f1; margin: 0 3px; animation: pulse-dot 1.2s ease-in-out infinite; }
+    .ai-loading-dots span:nth-child(2) { animation-delay: .2s; }
+    .ai-loading-dots span:nth-child(3) { animation-delay: .4s; }
+
     /* === Responsive === */
     @media (max-width: 1023px) {
       .sidebar { display: none !important; }
@@ -125,16 +171,27 @@
           <p id="subtitle" class="text-[10px] text-slate-500 font-medium tracking-wide uppercase"></p>
         </div>
       </div>
+
+      <!-- Center: Tab Navigation -->
+      <div class="tab-nav flex items-center">
+        <button class="tab-btn active" data-view="ai-search" onclick="switchView('ai-search')">
+          <span id="tab-ai-search-text"></span>
+        </button>
+        <button class="tab-btn" data-view="feed" onclick="switchView('feed')">
+          <span id="tab-feed-text"></span>
+        </button>
+      </div>
+
       <div class="flex items-center gap-2">
-        <!-- Refresh -->
-        <button id="refresh-btn" onclick="doRefresh()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
+        <!-- Refresh (feed only) -->
+        <button id="refresh-btn" onclick="doRefresh()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium feed-only-btn hidden">
           <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
           <span id="refresh-text" class="hidden sm:inline"></span>
         </button>
-        <!-- Translate -->
-        <button id="translate-btn" onclick="toggleTranslate()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
+        <!-- Translate (feed only) -->
+        <button id="translate-btn" onclick="toggleTranslate()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium feed-only-btn hidden">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
           </svg>
@@ -149,91 +206,169 @@
     </div>
   </header>
 
-  <!-- Main Layout -->
-  <div class="max-w-[1400px] mx-auto px-4 lg:px-6 py-5 flex gap-6 relative z-10">
-
-    <!-- Sidebar (desktop) -->
-    <aside class="sidebar w-56 shrink-0 sticky top-[72px] self-start hidden lg:block" style="max-height: calc(100vh - 88px); overflow-y: auto;">
-      <!-- KPI Stats -->
-      <div class="mb-5">
-        <div class="grid grid-cols-1 gap-2">
-          <div class="kpi-card px-3.5 py-3">
-            <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-raw"></div>
-            <div class="kpi-value text-xl font-bold" id="kpi-raw">—</div>
-          </div>
-          <div class="kpi-card px-3.5 py-3">
-            <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-clean"></div>
-            <div class="kpi-value text-xl font-bold" id="kpi-clean">—</div>
-          </div>
-          <div class="kpi-card px-3.5 py-3">
-            <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-classified"></div>
-            <div class="kpi-value text-xl font-bold" id="kpi-classified">—</div>
-          </div>
+  <!-- ============ AI Search View ============ -->
+  <div id="view-ai-search" class="view">
+    <div class="max-w-[860px] mx-auto px-4 lg:px-6 py-8 relative z-10">
+      <!-- Hero -->
+      <div id="ai-hero" class="text-center mb-8 fade-in">
+        <div class="ai-hero-icon mx-auto mb-5">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
+          </svg>
         </div>
+        <h2 id="ai-greeting" class="text-2xl font-bold text-white mb-2"></h2>
+        <p id="ai-subtitle-text" class="text-sm text-slate-400"></p>
       </div>
 
-      <!-- Domain Navigation -->
-      <div class="mb-4">
-        <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2" id="sidebar-domain-label"></div>
-        <nav id="sidebar-domains" class="flex flex-col gap-0.5">
-          <!-- filled by JS -->
-        </nav>
+      <!-- Search Input -->
+      <div class="ai-search-box flex items-center gap-3 p-2 pl-5 mb-5">
+        <svg class="w-5 h-5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input id="ai-search-input" type="text" class="ai-search-input flex-1 py-2"
+               onkeydown="if(event.key==='Enter')doAISearch()">
+        <button id="ai-search-btn" onclick="doAISearch()" class="ai-search-btn"></button>
       </div>
-    </aside>
 
-    <!-- Content Area -->
-    <main class="flex-1 min-w-0">
-      <!-- Mobile Domain Bar -->
-      <div class="mobile-domain-bar hidden overflow-x-auto gap-2 mb-4 pb-2" id="mobile-domain-filters" style="scrollbar-width: thin; scrollbar-color: #1e293b transparent;">
+      <!-- Suggestions -->
+      <div id="ai-suggestions" class="flex flex-wrap gap-2 justify-center mb-8">
         <!-- filled by JS -->
       </div>
 
-      <!-- Search + Sort Bar -->
-      <div class="glass-light rounded-2xl p-3 mb-5 flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-1">
-          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input id="search-input" type="text"
-                 class="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/[.06] rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all">
+      <!-- AI Result Area -->
+      <div id="ai-result-area" class="hidden fade-in">
+        <!-- Query display -->
+        <div id="ai-query-display" class="flex items-center gap-2 mb-5">
+          <span class="text-sm text-slate-400" id="ai-query-label"></span>
+          <span id="ai-query-text" class="text-sm font-medium text-white"></span>
+          <button onclick="resetAISearch()" class="ml-auto text-xs text-indigo-400 hover:text-indigo-300 transition-colors" id="ai-new-search-btn"></button>
         </div>
-        <select id="sort-select"
-                class="bg-slate-900/50 border border-white/[.06] rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer min-w-[160px]">
-        </select>
-      </div>
 
-      <!-- Item Count -->
-      <div class="flex items-center justify-between mb-4 px-1">
-        <p id="item-count" class="text-xs text-slate-500 font-medium"></p>
-      </div>
-
-      <!-- Items Grid -->
-      <div id="items-grid" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div class="skeleton h-52"></div>
-        <div class="skeleton h-52"></div>
-        <div class="skeleton h-52"></div>
-        <div class="skeleton h-52"></div>
-        <div class="skeleton h-52"></div>
-        <div class="skeleton h-52"></div>
-      </div>
-
-      <!-- Load More -->
-      <div id="load-more-container" class="hidden text-center py-8">
-        <p id="shown-count" class="text-xs text-slate-500 mb-3"></p>
-        <button id="load-more-btn" onclick="loadMore()" class="btn-ghost px-8 py-2.5 text-sm font-medium"></button>
-      </div>
-
-      <!-- Empty State -->
-      <div id="empty-state" class="hidden text-center py-20">
-        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
-          <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
+        <!-- Loading -->
+        <div id="ai-loading" class="hidden text-center py-12">
+          <div class="ai-loading-dots mb-3"><span></span><span></span><span></span></div>
+          <p id="ai-loading-text" class="text-sm text-slate-500"></p>
         </div>
-        <p id="empty-title" class="text-slate-400 text-base font-medium"></p>
-        <p id="empty-sub" class="text-slate-600 text-sm mt-1"></p>
+
+        <!-- Error -->
+        <div id="ai-error" class="hidden text-center py-12">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-900/30 flex items-center justify-center">
+            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+          </div>
+          <p id="ai-error-text" class="text-sm text-red-300"></p>
+        </div>
+
+        <!-- AI Answer -->
+        <div id="ai-answer-panel" class="ai-answer-panel p-6 mb-6 hidden">
+          <div class="flex items-center gap-2.5 mb-4">
+            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+              </svg>
+            </div>
+            <span class="text-sm font-semibold text-white">InsightRadar AI</span>
+          </div>
+          <div id="ai-answer-content" class="text-sm leading-relaxed"></div>
+        </div>
+
+        <!-- Sources -->
+        <div id="ai-sources-section" class="hidden">
+          <h4 id="ai-sources-label" class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3"></h4>
+          <div id="ai-sources-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
       </div>
-    </main>
+    </div>
+  </div>
+
+  <!-- ============ Feed View ============ -->
+  <div id="view-feed" class="view hidden">
+    <div class="max-w-[1400px] mx-auto px-4 lg:px-6 py-5 flex gap-6 relative z-10">
+
+      <!-- Sidebar (desktop) -->
+      <aside class="sidebar w-56 shrink-0 sticky top-[72px] self-start hidden lg:block" style="max-height: calc(100vh - 88px); overflow-y: auto;">
+        <!-- KPI Stats -->
+        <div class="mb-5">
+          <div class="grid grid-cols-1 gap-2">
+            <div class="kpi-card px-3.5 py-3">
+              <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-raw"></div>
+              <div class="kpi-value text-xl font-bold" id="kpi-raw">-</div>
+            </div>
+            <div class="kpi-card px-3.5 py-3">
+              <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-clean"></div>
+              <div class="kpi-value text-xl font-bold" id="kpi-clean">-</div>
+            </div>
+            <div class="kpi-card px-3.5 py-3">
+              <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1" id="kpi-label-classified"></div>
+              <div class="kpi-value text-xl font-bold" id="kpi-classified">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Domain Navigation -->
+        <div class="mb-4">
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2" id="sidebar-domain-label"></div>
+          <nav id="sidebar-domains" class="flex flex-col gap-0.5">
+            <!-- filled by JS -->
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Content Area -->
+      <main class="flex-1 min-w-0">
+        <!-- Mobile Domain Bar -->
+        <div class="mobile-domain-bar hidden overflow-x-auto gap-2 mb-4 pb-2" id="mobile-domain-filters" style="scrollbar-width: thin; scrollbar-color: #1e293b transparent;">
+          <!-- filled by JS -->
+        </div>
+
+        <!-- Search + Sort Bar -->
+        <div class="glass-light rounded-2xl p-3 mb-5 flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input id="search-input" type="text"
+                   class="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/[.06] rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all">
+          </div>
+          <select id="sort-select"
+                  class="bg-slate-900/50 border border-white/[.06] rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer min-w-[160px]">
+          </select>
+        </div>
+
+        <!-- Item Count -->
+        <div class="flex items-center justify-between mb-4 px-1">
+          <p id="item-count" class="text-xs text-slate-500 font-medium"></p>
+        </div>
+
+        <!-- Items Grid -->
+        <div id="items-grid" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div class="skeleton h-52"></div>
+          <div class="skeleton h-52"></div>
+          <div class="skeleton h-52"></div>
+          <div class="skeleton h-52"></div>
+          <div class="skeleton h-52"></div>
+          <div class="skeleton h-52"></div>
+        </div>
+
+        <!-- Load More -->
+        <div id="load-more-container" class="hidden text-center py-8">
+          <p id="shown-count" class="text-xs text-slate-500 mb-3"></p>
+          <button id="load-more-btn" onclick="loadMore()" class="btn-ghost px-8 py-2.5 text-sm font-medium"></button>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-20">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
+            <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <p id="empty-title" class="text-slate-400 text-base font-medium"></p>
+          <p id="empty-sub" class="text-slate-600 text-sm mt-1"></p>
+        </div>
+      </main>
+    </div>
   </div>
 
   <script>
@@ -275,6 +410,18 @@
         stars: 'Stars',
         comments: '评论',
         timeAgo: { s: '秒前', m: '分钟前', h: '小时前', d: '天前' },
+        // AI Search
+        tabAISearch: 'AI 搜索',
+        tabFeed: '信息流',
+        aiGreeting: '今天想了解什么？',
+        aiSubtitle: '询问今天的科技新闻和开源动态',
+        aiSearchPlaceholder: '例如：AI coding 最新动态、安全漏洞、开源项目...',
+        aiSearchBtn: '搜索',
+        aiSearching: '正在分析相关情报...',
+        aiSourcesLabel: '引用来源',
+        aiQueryLabel: '搜索：',
+        aiNewSearch: '新搜索',
+        aiSuggestions: ['AI coding', '安全漏洞', '开源项目', 'DevTools 趋势', '云计算动态'],
       },
       en: {
         subtitle: 'Global Innovation Intelligence',
@@ -312,20 +459,62 @@
         stars: 'Stars',
         comments: 'Comments',
         timeAgo: { s: 's ago', m: 'm ago', h: 'h ago', d: 'd ago' },
+        // AI Search
+        tabAISearch: 'AI Search',
+        tabFeed: 'Feed',
+        aiGreeting: 'What do you want to know?',
+        aiSubtitle: 'Ask about today\'s tech news and open source trends',
+        aiSearchPlaceholder: 'e.g., AI coding trends, security vulnerabilities, open source...',
+        aiSearchBtn: 'Search',
+        aiSearching: 'Analyzing relevant intelligence...',
+        aiSourcesLabel: 'Sources',
+        aiQueryLabel: 'Search:',
+        aiNewSearch: 'New search',
+        aiSuggestions: ['AI coding', 'Security', 'Open source', 'DevTools trends', 'Cloud updates'],
       },
     };
 
     let lang = localStorage.getItem('ir-lang') || 'zh';
+    let currentView = 'ai-search';
     function t() { return I18N[lang]; }
+
+    // ========== View Switching ==========
+    function switchView(view) {
+      currentView = view;
+      document.getElementById('view-ai-search').classList.toggle('hidden', view !== 'ai-search');
+      document.getElementById('view-feed').classList.toggle('hidden', view !== 'feed');
+
+      // Tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
+      });
+
+      // Feed-only buttons
+      document.querySelectorAll('.feed-only-btn').forEach(btn => {
+        btn.classList.toggle('hidden', view !== 'feed');
+      });
+
+      // Load feed data on first switch
+      if (view === 'feed' && !feedLoaded) {
+        feedLoaded = true;
+        loadDomains();
+        loadItems(false);
+        loadStats();
+      }
+    }
+
+    let feedLoaded = false;
 
     function setLang(l) {
       lang = l;
       localStorage.setItem('ir-lang', l);
       document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
       applyLang();
-      loadDomains();
-      resetAndLoadItems();
-      loadStats();
+      if (feedLoaded) {
+        loadDomains();
+        resetAndLoadItems();
+        loadStats();
+      }
     }
 
     function applyLang() {
@@ -357,6 +546,26 @@
       document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
       });
+
+      // Tab labels
+      document.getElementById('tab-ai-search-text').textContent = s.tabAISearch;
+      document.getElementById('tab-feed-text').textContent = s.tabFeed;
+
+      // AI Search labels
+      document.getElementById('ai-greeting').textContent = s.aiGreeting;
+      document.getElementById('ai-subtitle-text').textContent = s.aiSubtitle;
+      document.getElementById('ai-search-input').placeholder = s.aiSearchPlaceholder;
+      document.getElementById('ai-search-btn').textContent = s.aiSearchBtn;
+      document.getElementById('ai-loading-text').textContent = s.aiSearching;
+      document.getElementById('ai-sources-label').textContent = s.aiSourcesLabel;
+      document.getElementById('ai-query-label').textContent = s.aiQueryLabel;
+      document.getElementById('ai-new-search-btn').textContent = s.aiNewSearch;
+
+      // Render suggestions
+      const sugContainer = document.getElementById('ai-suggestions');
+      sugContainer.innerHTML = s.aiSuggestions.map(sug =>
+        `<button class="suggestion-chip" onclick="doAISearch('${sug}')">${sug}</button>`
+      ).join('');
     }
 
     // ========== Config ==========
@@ -396,6 +605,7 @@
     let totalItems = 0;
     let translateMode = false;
     const translationCache = {};
+    let aiSearchAbort = null;
 
     // ========== Toast ==========
     function showToast(msg, type = 'info') {
@@ -615,6 +825,224 @@
       }
     }
 
+    // ========== AI Search ==========
+    let aiSources = [];
+
+    function resetAISearch() {
+      document.getElementById('ai-hero').classList.remove('hidden');
+      document.getElementById('ai-suggestions').classList.remove('hidden');
+      document.getElementById('ai-result-area').classList.add('hidden');
+      document.getElementById('ai-loading').classList.add('hidden');
+      document.getElementById('ai-error').classList.add('hidden');
+      document.getElementById('ai-answer-panel').classList.add('hidden');
+      document.getElementById('ai-sources-section').classList.add('hidden');
+      document.getElementById('ai-search-input').value = '';
+      document.getElementById('ai-search-btn').disabled = false;
+      document.getElementById('ai-answer-content').innerHTML = '';
+      aiSources = [];
+      if (aiSearchAbort) { aiSearchAbort.abort(); aiSearchAbort = null; }
+    }
+
+    async function doAISearch(query) {
+      if (!query) query = document.getElementById('ai-search-input').value.trim();
+      if (!query) return;
+
+      // Abort previous
+      if (aiSearchAbort) { aiSearchAbort.abort(); aiSearchAbort = null; }
+
+      document.getElementById('ai-search-input').value = query;
+      document.getElementById('ai-hero').classList.add('hidden');
+      document.getElementById('ai-suggestions').classList.add('hidden');
+      document.getElementById('ai-result-area').classList.remove('hidden');
+      document.getElementById('ai-query-text').textContent = query;
+      document.getElementById('ai-loading').classList.remove('hidden');
+      document.getElementById('ai-error').classList.add('hidden');
+      document.getElementById('ai-answer-panel').classList.add('hidden');
+      document.getElementById('ai-sources-section').classList.add('hidden');
+      document.getElementById('ai-answer-content').innerHTML = '';
+      document.getElementById('ai-search-btn').disabled = true;
+      aiSources = [];
+
+      const controller = new AbortController();
+      aiSearchAbort = controller;
+      let fullText = '';
+
+      try {
+        const resp = await fetch('/api/ai-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+          signal: controller.signal,
+        });
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // keep incomplete line
+
+          let eventType = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7).trim();
+              continue;
+            }
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6);
+
+              if (eventType === 'sources') {
+                try {
+                  aiSources = JSON.parse(dataStr);
+                  renderAISources(aiSources);
+                } catch (e) {}
+                eventType = '';
+                continue;
+              }
+
+              if (eventType === 'error') {
+                try {
+                  const err = JSON.parse(dataStr);
+                  showAIError(err.error || 'Unknown error');
+                } catch (e) {
+                  showAIError(dataStr);
+                }
+                eventType = '';
+                continue;
+              }
+
+              if (eventType === 'done') {
+                // Finalize
+                renderFinalMarkdown(fullText);
+                eventType = '';
+                continue;
+              }
+
+              // Text chunk
+              try {
+                const chunk = JSON.parse(dataStr);
+                if (chunk.text) {
+                  fullText += chunk.text;
+                  document.getElementById('ai-loading').classList.add('hidden');
+                  document.getElementById('ai-answer-panel').classList.remove('hidden');
+                  renderStreamingMarkdown(fullText);
+                }
+              } catch (e) {}
+              eventType = '';
+            }
+          }
+        }
+
+        // If stream ended without done event
+        if (fullText) renderFinalMarkdown(fullText);
+
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          showAIError(e.message);
+        }
+      } finally {
+        document.getElementById('ai-search-btn').disabled = false;
+        document.getElementById('ai-loading').classList.add('hidden');
+        aiSearchAbort = null;
+      }
+    }
+
+    function showAIError(msg) {
+      document.getElementById('ai-loading').classList.add('hidden');
+      document.getElementById('ai-error').classList.remove('hidden');
+      document.getElementById('ai-error-text').textContent = msg;
+    }
+
+    function renderAISources(sources) {
+      if (!sources.length) return;
+      const grid = document.getElementById('ai-sources-grid');
+      const section = document.getElementById('ai-sources-section');
+      section.classList.remove('hidden');
+
+      grid.innerHTML = sources.map((item, i) => {
+        const dc = DOMAIN_COLORS[item.domain] || DOMAIN_COLORS['Other'];
+        const heatColor = getHeatColor(item.heat_index);
+        const srcBadges = (item.sources || []).map(s => {
+          const st = SOURCE_STYLES[s] || SOURCE_STYLES['rss'];
+          return `<span class="source-badge" style="background:${st.bg};color:${st.text}">${st.label}</span>`;
+        }).join('');
+
+        return `
+          <a href="${item.url}" target="_blank" rel="noopener"
+             class="ai-source-card" id="ai-source-${i + 1}">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">[${i + 1}]</span>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text}">${item.domain}</span>
+              <span class="text-xs font-bold ml-auto" style="color:${heatColor}">${item.heat_index}</span>
+            </div>
+            <p class="text-xs font-semibold text-slate-200 leading-snug mb-1.5 line-clamp-2">${item.title}</p>
+            <div class="flex items-center gap-2 text-[10px]">
+              ${srcBadges}
+              ${item.stars > 0 ? `<span class="text-slate-500">${item.stars} stars</span>` : ''}
+              ${item.comments_count > 0 ? `<span class="text-slate-500">${item.comments_count} comments</span>` : ''}
+            </div>
+          </a>
+        `;
+      }).join('');
+    }
+
+    // ========== Markdown Rendering ==========
+    function renderMarkdown(text) {
+      let html = text
+        // Escape HTML
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        // Headers
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        // Bold
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        // Links [text](url)
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        // Citations [N]
+        .replace(/\[(\d+)\]/g, '<span class="citation" onclick="scrollToSource($1)">$1</span>')
+        // List items
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        // Wrap consecutive <li> in <ul>
+        .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
+        // Paragraphs (double newline)
+        .replace(/\n\n/g, '</p><p>')
+        // Single newlines within paragraphs
+        .replace(/\n/g, '<br>');
+
+      // Wrap in <p> if not starting with block element
+      if (!html.startsWith('<h3>') && !html.startsWith('<ul>')) {
+        html = '<p>' + html + '</p>';
+      }
+
+      // Clean up empty <p> tags
+      html = html.replace(/<p><\/p>/g, '').replace(/<p>(<h3>)/g, '$1').replace(/(<\/h3>)<\/p>/g, '$1');
+
+      return html;
+    }
+
+    function renderStreamingMarkdown(text) {
+      const content = document.getElementById('ai-answer-content');
+      content.innerHTML = renderMarkdown(text) + '<span class="streaming-cursor"></span>';
+      content.scrollTop = content.scrollHeight;
+    }
+
+    function renderFinalMarkdown(text) {
+      const content = document.getElementById('ai-answer-content');
+      content.innerHTML = renderMarkdown(text);
+    }
+
+    function scrollToSource(n) {
+      const card = document.getElementById(`ai-source-${n}`);
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('highlight');
+      setTimeout(() => card.classList.remove('highlight'), 2000);
+    }
+
     // ========== Data Loading ==========
     async function loadDomains() {
       const resp = await fetch('/api/domains');
@@ -772,9 +1200,7 @@
 
     // ========== Init ==========
     applyLang();
-    loadDomains();
-    loadItems(false);
-    loadStats();
+    // Default to AI search view - feed data loads lazily on tab switch
   </script>
 </body>
 </html>
