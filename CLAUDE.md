@@ -17,6 +17,18 @@
 
 ---
 
+## ⚠️ Python 环境
+
+**必须使用项目虚拟环境 `.venv`，禁止使用全局 Python。**
+
+- 执行 Python 命令时，始终使用 `.venv/Scripts/python.exe`（Windows）或 `.venv/bin/python`（Linux/macOS）
+- 示例：`.venv/Scripts/python.exe src/pipeline.py collect`
+- 启动 Dashboard：`.venv/Scripts/python.exe -m uvicorn src.server:app --host 127.0.0.1 --port 8000`
+- 安装依赖：`.venv/Scripts/python.exe -m pip install -r requirements.txt`
+- **不要** `pip install` 到全局环境
+
+---
+
 ## 项目概述
 InsightRadar 从 GitHub、Hacker News、RSS 等多源采集数据，经清洗/分类/热度评估后，生成"全球创新日报"。
 
@@ -32,11 +44,11 @@ GitHub API + HN API + RSS → Python collectors → SQLite (raw_items)
 ```
 
 ## 关键命令
-- `python src/pipeline.py collect` — 采集数据
-- `python src/pipeline.py collect --source github` — 仅采集 GitHub
-- `python src/pipeline.py status` — 查看数据库状态
-- `python src/pipeline.py export` — 导出数据为 JSON
-- `python -m uvicorn src.server:app --host 127.0.0.1 --port 8000` — 启动 Web Dashboard
+- `.venv/Scripts/python.exe src/pipeline.py collect` — 采集数据
+- `.venv/Scripts/python.exe src/pipeline.py collect --source github` — 仅采集 GitHub
+- `.venv/Scripts/python.exe src/pipeline.py status` — 查看数据库状态
+- `.venv/Scripts/python.exe src/pipeline.py export` — 导出数据为 JSON
+- `.venv/Scripts/python.exe -m uvicorn src.server:app --host 127.0.0.1 --port 8000` — 启动 Web Dashboard
 - `/insight-radar` — 全流程：采集 → 清洗 → 分类 → 报告
 
 ## 目录结构
