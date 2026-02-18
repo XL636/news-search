@@ -260,6 +260,28 @@
           <p id="ai-error-text" class="text-sm text-red-300"></p>
         </div>
 
+        <!-- API Key Setup -->
+        <div id="ai-key-setup" class="hidden">
+          <div class="ai-answer-panel p-6 max-w-lg mx-auto">
+            <div class="flex items-center gap-2.5 mb-4">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/>
+                </svg>
+              </div>
+              <span id="ai-key-title" class="text-sm font-semibold text-white"></span>
+            </div>
+            <p id="ai-key-desc" class="text-xs text-slate-400 mb-4"></p>
+            <div class="flex gap-2">
+              <input id="ai-key-input" type="password"
+                     class="flex-1 px-4 py-2.5 bg-slate-900/50 border border-white/[.06] rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+                     onkeydown="if(event.key==='Enter')saveApiKey()">
+              <button onclick="saveApiKey()" class="ai-search-btn" id="ai-key-save-btn"></button>
+            </div>
+            <p id="ai-key-status" class="text-xs mt-2 hidden"></p>
+          </div>
+        </div>
+
         <!-- AI Answer -->
         <div id="ai-answer-panel" class="ai-answer-panel p-6 mb-6 hidden">
           <div class="flex items-center gap-2.5 mb-4">
@@ -422,6 +444,12 @@
         aiQueryLabel: '搜索：',
         aiNewSearch: '新搜索',
         aiSuggestions: ['AI coding', '安全漏洞', '开源项目', 'DevTools 趋势', '云计算动态'],
+        aiKeyTitle: '配置 AI 搜索',
+        aiKeyDesc: '请输入 ZhipuAI API Key 以启用 AI 搜索功能。可从 open.bigmodel.cn 获取。',
+        aiKeySaveBtn: '保存',
+        aiKeyPlaceholder: '输入 API Key...',
+        aiKeySaved: 'API Key 已保存',
+        aiKeySaveError: '保存失败',
       },
       en: {
         subtitle: 'Global Innovation Intelligence',
@@ -471,6 +499,12 @@
         aiQueryLabel: 'Search:',
         aiNewSearch: 'New search',
         aiSuggestions: ['AI coding', 'Security', 'Open source', 'DevTools trends', 'Cloud updates'],
+        aiKeyTitle: 'Configure AI Search',
+        aiKeyDesc: 'Enter your ZhipuAI API Key to enable AI search. Get one at open.bigmodel.cn.',
+        aiKeySaveBtn: 'Save',
+        aiKeyPlaceholder: 'Enter API Key...',
+        aiKeySaved: 'API Key saved',
+        aiKeySaveError: 'Save failed',
       },
     };
 
@@ -560,6 +594,12 @@
       document.getElementById('ai-sources-label').textContent = s.aiSourcesLabel;
       document.getElementById('ai-query-label').textContent = s.aiQueryLabel;
       document.getElementById('ai-new-search-btn').textContent = s.aiNewSearch;
+
+      // API Key setup labels
+      document.getElementById('ai-key-title').textContent = s.aiKeyTitle;
+      document.getElementById('ai-key-desc').textContent = s.aiKeyDesc;
+      document.getElementById('ai-key-save-btn').textContent = s.aiKeySaveBtn;
+      document.getElementById('ai-key-input').placeholder = s.aiKeyPlaceholder;
 
       // Render suggestions
       const sugContainer = document.getElementById('ai-suggestions');
@@ -834,6 +874,7 @@
       document.getElementById('ai-result-area').classList.add('hidden');
       document.getElementById('ai-loading').classList.add('hidden');
       document.getElementById('ai-error').classList.add('hidden');
+      document.getElementById('ai-key-setup').classList.add('hidden');
       document.getElementById('ai-answer-panel').classList.add('hidden');
       document.getElementById('ai-sources-section').classList.add('hidden');
       document.getElementById('ai-search-input').value = '';
@@ -954,8 +995,51 @@
 
     function showAIError(msg) {
       document.getElementById('ai-loading').classList.add('hidden');
+      if (msg === 'needsApiKey') {
+        // Show API key setup panel instead of generic error
+        document.getElementById('ai-error').classList.add('hidden');
+        document.getElementById('ai-key-setup').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('ai-key-setup').classList.add('hidden');
       document.getElementById('ai-error').classList.remove('hidden');
       document.getElementById('ai-error-text').textContent = msg;
+    }
+
+    async function saveApiKey() {
+      const input = document.getElementById('ai-key-input');
+      const status = document.getElementById('ai-key-status');
+      const key = input.value.trim();
+      if (!key) return;
+
+      try {
+        const resp = await fetch('/api/ai-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key }),
+        });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+          status.textContent = t().aiKeySaved;
+          status.className = 'text-xs mt-2 text-emerald-400';
+          status.classList.remove('hidden');
+          // Re-run the previous search after a short delay
+          setTimeout(() => {
+            document.getElementById('ai-key-setup').classList.add('hidden');
+            status.classList.add('hidden');
+            const query = document.getElementById('ai-search-input').value.trim();
+            if (query) doAISearch(query);
+          }, 800);
+        } else {
+          status.textContent = data.message || t().aiKeySaveError;
+          status.className = 'text-xs mt-2 text-red-400';
+          status.classList.remove('hidden');
+        }
+      } catch (e) {
+        status.textContent = t().aiKeySaveError + ': ' + e.message;
+        status.className = 'text-xs mt-2 text-red-400';
+        status.classList.remove('hidden');
+      }
     }
 
     function renderAISources(sources) {

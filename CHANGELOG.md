@@ -4,6 +4,17 @@
 
 ---
 
+## [0.8.1] - 2026-02-18
+
+### Added
+- **API Key 管理 UI**：AI 搜索无 API Key 时自动显示配置面板，用户可直接在界面输入并保存 ZhipuAI API Key
+- 后端 `GET/POST /api/ai-config` 端点：查询/保存 API Key，持久化到 `data/settings.json`
+- `_runtime_api_key` 运行时 API Key 管理：环境变量 → settings 文件 → UI 设置三级来源
+- 前端 `#ai-key-setup` 面板：Glass 风格卡片、密码输入框、保存按钮、状态提示
+- `saveApiKey()` 函数：保存后自动重试之前的搜索
+- `showAIError()` 增强：检测 `needsApiKey` 信号时显示配置面板而非通用错误
+- i18n 新增键：aiKeyTitle、aiKeyDesc、aiKeySaveBtn、aiKeyPlaceholder、aiKeySaved、aiKeySaveError（中英文）
+
 ## [0.8.0] - 2026-02-18
 
 ### Added

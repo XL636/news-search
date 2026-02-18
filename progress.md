@@ -43,6 +43,7 @@
 | report-gen v2 (Word + 领域模板) | ✅ 完成 | 100% |
 | Dashboard v3 视觉重设计 | ✅ 完成 | 100% |
 | Dashboard AI 搜索功能 | ✅ 完成 | 100% |
+| API Key 管理 UI | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -93,6 +94,16 @@ KPI：原始采集/清洗/分类 三个统计卡片
 前端：双视图 Tab（AI 搜索 / 信息流），默认 AI 搜索
 UI：Perplexity 风格 — hero 欢迎语 + 建议 chips + 流式 Markdown + [N] 引用徽章 + 来源卡片
 渲染：轻量 regex Markdown 解析 + streaming cursor 动画
+```
+
+### API Key 管理 UI（2026-02-18）
+
+```
+后端：GET/POST /api/ai-config 查询/保存 API Key
+存储：data/settings.json 持久化，环境变量优先
+前端：#ai-key-setup 配置面板 — Glass 风格卡片、密码输入框、保存/状态提示
+流程：无 key 搜索 → needsApiKey → 显示面板 → 保存 → 自动重试搜索
+i18n：中英双语（aiKeyTitle/aiKeyDesc/aiKeySaveBtn/aiKeyPlaceholder/aiKeySaved/aiKeySaveError）
 ```
 
 ---

@@ -36,6 +36,7 @@
 | 27 | 首次 AI Coding .docx 报告生成 | 2026-02-18 | 通过 MCP 等效接口获取数据，自定义关键词模板，55 条匹配，40KB docx |
 | 28 | Dashboard v3 — 全面视觉重设计 | 2026-02-18 | 侧边栏布局、KPI 卡片、Glass-morphism、3列响应式、ambient 背景 |
 | 29 | Dashboard AI 搜索功能 | 2026-02-18 | GLM-4-Plus 流式 SSE + 双视图 Tab + Perplexity 风格引用 |
+| 30 | API Key 管理 UI | 2026-02-18 | 前端配置面板 + GET/POST /api/ai-config + settings.json 持久化 |
 
 ### 进行中 🔄
 
@@ -43,7 +44,7 @@
 |---|------|----------|------|
 | — | 暂无 | — | — |
 
-> **已完成**: #29 Dashboard AI 搜索功能（GLM-4-Plus + 双视图）— 2026-02-18
+> **已完成**: #30 API Key 管理 UI — 2026-02-18
 
 ### 待办 📋
 

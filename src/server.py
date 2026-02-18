@@ -26,17 +26,51 @@ logger = logging.getLogger(__name__)
 
 
 STATIC_DIR = Path(__file__).parent / "static"
+SETTINGS_FILE = Path(__file__).parent.parent / "data" / "settings.json"
 
 _collect_lock = asyncio.Lock()
 _ai_search_semaphore = asyncio.Semaphore(3)
+
+# Runtime API key: env var first, then settings file
+_runtime_api_key: str = ZHIPUAI_API_KEY
+
+
+def _load_api_key() -> str:
+    """Load API key from env var or settings file."""
+    if ZHIPUAI_API_KEY:
+        return ZHIPUAI_API_KEY
+    if SETTINGS_FILE.exists():
+        try:
+            data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+            return data.get("zhipuai_api_key", "")
+        except (json.JSONDecodeError, OSError):
+            pass
+    return ""
+
+
+def _save_api_key(key: str):
+    """Save API key to settings file."""
+    global _runtime_api_key
+    _runtime_api_key = key
+    data = {}
+    if SETTINGS_FILE.exists():
+        try:
+            data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    data["zhipuai_api_key"] = key
+    SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SETTINGS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
+    global _runtime_api_key
     conn = get_connection()
     init_db(conn)
     conn.close()
+    _runtime_api_key = _load_api_key()
     yield
 
 
@@ -197,6 +231,34 @@ async def api_translate(req: TranslateRequest):
     return {"translated": translated, "cached": False}
 
 
+# ========== AI Config ==========
+
+@app.get("/api/ai-config")
+def api_ai_config_get():
+    """Check if AI API key is configured."""
+    has_key = bool(_runtime_api_key)
+    # Return masked key for display
+    masked = ""
+    if _runtime_api_key:
+        k = _runtime_api_key
+        masked = k[:8] + "..." + k[-4:] if len(k) > 12 else "***"
+    return {"configured": has_key, "masked_key": masked}
+
+
+class AIConfigRequest(BaseModel):
+    api_key: str
+
+
+@app.post("/api/ai-config")
+def api_ai_config_post(req: AIConfigRequest):
+    """Save AI API key."""
+    key = req.api_key.strip()
+    if not key:
+        return {"status": "error", "message": "API key 不能为空"}
+    _save_api_key(key)
+    return {"status": "ok", "message": "API key 已保存"}
+
+
 # ========== AI Search ==========
 
 def search_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[dict]:
@@ -300,8 +362,9 @@ async def api_ai_search(req: AISearchRequest):
     async def generate():
         async with _ai_search_semaphore:
             # 1. Check API key
-            if not ZHIPUAI_API_KEY:
-                yield 'event: error\ndata: {"error": "AI 搜索未配置：请设置 ZHIPUAI_API_KEY 环境变量"}\n\n'
+            api_key = _runtime_api_key
+            if not api_key:
+                yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
                 return
 
             # 2. Search matching items
@@ -326,7 +389,7 @@ async def api_ai_search(req: AISearchRequest):
                 "max_tokens": 1024,
             }
             headers = {
-                "Authorization": f"Bearer {ZHIPUAI_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
 
