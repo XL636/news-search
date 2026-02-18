@@ -4,6 +4,30 @@
 
 ---
 
+## [0.9.0] - 2026-02-18
+
+### Added
+- **文章 AI 解读**：Feed 卡片和 AI 来源卡片底部新增「AI 解读」按钮，点击打开右侧滑出面板，流式展示 AI 深度分析
+- **一键最新热点**：AI 搜索栏旁新增闪电「最新热点」按钮，一键获取热度 TOP 20 文章的 AI 总结
+- 后端 `POST /api/ai-analyze` SSE 端点：单文章深度分析（核心概述→技术亮点→行业影响→潜在风险→趋势延伸）
+- 后端 `POST /api/ai-latest` SSE 端点：查询 heat_index TOP 20 + AI 总结，发送 sources + streaming text
+- 后端 `_stream_glm()` 共享异步生成器：封装 GLM API 调用 + SSE 输出，三个端点共用
+- 后端 `build_analysis_prompt()` 文章分析专用 Prompt 构建函数
+- 后端 `get_top_items()` 按热度查询 TOP N 文章
+- 前端 `#ai-analyze-overlay` 侧滑面板：480px 宽（移动端全宽），含文章信息、流式 AI 分析、API Key 配置
+- 前端 `_processSSE()` 共享 SSE 解析函数：`doAISearch`、`doLatestSearch`、`streamAnalysis` 三处复用
+- 前端 `itemDataCache` 对象：缓存卡片 item 数据供 AI 解读面板使用
+- 前端 `.btn-ai-analyze` 琥珀色小按钮样式
+- 前端 `.ai-latest-btn` 闪电按钮样式
+- i18n 新增键：aiAnalyzeBtn、aiAnalyzeTitle、aiAnalyzing、aiLatestBtn、aiLatestQuery（中英文）
+
+### Changed
+- `renderCard()` 重构：footer 区新增 AI 解读按钮，缓存 item 到 `itemDataCache`
+- `renderAISources()` 重构：来源卡片从 `<a>` 改为 `<div>`（避免 `<a>` 内嵌按钮），新增 AI 解读按钮
+- `doAISearch()` 重构：SSE 解析逻辑提取到 `_processSSE()` 共享函数
+- `api_ai_search` 端点重构：GLM 流式代码提取到 `_stream_glm()` 共享函数
+- `resetAISearch()` 更新：重置闪电按钮 disabled 状态
+
 ## [0.8.2] - 2026-02-18
 
 ### Changed

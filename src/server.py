@@ -345,6 +345,58 @@ def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
     ]
 
 
+async def _stream_glm(api_key: str, messages: list[dict]):
+    """Shared async generator: call GLM API and yield SSE chunks."""
+    payload = {
+        "model": ZHIPUAI_MODEL,
+        "messages": messages,
+        "stream": True,
+        "temperature": 0.7,
+        "max_tokens": 1024,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            async with client.stream(
+                "POST", ZHIPUAI_BASE_URL, json=payload, headers=headers
+            ) as resp:
+                if resp.status_code != 200:
+                    body = await resp.aread()
+                    logger.error("GLM API error %s: %s", resp.status_code, body[:500])
+                    yield f'event: error\ndata: {{"error": "AI 服务返回错误 ({resp.status_code})"}}\n\n'
+                    return
+
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            chunk_data = json.dumps({"text": content}, ensure_ascii=False)
+                            yield f"data: {chunk_data}\n\n"
+                    except (json.JSONDecodeError, IndexError, KeyError):
+                        continue
+
+    except httpx.TimeoutException:
+        yield 'event: error\ndata: {"error": "AI 服务请求超时，请稍后重试"}\n\n'
+        return
+    except Exception as e:
+        logger.exception("GLM stream error")
+        yield f'event: error\ndata: {{"error": "AI 服务异常: {str(e)[:100]}"}}\n\n'
+        return
+
+    yield "event: done\ndata: {}\n\n"
+
+
 class AISearchRequest(BaseModel):
     query: str
 
@@ -361,16 +413,12 @@ async def api_ai_search(req: AISearchRequest):
 
     async def generate():
         async with _ai_search_semaphore:
-            # 1. Check API key
             api_key = _runtime_api_key
             if not api_key:
                 yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
                 return
 
-            # 2. Search matching items
             items = search_items_for_ai(req.query)
-
-            # 3. Send sources first
             sources_data = json.dumps(items, ensure_ascii=False)
             yield f"event: sources\ndata: {sources_data}\n\n"
 
@@ -379,56 +427,147 @@ async def api_ai_search(req: AISearchRequest):
                 yield "event: done\ndata: {}\n\n"
                 return
 
-            # 4. Build prompt and call GLM API
             messages = build_ai_prompt(req.query, items)
-            payload = {
-                "model": ZHIPUAI_MODEL,
-                "messages": messages,
-                "stream": True,
-                "temperature": 0.7,
-                "max_tokens": 1024,
-            }
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            }
+            async for chunk in _stream_glm(api_key, messages):
+                yield chunk
 
-            try:
-                async with httpx.AsyncClient(timeout=60) as client:
-                    async with client.stream(
-                        "POST", ZHIPUAI_BASE_URL, json=payload, headers=headers
-                    ) as resp:
-                        if resp.status_code != 200:
-                            body = await resp.aread()
-                            logger.error("GLM API error %s: %s", resp.status_code, body[:500])
-                            yield f'event: error\ndata: {{"error": "AI 服务返回错误 ({resp.status_code})"}}\n\n'
-                            return
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
-                        async for line in resp.aiter_lines():
-                            if not line.startswith("data: "):
-                                continue
-                            data_str = line[6:]
-                            if data_str.strip() == "[DONE]":
-                                break
-                            try:
-                                chunk = json.loads(data_str)
-                                delta = chunk.get("choices", [{}])[0].get("delta", {})
-                                content = delta.get("content", "")
-                                if content:
-                                    chunk_data = json.dumps({"text": content}, ensure_ascii=False)
-                                    yield f"data: {chunk_data}\n\n"
-                            except (json.JSONDecodeError, IndexError, KeyError):
-                                continue
 
-            except httpx.TimeoutException:
-                yield 'event: error\ndata: {"error": "AI 服务请求超时，请稍后重试"}\n\n'
+# ========== AI Analyze (article deep analysis) ==========
+
+def build_analysis_prompt(item_data: dict) -> list[dict]:
+    """Build messages for single-article deep analysis."""
+    system = (
+        "你是 InsightRadar AI 分析助手，专门深度解读科技新闻和开源项目。\n"
+        "根据提供的文章信息，进行多维度深度分析。\n"
+        "规则：\n"
+        "1. 中文回答，技术术语可保留英文\n"
+        "2. 用 Markdown 格式，### 做小标题分组\n"
+        "3. 分析维度：核心内容概述 → 技术亮点 → 行业影响 → 潜在风险 → 趋势延伸\n"
+        "4. 数据中没有的信息不要编造\n"
+        "5. 控制在 600 字以内"
+    )
+
+    tags = ", ".join(item_data.get("tags", [])[:8])
+    sources = ", ".join(item_data.get("sources", []))
+    desc = (item_data.get("description") or "")[:500]
+
+    user_msg = (
+        f"请深度解读以下文章/项目：\n\n"
+        f"标题：{item_data.get('title', '')}\n"
+        f"领域：{item_data.get('domain', '')}\n"
+        f"热度：{item_data.get('heat_index', 0)} — {item_data.get('heat_reason', '')}\n"
+        f"Stars：{item_data.get('stars', 0)} | 评论：{item_data.get('comments_count', 0)}\n"
+        f"来源：{sources}\n"
+        f"标签：{tags}\n"
+        f"描述：{desc}\n"
+        f"URL：{item_data.get('url', '')}\n\n"
+        f"请从以上信息出发，进行深度解读。"
+    )
+
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_msg},
+    ]
+
+
+class AIAnalyzeRequest(BaseModel):
+    title: str = ""
+    url: str = ""
+    description: str = ""
+    domain: str = ""
+    tags: list[str] = []
+    heat_index: int = 0
+    heat_reason: str = ""
+    stars: int = 0
+    comments_count: int = 0
+    sources: list[str] = []
+
+
+@app.post("/api/ai-analyze")
+async def api_ai_analyze(req: AIAnalyzeRequest):
+    """Article deep analysis with streaming SSE response."""
+    if not _ai_search_semaphore._value:
+        return StreamingResponse(
+            iter(["event: error\ndata: {\"error\": \"服务繁忙，请稍后再试\"}\n\n"]),
+            media_type="text/event-stream",
+            status_code=429,
+        )
+
+    async def generate():
+        async with _ai_search_semaphore:
+            api_key = _runtime_api_key
+            if not api_key:
+                yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
                 return
-            except Exception as e:
-                logger.exception("AI search error")
-                yield f'event: error\ndata: {{"error": "AI 搜索异常: {str(e)[:100]}"}}\n\n'
+
+            messages = build_analysis_prompt(req.model_dump())
+            async for chunk in _stream_glm(api_key, messages):
+                yield chunk
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# ========== AI Latest (trending summary) ==========
+
+def get_top_items(limit: int = 20) -> list[dict]:
+    """Get top items by heat_index for trending summary."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]
+    ).fetchall()
+    conn.close()
+
+    items = []
+    for r in rows:
+        items.append({
+            "id": r["id"],
+            "title": r["title"],
+            "url": r["url"],
+            "description": r["description"] or "",
+            "domain": r["domain"],
+            "tags": json.loads(r["tags"]) if r["tags"] else [],
+            "heat_index": r["heat_index"],
+            "heat_reason": r["heat_reason"] or "",
+            "stars": r["stars"],
+            "comments_count": r["comments_count"],
+            "sources": json.loads(r["sources"]) if r["sources"] else [],
+            "published_at": r["published_at"],
+        })
+    return items
+
+
+@app.post("/api/ai-latest")
+async def api_ai_latest():
+    """Trending news AI summary with streaming SSE response."""
+    if not _ai_search_semaphore._value:
+        return StreamingResponse(
+            iter(["event: error\ndata: {\"error\": \"服务繁忙，请稍后再试\"}\n\n"]),
+            media_type="text/event-stream",
+            status_code=429,
+        )
+
+    async def generate():
+        async with _ai_search_semaphore:
+            api_key = _runtime_api_key
+            if not api_key:
+                yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
                 return
 
-            yield "event: done\ndata: {}\n\n"
+            items = get_top_items(20)
+            sources_data = json.dumps(items, ensure_ascii=False)
+            yield f"event: sources\ndata: {sources_data}\n\n"
+
+            if not items:
+                yield 'data: {"text": "数据库中暂无数据，请先采集数据。"}\n\n'
+                yield "event: done\ndata: {}\n\n"
+                return
+
+            query = "今日最热科技新闻与开源动态"
+            messages = build_ai_prompt(query, items)
+            async for chunk in _stream_glm(api_key, messages):
+                yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 

@@ -45,6 +45,9 @@
 | Dashboard AI 搜索功能 | ✅ 完成 | 100% |
 | API Key 管理 UI | ✅ 完成 | 100% |
 | Dashboard 暖色主题 | ✅ 完成 | 100% |
+| 文章 AI 解读功能 | ✅ 完成 | 100% |
+| 一键最新热点功能 | ✅ 完成 | 100% |
+| 后端/前端 GLM+SSE 重构 | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -117,6 +120,23 @@ i18n：中英双语（aiKeyTitle/aiKeyDesc/aiKeySaveBtn/aiKeyPlaceholder/aiKeySa
 光球：amber #d97706 + brown #92400e ambient 渐变
 领域色：AI/ML 琥珀金、Security 暖黄、DevTools 暖绿、Web 暖灰
 热度：正常 #b08d57 暖铜、高热 amber 渐变、低热 #78716c
+```
+
+### 文章 AI 解读 + 一键最新热点（2026-02-18）
+
+```
+文章解读：卡片底部 AI 解读按钮 → 右侧滑出 480px 面板 → 流式 AI 分析
+  后端：POST /api/ai-analyze SSE（核心概述→技术亮点→行业影响→潜在风险→趋势延伸）
+  前端：#ai-analyze-overlay 侧滑面板 + streamAnalysis() + closeAnalyzePanel()
+
+最新热点：搜索栏旁闪电按钮 → heat_index TOP 20 → AI 总结
+  后端：POST /api/ai-latest SSE（get_top_items → build_ai_prompt → _stream_glm）
+  前端：doLatestSearch() 复用 _processSSE() 共享 SSE 解析
+
+重构：
+  后端：_stream_glm() 共享 GLM 流式生成器，三端点复用
+  前端：_processSSE() 共享 SSE 解析，三处复用
+  前端：itemDataCache 缓存卡片数据，renderAISources 改为 <div>
 ```
 
 ---

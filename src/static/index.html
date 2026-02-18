@@ -143,6 +143,29 @@
     .ai-loading-dots span:nth-child(2) { animation-delay: .2s; }
     .ai-loading-dots span:nth-child(3) { animation-delay: .4s; }
 
+    /* === AI Analyze Button on Cards === */
+    .btn-ai-analyze { font-size: 10px; padding: 2px 8px; border-radius: 6px; background: rgba(217,119,6,.1); color: #fbbf24; border: 1px solid rgba(217,119,6,.2); cursor: pointer; transition: all .2s; font-weight: 600; white-space: nowrap; }
+    .btn-ai-analyze:hover { background: rgba(217,119,6,.25); border-color: rgba(217,119,6,.4); color: #fff; }
+
+    /* === AI Analyze Overlay + Slide Panel === */
+    #ai-analyze-overlay { position: fixed; inset: 0; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .3s; }
+    #ai-analyze-overlay.open { pointer-events: auto; opacity: 1; }
+    #ai-analyze-overlay .overlay-bg { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+    #ai-analyze-panel { position: absolute; top: 0; right: 0; width: 480px; max-width: 100vw; height: 100vh; background: #16150f; border-left: 1px solid rgba(168,162,150,.08); transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; overflow: hidden; }
+    #ai-analyze-overlay.open #ai-analyze-panel { transform: translateX(0); }
+    #ai-analyze-panel-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    #ai-analyze-panel-content h3 { font-size: 15px; font-weight: 700; color: #e7e5e0; margin: 20px 0 8px 0; }
+    #ai-analyze-panel-content h3:first-child { margin-top: 0; }
+    #ai-analyze-panel-content p { font-size: 14px; line-height: 1.75; color: #d4d0c8; margin: 8px 0; }
+    #ai-analyze-panel-content ul { margin: 8px 0; padding-left: 20px; }
+    #ai-analyze-panel-content li { font-size: 14px; line-height: 1.75; color: #d4d0c8; margin: 4px 0; }
+    #ai-analyze-panel-content strong { color: #e7e5e0; }
+
+    /* === Lightning Button === */
+    .ai-latest-btn { background: rgba(217,119,6,.12); color: #fbbf24; border: 1px solid rgba(217,119,6,.25); border-radius: 12px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .ai-latest-btn:hover { background: rgba(217,119,6,.2); border-color: rgba(217,119,6,.4); box-shadow: 0 4px 16px rgba(217,119,6,.2); transform: translateY(-1px); }
+    .ai-latest-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
     /* === Responsive === */
     @media (max-width: 1023px) {
       .sidebar { display: none !important; }
@@ -150,6 +173,9 @@
     }
     @media (min-width: 1024px) {
       .mobile-domain-bar { display: none !important; }
+    }
+    @media (max-width: 640px) {
+      #ai-analyze-panel { width: 100vw; }
     }
   </style>
 </head>
@@ -227,6 +253,10 @@
         </svg>
         <input id="ai-search-input" type="text" class="ai-search-input flex-1 py-2"
                onkeydown="if(event.key==='Enter')doAISearch()">
+        <button id="ai-latest-btn" onclick="doLatestSearch()" class="ai-latest-btn">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span id="ai-latest-btn-text"></span>
+        </button>
         <button id="ai-search-btn" onclick="doAISearch()" class="ai-search-btn"></button>
       </div>
 
@@ -393,6 +423,60 @@
     </div>
   </div>
 
+  <!-- AI Analyze Slide Panel Overlay -->
+  <div id="ai-analyze-overlay">
+    <div class="overlay-bg" onclick="closeAnalyzePanel()"></div>
+    <div id="ai-analyze-panel">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/[.06]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+            </svg>
+          </div>
+          <span id="analyze-panel-title" class="text-sm font-semibold text-white"></span>
+        </div>
+        <button onclick="closeAnalyzePanel()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[.06] text-stone-400 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Article info -->
+      <div id="analyze-article-info" class="px-5 py-3 border-b border-white/[.04]"></div>
+      <!-- Content -->
+      <div id="ai-analyze-panel-content" class="flex-1 overflow-y-auto px-5 py-4">
+        <div id="analyze-loading" class="text-center py-12">
+          <div class="ai-loading-dots mb-3"><span></span><span></span><span></span></div>
+          <p id="analyze-loading-text" class="text-sm text-stone-500"></p>
+        </div>
+        <div id="analyze-result" class="hidden"></div>
+        <div id="analyze-error" class="hidden text-center py-12">
+          <p id="analyze-error-text" class="text-sm text-red-300"></p>
+        </div>
+        <div id="analyze-key-setup" class="hidden">
+          <div class="ai-answer-panel p-6">
+            <div class="flex items-center gap-2.5 mb-4">
+              <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/>
+                </svg>
+              </div>
+              <span id="analyze-key-title" class="text-sm font-semibold text-white"></span>
+            </div>
+            <p id="analyze-key-desc" class="text-xs text-stone-400 mb-4"></p>
+            <div class="flex gap-2">
+              <input id="analyze-key-input" type="password"
+                     class="flex-1 px-4 py-2.5 bg-stone-900/50 border border-white/[.06] rounded-xl text-sm text-stone-200 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                     onkeydown="if(event.key==='Enter')saveApiKeyFromPanel()">
+              <button onclick="saveApiKeyFromPanel()" class="ai-search-btn" id="analyze-key-save-btn"></button>
+            </div>
+            <p id="analyze-key-status" class="text-xs mt-2 hidden"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ========== i18n ==========
     const I18N = {
@@ -450,6 +534,11 @@
         aiKeyPlaceholder: '输入 API Key...',
         aiKeySaved: 'API Key 已保存',
         aiKeySaveError: '保存失败',
+        aiAnalyzeBtn: 'AI 解读',
+        aiAnalyzeTitle: 'AI 深度解读',
+        aiAnalyzing: '正在分析文章...',
+        aiLatestBtn: '最新热点',
+        aiLatestQuery: '今日最热科技新闻与开源动态',
       },
       en: {
         subtitle: 'Global Innovation Intelligence',
@@ -505,6 +594,11 @@
         aiKeyPlaceholder: 'Enter API Key...',
         aiKeySaved: 'API Key saved',
         aiKeySaveError: 'Save failed',
+        aiAnalyzeBtn: 'AI Analysis',
+        aiAnalyzeTitle: 'AI Deep Analysis',
+        aiAnalyzing: 'Analyzing article...',
+        aiLatestBtn: 'Trending',
+        aiLatestQuery: "Today's hottest tech news and open source trends",
       },
     };
 
@@ -601,6 +695,17 @@
       document.getElementById('ai-key-save-btn').textContent = s.aiKeySaveBtn;
       document.getElementById('ai-key-input').placeholder = s.aiKeyPlaceholder;
 
+      // AI Analyze panel labels
+      document.getElementById('analyze-panel-title').textContent = s.aiAnalyzeTitle;
+      document.getElementById('analyze-loading-text').textContent = s.aiAnalyzing;
+      document.getElementById('analyze-key-title').textContent = s.aiKeyTitle;
+      document.getElementById('analyze-key-desc').textContent = s.aiKeyDesc;
+      document.getElementById('analyze-key-save-btn').textContent = s.aiKeySaveBtn;
+      document.getElementById('analyze-key-input').placeholder = s.aiKeyPlaceholder;
+
+      // Lightning button
+      document.getElementById('ai-latest-btn-text').textContent = s.aiLatestBtn;
+
       // Render suggestions
       const sugContainer = document.getElementById('ai-suggestions');
       sugContainer.innerHTML = s.aiSuggestions.map(sug =>
@@ -646,6 +751,8 @@
     let translateMode = false;
     const translationCache = {};
     let aiSearchAbort = null;
+    let analyzeAbort = null;
+    const itemDataCache = {};
 
     // ========== Toast ==========
     function showToast(msg, type = 'info') {
@@ -697,6 +804,9 @@
 
     // ========== Card Render ==========
     function renderCard(item) {
+      const cacheKey = 'item-' + item.id;
+      itemDataCache[cacheKey] = item;
+
       const dc = DOMAIN_COLORS[item.domain] || DOMAIN_COLORS['Other'];
       const heatColor = getHeatColor(item.heat_index);
       const heatGrad = getHeatGradient(item.heat_index);
@@ -748,6 +858,10 @@
             <div class="flex items-center gap-2">
               ${badges}
               ${ago ? `<span class="text-stone-500">${ago}</span>` : ''}
+              <button class="btn-ai-analyze" onclick="event.stopPropagation();openAnalyzePanel(itemDataCache['${cacheKey}'])">
+                <svg class="w-3 h-3 inline -mt-px mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+                ${t().aiAnalyzeBtn}
+              </button>
             </div>
             <div class="flex items-center gap-3 text-stone-500">
               ${item.stars > 0 ? `<span class="flex items-center gap-1" title="${t().stars}"><svg class="w-3 h-3 text-yellow-500/70" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>${item.stars.toLocaleString()}</span>` : ''}
@@ -879,6 +993,7 @@
       document.getElementById('ai-sources-section').classList.add('hidden');
       document.getElementById('ai-search-input').value = '';
       document.getElementById('ai-search-btn').disabled = false;
+      document.getElementById('ai-latest-btn').disabled = false;
       document.getElementById('ai-answer-content').innerHTML = '';
       aiSources = [];
       if (aiSearchAbort) { aiSearchAbort.abort(); aiSearchAbort = null; }
@@ -898,10 +1013,12 @@
       document.getElementById('ai-query-text').textContent = query;
       document.getElementById('ai-loading').classList.remove('hidden');
       document.getElementById('ai-error').classList.add('hidden');
+      document.getElementById('ai-key-setup').classList.add('hidden');
       document.getElementById('ai-answer-panel').classList.add('hidden');
       document.getElementById('ai-sources-section').classList.add('hidden');
       document.getElementById('ai-answer-content').innerHTML = '';
       document.getElementById('ai-search-btn').disabled = true;
+      document.getElementById('ai-latest-btn').disabled = true;
       aiSources = [];
 
       const controller = new AbortController();
@@ -916,70 +1033,25 @@
           signal: controller.signal,
         });
 
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
+        await _processSSE(resp, {
+          onSources: (sources) => {
+            aiSources = sources;
+            renderAISources(aiSources);
+          },
+          onChunk: (text) => {
+            fullText += text;
+            document.getElementById('ai-loading').classList.add('hidden');
+            document.getElementById('ai-answer-panel').classList.remove('hidden');
+            renderStreamingMarkdown(fullText);
+          },
+          onDone: () => {
+            renderFinalMarkdown(fullText);
+          },
+          onError: (msg) => {
+            showAIError(msg);
+          },
+        });
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop(); // keep incomplete line
-
-          let eventType = '';
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7).trim();
-              continue;
-            }
-            if (line.startsWith('data: ')) {
-              const dataStr = line.slice(6);
-
-              if (eventType === 'sources') {
-                try {
-                  aiSources = JSON.parse(dataStr);
-                  renderAISources(aiSources);
-                } catch (e) {}
-                eventType = '';
-                continue;
-              }
-
-              if (eventType === 'error') {
-                try {
-                  const err = JSON.parse(dataStr);
-                  showAIError(err.error || 'Unknown error');
-                } catch (e) {
-                  showAIError(dataStr);
-                }
-                eventType = '';
-                continue;
-              }
-
-              if (eventType === 'done') {
-                // Finalize
-                renderFinalMarkdown(fullText);
-                eventType = '';
-                continue;
-              }
-
-              // Text chunk
-              try {
-                const chunk = JSON.parse(dataStr);
-                if (chunk.text) {
-                  fullText += chunk.text;
-                  document.getElementById('ai-loading').classList.add('hidden');
-                  document.getElementById('ai-answer-panel').classList.remove('hidden');
-                  renderStreamingMarkdown(fullText);
-                }
-              } catch (e) {}
-              eventType = '';
-            }
-          }
-        }
-
-        // If stream ended without done event
         if (fullText) renderFinalMarkdown(fullText);
 
       } catch (e) {
@@ -988,6 +1060,7 @@
         }
       } finally {
         document.getElementById('ai-search-btn').disabled = false;
+        document.getElementById('ai-latest-btn').disabled = false;
         document.getElementById('ai-loading').classList.add('hidden');
         aiSearchAbort = null;
       }
@@ -1049,6 +1122,8 @@
       section.classList.remove('hidden');
 
       grid.innerHTML = sources.map((item, i) => {
+        const cacheKey = 'aisrc-' + i;
+        itemDataCache[cacheKey] = item;
         const dc = DOMAIN_COLORS[item.domain] || DOMAIN_COLORS['Other'];
         const heatColor = getHeatColor(item.heat_index);
         const srcBadges = (item.sources || []).map(s => {
@@ -1057,20 +1132,25 @@
         }).join('');
 
         return `
-          <a href="${item.url}" target="_blank" rel="noopener"
-             class="ai-source-card" id="ai-source-${i + 1}">
+          <div class="ai-source-card" id="ai-source-${i + 1}" onclick="window.open('${item.url}','_blank')">
             <div class="flex items-center gap-2 mb-2">
               <span class="text-xs font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">[${i + 1}]</span>
               <span class="text-[10px] font-semibold px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text}">${item.domain}</span>
               <span class="text-xs font-bold ml-auto" style="color:${heatColor}">${item.heat_index}</span>
             </div>
             <p class="text-xs font-semibold text-stone-200 leading-snug mb-1.5 line-clamp-2">${item.title}</p>
-            <div class="flex items-center gap-2 text-[10px]">
-              ${srcBadges}
-              ${item.stars > 0 ? `<span class="text-stone-500">${item.stars} stars</span>` : ''}
-              ${item.comments_count > 0 ? `<span class="text-stone-500">${item.comments_count} comments</span>` : ''}
+            <div class="flex items-center justify-between text-[10px]">
+              <div class="flex items-center gap-2">
+                ${srcBadges}
+                ${item.stars > 0 ? `<span class="text-stone-500">${item.stars} stars</span>` : ''}
+                ${item.comments_count > 0 ? `<span class="text-stone-500">${item.comments_count} comments</span>` : ''}
+              </div>
+              <button class="btn-ai-analyze" onclick="event.stopPropagation();openAnalyzePanel(itemDataCache['${cacheKey}'])">
+                <svg class="w-3 h-3 inline -mt-px mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+                ${t().aiAnalyzeBtn}
+              </button>
             </div>
-          </a>
+          </div>
         `;
       }).join('');
     }
@@ -1125,6 +1205,245 @@
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
       card.classList.add('highlight');
       setTimeout(() => card.classList.remove('highlight'), 2000);
+    }
+
+    // ========== Shared SSE Processing ==========
+    async function _processSSE(response, { onSources, onChunk, onDone, onError }) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let eventType = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7).trim();
+            continue;
+          }
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+
+            if (eventType === 'sources') {
+              try { onSources(JSON.parse(dataStr)); } catch (e) {}
+              eventType = '';
+              continue;
+            }
+            if (eventType === 'error') {
+              try { onError(JSON.parse(dataStr).error || dataStr); } catch (e) { onError(dataStr); }
+              eventType = '';
+              continue;
+            }
+            if (eventType === 'done') {
+              onDone();
+              eventType = '';
+              continue;
+            }
+            // Text chunk
+            try {
+              const chunk = JSON.parse(dataStr);
+              if (chunk.text) onChunk(chunk.text);
+            } catch (e) {}
+            eventType = '';
+          }
+        }
+      }
+    }
+
+    // ========== AI Analyze Panel ==========
+    function openAnalyzePanel(itemData) {
+      if (!itemData) return;
+      const overlay = document.getElementById('ai-analyze-overlay');
+      const infoEl = document.getElementById('analyze-article-info');
+      const dc = DOMAIN_COLORS[itemData.domain] || DOMAIN_COLORS['Other'];
+      const heatColor = getHeatColor(itemData.heat_index || 0);
+
+      infoEl.innerHTML = `
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text}">${itemData.domain || ''}</span>
+          <span class="text-xs font-bold" style="color:${heatColor}">${itemData.heat_index || 0}</span>
+        </div>
+        <p class="text-sm font-semibold text-stone-100 leading-snug">${itemData.title || ''}</p>
+      `;
+
+      document.getElementById('analyze-loading').classList.remove('hidden');
+      document.getElementById('analyze-result').classList.add('hidden');
+      document.getElementById('analyze-result').innerHTML = '';
+      document.getElementById('analyze-error').classList.add('hidden');
+      document.getElementById('analyze-key-setup').classList.add('hidden');
+
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      streamAnalysis(itemData);
+    }
+
+    function closeAnalyzePanel() {
+      const overlay = document.getElementById('ai-analyze-overlay');
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      if (analyzeAbort) { analyzeAbort.abort(); analyzeAbort = null; }
+    }
+
+    async function streamAnalysis(itemData) {
+      if (analyzeAbort) { analyzeAbort.abort(); }
+      const controller = new AbortController();
+      analyzeAbort = controller;
+      let fullText = '';
+
+      try {
+        const resp = await fetch('/api/ai-analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(itemData),
+          signal: controller.signal,
+        });
+
+        await _processSSE(resp, {
+          onSources: () => {},
+          onChunk: (text) => {
+            fullText += text;
+            document.getElementById('analyze-loading').classList.add('hidden');
+            const result = document.getElementById('analyze-result');
+            result.classList.remove('hidden');
+            result.innerHTML = renderMarkdown(fullText) + '<span class="streaming-cursor"></span>';
+            result.scrollTop = result.scrollHeight;
+          },
+          onDone: () => {
+            document.getElementById('analyze-result').innerHTML = renderMarkdown(fullText);
+          },
+          onError: (msg) => {
+            document.getElementById('analyze-loading').classList.add('hidden');
+            if (msg === 'needsApiKey') {
+              document.getElementById('analyze-key-setup').classList.remove('hidden');
+              // Store item for retry after key save
+              document.getElementById('analyze-key-setup').dataset.retryItem = JSON.stringify(itemData);
+              return;
+            }
+            document.getElementById('analyze-error').classList.remove('hidden');
+            document.getElementById('analyze-error-text').textContent = msg;
+          },
+        });
+
+        if (fullText) document.getElementById('analyze-result').innerHTML = renderMarkdown(fullText);
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          document.getElementById('analyze-loading').classList.add('hidden');
+          document.getElementById('analyze-error').classList.remove('hidden');
+          document.getElementById('analyze-error-text').textContent = e.message;
+        }
+      } finally {
+        document.getElementById('analyze-loading').classList.add('hidden');
+        analyzeAbort = null;
+      }
+    }
+
+    async function saveApiKeyFromPanel() {
+      const input = document.getElementById('analyze-key-input');
+      const status = document.getElementById('analyze-key-status');
+      const key = input.value.trim();
+      if (!key) return;
+
+      try {
+        const resp = await fetch('/api/ai-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key }),
+        });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+          status.textContent = t().aiKeySaved;
+          status.className = 'text-xs mt-2 text-emerald-400';
+          status.classList.remove('hidden');
+          setTimeout(() => {
+            document.getElementById('analyze-key-setup').classList.add('hidden');
+            status.classList.add('hidden');
+            // Retry analysis
+            const retryStr = document.getElementById('analyze-key-setup').dataset.retryItem;
+            if (retryStr) {
+              try { streamAnalysis(JSON.parse(retryStr)); } catch (e) {}
+            }
+          }, 800);
+        } else {
+          status.textContent = data.message || t().aiKeySaveError;
+          status.className = 'text-xs mt-2 text-red-400';
+          status.classList.remove('hidden');
+        }
+      } catch (e) {
+        status.textContent = t().aiKeySaveError + ': ' + e.message;
+        status.className = 'text-xs mt-2 text-red-400';
+        status.classList.remove('hidden');
+      }
+    }
+
+    // ========== AI Latest (Trending) ==========
+    async function doLatestSearch() {
+      // Abort previous
+      if (aiSearchAbort) { aiSearchAbort.abort(); aiSearchAbort = null; }
+
+      const latestQuery = t().aiLatestQuery;
+      document.getElementById('ai-search-input').value = latestQuery;
+      document.getElementById('ai-hero').classList.add('hidden');
+      document.getElementById('ai-suggestions').classList.add('hidden');
+      document.getElementById('ai-result-area').classList.remove('hidden');
+      document.getElementById('ai-query-text').textContent = latestQuery;
+      document.getElementById('ai-loading').classList.remove('hidden');
+      document.getElementById('ai-error').classList.add('hidden');
+      document.getElementById('ai-answer-panel').classList.add('hidden');
+      document.getElementById('ai-sources-section').classList.add('hidden');
+      document.getElementById('ai-answer-content').innerHTML = '';
+      document.getElementById('ai-search-btn').disabled = true;
+      document.getElementById('ai-latest-btn').disabled = true;
+      aiSources = [];
+
+      const controller = new AbortController();
+      aiSearchAbort = controller;
+      let fullText = '';
+
+      try {
+        const resp = await fetch('/api/ai-latest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+          signal: controller.signal,
+        });
+
+        await _processSSE(resp, {
+          onSources: (sources) => {
+            aiSources = sources;
+            renderAISources(aiSources);
+          },
+          onChunk: (text) => {
+            fullText += text;
+            document.getElementById('ai-loading').classList.add('hidden');
+            document.getElementById('ai-answer-panel').classList.remove('hidden');
+            renderStreamingMarkdown(fullText);
+          },
+          onDone: () => {
+            renderFinalMarkdown(fullText);
+          },
+          onError: (msg) => {
+            showAIError(msg);
+          },
+        });
+
+        if (fullText) renderFinalMarkdown(fullText);
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          showAIError(e.message);
+        }
+      } finally {
+        document.getElementById('ai-search-btn').disabled = false;
+        document.getElementById('ai-latest-btn').disabled = false;
+        document.getElementById('ai-loading').classList.add('hidden');
+        aiSearchAbort = null;
+      }
     }
 
     // ========== Data Loading ==========

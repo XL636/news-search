@@ -38,6 +38,10 @@
 | 29 | Dashboard AI 搜索功能 | 2026-02-18 | GLM-4-Plus 流式 SSE + 双视图 Tab + Perplexity 风格引用 |
 | 30 | API Key 管理 UI | 2026-02-18 | 前端配置面板 + GET/POST /api/ai-config + settings.json 持久化 |
 | 31 | Dashboard 暖色主题 | 2026-02-18 | indigo/slate → amber/stone，全面暖色调重设计 |
+| 32 | 文章 AI 解读功能 | 2026-02-18 | 卡片 AI 按钮 + 侧滑面板 + /api/ai-analyze SSE 端点 |
+| 33 | 一键最新热点功能 | 2026-02-18 | 闪电按钮 + /api/ai-latest SSE 端点 + TOP 20 AI 总结 |
+| 34 | 后端 GLM 流式重构 | 2026-02-18 | 提取 _stream_glm() 共享函数，三端点复用 |
+| 35 | 前端 SSE 处理重构 | 2026-02-18 | 提取 _processSSE() 共享函数，三处复用 |
 
 ### 进行中 🔄
 
@@ -45,7 +49,7 @@
 |---|------|----------|------|
 | — | 暂无 | — | — |
 
-> **已完成**: #31 Dashboard 暖色主题 — 2026-02-18
+> **已完成**: #35 前端 SSE 处理重构 — 2026-02-18
 
 ### 待办 📋
 
