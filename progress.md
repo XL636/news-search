@@ -48,6 +48,9 @@
 | 文章 AI 解读功能 | ✅ 完成 | 100% |
 | 一键最新热点功能 | ✅ 完成 | 100% |
 | 后端/前端 GLM+SSE 重构 | ✅ 完成 | 100% |
+| AI 搜索联网增强 (web_search) | ✅ 完成 | 100% |
+| 本地搜索优化 (智能分词) | ✅ 完成 | 100% |
+| RSS 数据源扩充 (16 源) | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -137,6 +140,28 @@ i18n：中英双语（aiKeyTitle/aiKeyDesc/aiKeySaveBtn/aiKeyPlaceholder/aiKeySa
   后端：_stream_glm() 共享 GLM 流式生成器，三端点复用
   前端：_processSSE() 共享 SSE 解析，三处复用
   前端：itemDataCache 缓存卡片数据，renderAISources 改为 <div>
+```
+
+### AI 搜索联网增强 + 本地搜索优化 + 数据源扩充（2026-02-18）
+
+```
+联网搜索：_stream_glm() 新增 enable_search 参数，启用 GLM web_search 工具
+  三端点（ai-search / ai-analyze / ai-latest）均开启联网搜索
+  Prompt 增加联网搜索指引（优先本地数据，联网补充最新动态）
+
+本地搜索优化：search_items_for_ai() 完全重写
+  Layer 1: 中英文智能分词 re.findall + 2 字滑窗
+  Layer 2: 每个 token LIKE OR 匹配
+  Layer 3: QUERY_DOMAIN_MAP 领域映射（11 个领域，中英文关键词）
+  Layer 4: 结果不足 5 条时热门兜底
+  提取 _row_to_item() 消除 row→dict 重复代码
+
+数据源扩充：feeds.json 从 4 个源扩充到 16 个
+  新增：Dev.to / Product Hunt / Lobsters / InfoQ / ByteByteGo
+  新增：Reddit r/programming + r/technology
+  新增：少数派 / TechNode
+  新增：Fireship + ThePrimeagen (YouTube RSS)
+  新增：Bilibili 科技热搜 (RSSHub)
 ```
 
 ---

@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -261,48 +262,95 @@ def api_ai_config_post(req: AIConfigRequest):
 
 # ========== AI Search ==========
 
+QUERY_DOMAIN_MAP = {
+    'cloud': 'Cloud', '云': 'Cloud', '云计算': 'Cloud',
+    'ai': 'AI/ML', '人工智能': 'AI/ML', 'ml': 'AI/ML', 'llm': 'AI/ML',
+    'security': 'Security', '安全': 'Security', '漏洞': 'Security',
+    'web': 'Web', '前端': 'Web', 'frontend': 'Web',
+    'devtools': 'DevTools', '开发工具': 'DevTools',
+    'mobile': 'Mobile', '移动': 'Mobile',
+    'data': 'Data', '数据': 'Data',
+    'blockchain': 'Blockchain', '区块链': 'Blockchain',
+    'hardware': 'Hardware', '硬件': 'Hardware',
+    'biotech': 'Biotech', '生物': 'Biotech',
+}
+
+
+def _row_to_item(r) -> dict:
+    return {
+        "id": r["id"],
+        "title": r["title"],
+        "url": r["url"],
+        "description": r["description"] or "",
+        "domain": r["domain"],
+        "tags": json.loads(r["tags"]) if r["tags"] else [],
+        "heat_index": r["heat_index"],
+        "heat_reason": r["heat_reason"] or "",
+        "stars": r["stars"],
+        "comments_count": r["comments_count"],
+        "sources": json.loads(r["sources"]) if r["sources"] else [],
+        "published_at": r["published_at"],
+    }
+
+
 def search_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[dict]:
-    """Search classified_items with wide matching for AI context."""
+    """Search classified_items with smart tokenization + domain mapping + fallback."""
     conn = get_connection()
-    tokens = query.split()
-    conditions = []
-    params: list[str] = []
 
-    # Full query as one LIKE (handles Chinese without spaces)
-    conditions.append("(title LIKE ? OR description LIKE ? OR tags LIKE ? OR domain LIKE ?)")
-    term = f"%{query}%"
-    params.extend([term, term, term, term])
+    # Layer 1: smart tokenization — split Chinese and English
+    tokens = re.findall(r'[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+', query)
 
-    # Each token as separate OR condition
+    # Sliding window for long Chinese tokens (2-char bigrams)
+    expanded = []
     for tok in tokens:
-        if tok == query:
-            continue
+        expanded.append(tok)
+        if re.match(r'[\u4e00-\u9fff]', tok) and len(tok) > 2:
+            for i in range(len(tok) - 1):
+                expanded.append(tok[i:i+2])
+
+    # Layer 2: each token as LIKE OR match
+    conditions = []
+    params: list = []
+    for tok in set(expanded):
         conditions.append("(title LIKE ? OR description LIKE ? OR tags LIKE ? OR domain LIKE ?)")
         t = f"%{tok}%"
         params.extend([t, t, t, t])
 
-    where = " OR ".join(conditions)
+    # Layer 3: domain mapping — infer domain from tokens
+    matched_domains = set()
+    for tok in tokens:
+        domain = QUERY_DOMAIN_MAP.get(tok.lower())
+        if domain:
+            matched_domains.add(domain)
+    for d in matched_domains:
+        conditions.append("domain = ?")
+        params.append(d)
+
+    where = " OR ".join(conditions) if conditions else "1=1"
     sql = f"SELECT * FROM classified_items WHERE {where} ORDER BY heat_index DESC LIMIT ?"
     params.append(limit)
     rows = conn.execute(sql, params).fetchall()
-    conn.close()
 
-    items = []
-    for r in rows:
-        items.append({
-            "id": r["id"],
-            "title": r["title"],
-            "url": r["url"],
-            "description": r["description"] or "",
-            "domain": r["domain"],
-            "tags": json.loads(r["tags"]) if r["tags"] else [],
-            "heat_index": r["heat_index"],
-            "heat_reason": r["heat_reason"] or "",
-            "stars": r["stars"],
-            "comments_count": r["comments_count"],
-            "sources": json.loads(r["sources"]) if r["sources"] else [],
-            "published_at": r["published_at"],
-        })
+    items = [_row_to_item(r) for r in rows]
+
+    # Layer 4: fallback — if fewer than 5 results, pad with top items
+    if len(items) < 5:
+        existing_ids = {item["id"] for item in items}
+        need = limit - len(items)
+        if existing_ids:
+            placeholders = ",".join("?" * len(existing_ids))
+            extra = conn.execute(
+                f"SELECT * FROM classified_items WHERE id NOT IN ({placeholders}) ORDER BY heat_index DESC LIMIT ?",
+                [*existing_ids, need],
+            ).fetchall()
+        else:
+            extra = conn.execute(
+                "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?",
+                [need],
+            ).fetchall()
+        items.extend(_row_to_item(r) for r in extra)
+
+    conn.close()
     return items
 
 
@@ -316,7 +364,10 @@ def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
         "2. 中文回答，技术术语可保留英文\n"
         "3. 用 Markdown 格式，### 做小标题分组\n"
         "4. 数据中没有的信息不要编造，诚实说明\n"
-        "5. 控制在 500 字以内"
+        "5. 控制在 500 字以内\n"
+        "6. 你具备联网搜索能力，可以搜索最新信息补充回答\n"
+        "7. 优先使用提供的本地数据，联网搜索补充最新动态\n"
+        "8. 如果本地数据不足以回答，请主动联网搜索获取最新信息"
     )
 
     source_lines = []
@@ -345,7 +396,7 @@ def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
     ]
 
 
-async def _stream_glm(api_key: str, messages: list[dict]):
+async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = False):
     """Shared async generator: call GLM API and yield SSE chunks."""
     payload = {
         "model": ZHIPUAI_MODEL,
@@ -354,6 +405,14 @@ async def _stream_glm(api_key: str, messages: list[dict]):
         "temperature": 0.7,
         "max_tokens": 1024,
     }
+    if enable_search:
+        payload["tools"] = [{
+            "type": "web_search",
+            "web_search": {
+                "enable": True,
+                "search_result": True,
+            },
+        }]
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -428,7 +487,7 @@ async def api_ai_search(req: AISearchRequest):
                 return
 
             messages = build_ai_prompt(req.query, items)
-            async for chunk in _stream_glm(api_key, messages):
+            async for chunk in _stream_glm(api_key, messages, enable_search=True):
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -446,7 +505,9 @@ def build_analysis_prompt(item_data: dict) -> list[dict]:
         "2. 用 Markdown 格式，### 做小标题分组\n"
         "3. 分析维度：核心内容概述 → 技术亮点 → 行业影响 → 潜在风险 → 趋势延伸\n"
         "4. 数据中没有的信息不要编造\n"
-        "5. 控制在 600 字以内"
+        "5. 控制在 600 字以内\n"
+        "6. 你具备联网搜索能力，可联网补充文章背景信息和最新动态\n"
+        "7. 如果文章信息有限，请主动联网搜索相关内容以丰富分析"
     )
 
     tags = ", ".join(item_data.get("tags", [])[:8])
@@ -503,7 +564,7 @@ async def api_ai_analyze(req: AIAnalyzeRequest):
                 return
 
             messages = build_analysis_prompt(req.model_dump())
-            async for chunk in _stream_glm(api_key, messages):
+            async for chunk in _stream_glm(api_key, messages, enable_search=True):
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -518,24 +579,7 @@ def get_top_items(limit: int = 20) -> list[dict]:
         "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]
     ).fetchall()
     conn.close()
-
-    items = []
-    for r in rows:
-        items.append({
-            "id": r["id"],
-            "title": r["title"],
-            "url": r["url"],
-            "description": r["description"] or "",
-            "domain": r["domain"],
-            "tags": json.loads(r["tags"]) if r["tags"] else [],
-            "heat_index": r["heat_index"],
-            "heat_reason": r["heat_reason"] or "",
-            "stars": r["stars"],
-            "comments_count": r["comments_count"],
-            "sources": json.loads(r["sources"]) if r["sources"] else [],
-            "published_at": r["published_at"],
-        })
-    return items
+    return [_row_to_item(r) for r in rows]
 
 
 @app.post("/api/ai-latest")
@@ -566,7 +610,7 @@ async def api_ai_latest():
 
             query = "今日最热科技新闻与开源动态"
             messages = build_ai_prompt(query, items)
-            async for chunk in _stream_glm(api_key, messages):
+            async for chunk in _stream_glm(api_key, messages, enable_search=True):
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")

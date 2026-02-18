@@ -4,6 +4,25 @@
 
 ---
 
+## [0.10.0] - 2026-02-18
+
+### Added
+- **AI 搜索联网增强**：`_stream_glm()` 新增 `enable_search` 参数，启用 GLM `web_search` 工具实现实时联网搜索
+- 三个 AI 端点（`/api/ai-search`、`/api/ai-analyze`、`/api/ai-latest`）全部开启联网搜索能力
+- Prompt 新增联网搜索指引规则（规则 6-8）：优先本地数据，联网补充最新动态
+- `QUERY_DOMAIN_MAP` 关键词→领域映射表：11 个领域，支持中英文关键词（如 'cloud'→'Cloud'、'安全'→'Security'）
+- `_row_to_item()` 辅助函数：消除 SQLite row → dict 转换的重复代码
+- `data/feeds.json` 新增 12 个 RSS 源（总计 16 个）：Dev.to、Product Hunt、Lobsters、InfoQ、ByteByteGo、Reddit r/programming + r/technology、少数派、TechNode、Fireship (YouTube)、ThePrimeagen (YouTube)、Bilibili 科技热搜 (RSSHub)
+
+### Changed
+- **本地搜索优化**：`search_items_for_ai()` 完全重写，四层搜索策略：
+  - Layer 1: 中英文智能分词（`re.findall` 替代 `split()`）+ 中文 2 字滑窗
+  - Layer 2: 每个 token 独立 LIKE OR 匹配（title/description/tags/domain）
+  - Layer 3: 关键词自动推断领域，追加 `domain =` 精确匹配
+  - Layer 4: 结果不足 5 条时热门文章兜底，确保用户总能看到内容
+- `build_analysis_prompt()` 新增联网搜索指引（规则 6-7）
+- `get_top_items()` 重构：使用 `_row_to_item()` 消除重复代码
+
 ## [0.9.0] - 2026-02-18
 
 ### Added

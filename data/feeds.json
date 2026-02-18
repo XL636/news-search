@@ -2,5 +2,22 @@
   {"name": "TechCrunch", "url": "https://techcrunch.com/feed/"},
   {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index"},
   {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml"},
-  {"name": "Hacker News Best", "url": "https://hnrss.org/best"}
+  {"name": "Hacker News Best", "url": "https://hnrss.org/best"},
+
+  {"name": "Dev.to", "url": "https://dev.to/feed"},
+  {"name": "Product Hunt", "url": "https://www.producthunt.com/feed"},
+  {"name": "Lobsters", "url": "https://lobste.rs/rss"},
+  {"name": "InfoQ", "url": "https://feed.infoq.com/development"},
+  {"name": "ByteByteGo", "url": "https://blog.bytebytego.com/feed"},
+
+  {"name": "Reddit r/programming", "url": "https://www.reddit.com/r/programming/.rss"},
+  {"name": "Reddit r/technology", "url": "https://www.reddit.com/r/technology/.rss"},
+
+  {"name": "少数派 (sspai)", "url": "https://sspai.com/feed"},
+  {"name": "TechNode", "url": "https://technode.com/feed"},
+
+  {"name": "Fireship (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"},
+  {"name": "ThePrimeagen (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC8ENHE5xdFSwx71u3fDH5Xw"},
+
+  {"name": "Bilibili 科技热搜 (RSSHub)", "url": "https://rsshub.app/bilibili/vsearch/科技/order/pubdate"}
 ]
