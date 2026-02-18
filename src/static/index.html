@@ -12,7 +12,7 @@
     .chip:hover { transform: translateY(-1px); }
     .chip.active { background: #6366f1; color: #fff; border-color: #6366f1; }
     .card { transition: all .2s; border: 1px solid #1e293b; }
-    .card:hover { border-color: #6366f1; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99,102,241,.15); }
+    .card:hover { border-color: #6366f1; box-shadow: 0 8px 25px rgba(99,102,241,.15); }
     .heat-bar { height: 4px; border-radius: 2px; transition: width .5s ease; }
     .source-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; }
     .tag-pill { font-size: 11px; padding: 1px 8px; border-radius: 10px; }
@@ -23,21 +23,45 @@
     .lang-btn { transition: all .15s; }
     .lang-btn:hover { background: #334155; }
     .lang-btn.active { background: #6366f1; color: #fff; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+    .hot-border { border-left: 3px solid #ef4444; }
+    .details-toggle { cursor: pointer; user-select: none; }
+    .details-content { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+    .details-content.open { max-height: 500px; }
+    .toast-enter { animation: toastIn .3s ease; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+    .toast-exit { animation: toastOut .3s ease forwards; }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(50px); } }
   </style>
 </head>
 <body class="min-h-screen">
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
+
   <!-- Header -->
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center font-bold text-white text-sm">IR</div>
         <h1 class="text-xl font-bold text-white">InsightRadar</h1>
         <span id="subtitle" class="text-xs text-slate-500 hidden sm:inline"></span>
       </div>
-      <div class="flex items-center gap-4">
-        <div id="stats-bar" class="flex gap-4 text-xs text-slate-400">
-          <span id="stat-total"></span>
-        </div>
+      <div class="flex items-center gap-3">
+        <!-- Refresh Button -->
+        <button id="refresh-btn" onclick="doRefresh()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-600 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition-all">
+          <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span id="refresh-text"></span>
+        </button>
+        <!-- Translate Button -->
+        <button id="translate-btn" onclick="toggleTranslate()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-600 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition-all">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+          </svg>
+          <span id="translate-text"></span>
+        </button>
         <!-- Language Switcher -->
         <div class="flex items-center bg-slate-800 rounded-lg border border-slate-700 p-0.5">
           <button class="lang-btn px-2.5 py-1 rounded-md text-xs font-medium text-slate-400" data-lang="zh" onclick="setLang('zh')">中文</button>
@@ -47,7 +71,7 @@
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-6">
+  <main class="max-w-5xl mx-auto px-4 py-6">
     <!-- Controls -->
     <div class="flex flex-col sm:flex-row gap-4 mb-6">
       <!-- Search -->
@@ -64,8 +88,13 @@
     </div>
 
     <!-- Domain Filters -->
-    <div id="domain-filters" class="flex flex-wrap gap-2 mb-6">
-      <button class="chip active px-3 py-1.5 rounded-full text-xs font-medium border border-slate-600 bg-slate-800" data-domain="All"></button>
+    <div id="domain-filters" class="flex gap-2 mb-4 overflow-x-auto pb-2" style="scrollbar-width: thin; scrollbar-color: #334155 transparent;">
+      <button class="chip active px-3 py-1.5 rounded-full text-xs font-medium border border-slate-600 bg-slate-800 whitespace-nowrap" data-domain="All"></button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div id="stats-bar" class="flex gap-4 text-xs text-slate-500 mb-4">
+      <span id="stat-total"></span>
     </div>
 
     <!-- Item Count -->
@@ -74,13 +103,17 @@
     </div>
 
     <!-- Items Grid -->
-    <div id="items-grid" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div id="items-grid" class="grid gap-5 md:grid-cols-2">
       <div class="skeleton h-48"></div>
       <div class="skeleton h-48"></div>
       <div class="skeleton h-48"></div>
       <div class="skeleton h-48"></div>
-      <div class="skeleton h-48"></div>
-      <div class="skeleton h-48"></div>
+    </div>
+
+    <!-- Load More -->
+    <div id="load-more-container" class="hidden text-center py-8">
+      <p id="shown-count" class="text-xs text-slate-500 mb-3"></p>
+      <button id="load-more-btn" onclick="loadMore()" class="px-6 py-2.5 rounded-lg text-sm font-medium border border-slate-600 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition-all"></button>
     </div>
 
     <!-- Empty State -->
@@ -102,31 +135,32 @@
         sortRecent: '排序：最新发布',
         allDomain: '全部',
         itemCount: (n) => `共 ${n} 条`,
+        shownCount: (shown, total) => `已显示 ${shown} / ${total} 条`,
+        loadMore: '加载更多',
         emptyTitle: '未找到相关内容',
         emptySub: '尝试调整筛选条件或搜索关键词',
         statsRaw: '原始',
         statsClean: '清洗',
         statsClassified: '分类',
+        refreshBtn: '刷新数据',
+        refreshing: '采集中...',
+        refreshDone: '采集完成',
+        refreshError: '采集失败',
+        translateBtn: '翻译',
+        translateOn: '翻译中',
+        translateOff: '翻译',
+        expand: '展开',
+        collapse: '收起',
         domainNames: {
-          'AI/ML': '人工智能',
-          'DevTools': '开发工具',
-          'Hardware': '硬件',
-          'Cloud': '云计算',
-          'Security': '安全',
-          'Web': 'Web 开发',
-          'Mobile': '移动端',
-          'Data': '数据',
-          'Blockchain': '区块链',
-          'Biotech': '生物科技',
-          'Other': '其他',
+          'AI/ML': '人工智能', 'DevTools': '开发工具', 'Hardware': '硬件',
+          'Cloud': '云计算', 'Security': '安全', 'Web': 'Web 开发',
+          'Mobile': '移动端', 'Data': '数据', 'Blockchain': '区块链',
+          'Biotech': '生物科技', 'Other': '其他',
         },
-        sourceNames: {
-          'github': 'GitHub',
-          'hackernews': 'HN',
-          'rss': 'RSS',
-        },
+        sourceNames: { 'github': 'GitHub', 'hackernews': 'HN', 'rss': 'RSS' },
         stars: 'Stars',
         comments: '评论',
+        timeAgo: { s: '秒前', m: '分钟前', h: '小时前', d: '天前' },
       },
       en: {
         subtitle: 'Global Innovation Intelligence',
@@ -137,31 +171,32 @@
         sortRecent: 'Sort: Most Recent',
         allDomain: 'All',
         itemCount: (n) => `${n} items`,
+        shownCount: (shown, total) => `Showing ${shown} of ${total}`,
+        loadMore: 'Load More',
         emptyTitle: 'No items found',
         emptySub: 'Try adjusting your filters or search query',
         statsRaw: 'Raw',
         statsClean: 'Clean',
         statsClassified: 'Classified',
+        refreshBtn: 'Refresh',
+        refreshing: 'Collecting...',
+        refreshDone: 'Collection done',
+        refreshError: 'Collection failed',
+        translateBtn: 'Translate',
+        translateOn: 'Translating',
+        translateOff: 'Translate',
+        expand: 'Expand',
+        collapse: 'Collapse',
         domainNames: {
-          'AI/ML': 'AI/ML',
-          'DevTools': 'DevTools',
-          'Hardware': 'Hardware',
-          'Cloud': 'Cloud',
-          'Security': 'Security',
-          'Web': 'Web',
-          'Mobile': 'Mobile',
-          'Data': 'Data',
-          'Blockchain': 'Blockchain',
-          'Biotech': 'Biotech',
-          'Other': 'Other',
+          'AI/ML': 'AI/ML', 'DevTools': 'DevTools', 'Hardware': 'Hardware',
+          'Cloud': 'Cloud', 'Security': 'Security', 'Web': 'Web',
+          'Mobile': 'Mobile', 'Data': 'Data', 'Blockchain': 'Blockchain',
+          'Biotech': 'Biotech', 'Other': 'Other',
         },
-        sourceNames: {
-          'github': 'GitHub',
-          'hackernews': 'HN',
-          'rss': 'RSS',
-        },
+        sourceNames: { 'github': 'GitHub', 'hackernews': 'HN', 'rss': 'RSS' },
         stars: 'Stars',
         comments: 'Comments',
+        timeAgo: { s: 's ago', m: 'm ago', h: 'h ago', d: 'd ago' },
       },
     };
 
@@ -174,7 +209,7 @@
       document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
       applyLang();
       loadDomains();
-      loadItems();
+      resetAndLoadItems();
       loadStats();
     }
 
@@ -184,8 +219,10 @@
       document.getElementById('search-input').placeholder = s.searchPlaceholder;
       document.getElementById('empty-title').textContent = s.emptyTitle;
       document.getElementById('empty-sub').textContent = s.emptySub;
+      document.getElementById('refresh-text').textContent = s.refreshBtn;
+      document.getElementById('translate-text').textContent = translateMode ? s.translateOn : s.translateBtn;
+      document.getElementById('load-more-btn').textContent = s.loadMore;
 
-      // Sort select
       const sel = document.getElementById('sort-select');
       const curVal = sel.value || 'heat';
       sel.innerHTML = `
@@ -196,7 +233,6 @@
       `;
       sel.value = curVal;
 
-      // Language buttons
       document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
       });
@@ -223,17 +259,62 @@
       'rss': { bg: '#1a2e1a', text: '#86efac' },
     };
 
+    const HEAT_COLORS = {
+      hot: '#ef4444', warm: '#f59e0b', medium: '#6366f1', cool: '#475569',
+    };
+
     let currentDomain = 'All';
     let currentSearch = '';
     let currentSort = 'heat';
     let debounceTimer = null;
 
+    // Pagination state
+    const PAGE_SIZE = 20;
+    let currentOffset = 0;
+    let totalItems = 0;
+
+    // Translation state
+    let translateMode = false;
+    const translationCache = {};
+
+    // ========== Toast ==========
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        info: 'bg-slate-800 border-slate-600 text-slate-200',
+        success: 'bg-emerald-900/80 border-emerald-700 text-emerald-200',
+        error: 'bg-red-900/80 border-red-700 text-red-200',
+      };
+      const el = document.createElement('div');
+      el.className = `toast-enter px-4 py-3 rounded-lg border text-sm ${colors[type] || colors.info}`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.classList.remove('toast-enter');
+        el.classList.add('toast-exit');
+        setTimeout(() => el.remove(), 300);
+      }, 5000);
+    }
+
+    // ========== Time Formatting ==========
+    function timeAgo(dateStr) {
+      if (!dateStr) return '';
+      const now = new Date();
+      const date = new Date(dateStr);
+      const diff = Math.floor((now - date) / 1000);
+      const u = t().timeAgo;
+      if (diff < 60) return diff + u.s;
+      if (diff < 3600) return Math.floor(diff / 60) + u.m;
+      if (diff < 86400) return Math.floor(diff / 3600) + u.h;
+      return Math.floor(diff / 86400) + u.d;
+    }
+
     // ========== Render ==========
     function getHeatColor(heat) {
-      if (heat >= 70) return '#ef4444';
-      if (heat >= 50) return '#f59e0b';
-      if (heat >= 30) return '#6366f1';
-      return '#475569';
+      if (heat >= 70) return HEAT_COLORS.hot;
+      if (heat >= 50) return HEAT_COLORS.warm;
+      if (heat >= 30) return HEAT_COLORS.medium;
+      return HEAT_COLORS.cool;
     }
 
     function domainLabel(key) {
@@ -247,47 +328,165 @@
     function renderCard(item) {
       const dc = DOMAIN_COLORS[item.domain] || DOMAIN_COLORS['Other'];
       const heatColor = getHeatColor(item.heat_index);
+      const isHot = item.heat_index >= 70;
 
       const sourceBadges = item.sources.map(s => {
         const sc = SOURCE_COLORS[s] || SOURCE_COLORS['rss'];
         return `<span class="source-badge" style="background:${sc.bg};color:${sc.text}">${sourceLabel(s)}</span>`;
       }).join('');
 
-      const tags = (item.tags || []).slice(0, 4).map(tag =>
+      const tags = (item.tags || []).slice(0, 6).map(tag =>
         `<span class="tag-pill bg-slate-800 text-slate-400">${tag}</span>`
       ).join('');
 
       const desc = item.description
-        ? (item.description.length > 150 ? item.description.substring(0, 150) + '...' : item.description)
+        ? (item.description.length > 200 ? item.description.substring(0, 200) + '...' : item.description)
         : '';
 
       const starsStr = item.stars > 0 ? `<span class="text-yellow-500">${item.stars.toLocaleString()}</span>` : '';
       const commentsStr = item.comments_count > 0 ? `<span class="text-blue-400">${item.comments_count}</span>` : '';
+      const ago = timeAgo(item.published_at);
+      const authorStr = item.author ? `<span class="text-slate-500">${item.author}</span>` : '';
+
+      const detailId = 'detail-' + item.id;
+      const hasDetails = tags || item.heat_reason;
 
       return `
-        <a href="${item.url}" target="_blank" rel="noopener" class="card block rounded-xl bg-slate-900 p-4 fade-in cursor-pointer">
+        <div class="card rounded-xl bg-slate-900 p-5 fade-in ${isHot ? 'hot-border' : ''}">
           <div class="flex items-start justify-between gap-2 mb-2">
             <span class="text-xs font-medium px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text};border:1px solid ${dc.border}">${domainLabel(item.domain)}</span>
             <div class="flex items-center gap-1 shrink-0">
               <span class="text-lg font-bold" style="color:${heatColor}">${item.heat_index}</span>
             </div>
           </div>
-          <h3 class="text-sm font-semibold text-white mb-1 line-clamp-2 leading-snug">${item.title}</h3>
-          <p class="text-xs text-slate-400 mb-3 line-clamp-2">${desc}</p>
+          <a href="${item.url}" target="_blank" rel="noopener" class="card-title block text-sm font-semibold text-white mb-1.5 leading-snug hover:text-indigo-400 transition-colors" data-original="${item.title.replace(/"/g, '&quot;')}">${item.title}</a>
+          <p class="card-desc text-xs text-slate-400 mb-3 leading-relaxed" data-original="${desc.replace(/"/g, '&quot;')}">${desc}</p>
           <div class="heat-bar w-full bg-slate-800 mb-3">
             <div class="heat-bar" style="width:${item.heat_index}%;background:${heatColor}"></div>
           </div>
-          <div class="flex items-center justify-between">
-            <div class="flex gap-1">${sourceBadges}</div>
-            <div class="flex items-center gap-3 text-xs">
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              ${sourceBadges}
+              ${ago ? `<span class="text-slate-500">${ago}</span>` : ''}
+              ${authorStr}
+            </div>
+            <div class="flex items-center gap-3">
               ${starsStr ? `<span title="${t().stars}">${starsStr}</span>` : ''}
               ${commentsStr ? `<span title="${t().comments}">${commentsStr}</span>` : ''}
               ${item.language ? `<span class="text-slate-500">${item.language}</span>` : ''}
             </div>
           </div>
-          ${tags ? `<div class="flex flex-wrap gap-1 mt-2">${tags}</div>` : ''}
-        </a>
+          ${hasDetails ? `
+          <div class="mt-3 pt-3 border-t border-slate-800">
+            <button class="details-toggle text-xs text-indigo-400 hover:text-indigo-300" onclick="toggleDetails('${detailId}', this)">${t().expand}</button>
+            <div id="${detailId}" class="details-content mt-2">
+              ${tags ? `<div class="flex flex-wrap gap-1 mb-2">${tags}</div>` : ''}
+              ${item.heat_reason ? `<p class="text-xs text-slate-500 italic">${item.heat_reason}</p>` : ''}
+            </div>
+          </div>` : ''}
+        </div>
       `;
+    }
+
+    function toggleDetails(id, btn) {
+      const el = document.getElementById(id);
+      const isOpen = el.classList.toggle('open');
+      btn.textContent = isOpen ? t().collapse : t().expand;
+    }
+
+    // ========== Refresh ==========
+    async function doRefresh() {
+      const btn = document.getElementById('refresh-btn');
+      const icon = document.getElementById('refresh-icon');
+      const text = document.getElementById('refresh-text');
+      btn.disabled = true;
+      btn.classList.add('opacity-60');
+      icon.classList.add('spin');
+      text.textContent = t().refreshing;
+
+      try {
+        const resp = await fetch('/api/collect', { method: 'POST' });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+          const stats = data.stats;
+          showToast(`${t().refreshDone}: ${stats.new || 0} new / ${stats.total || 0} total`, 'success');
+          resetAndLoadItems();
+          loadDomains();
+          loadStats();
+        } else if (data.status === 'busy') {
+          showToast(data.message, 'info');
+        } else {
+          showToast(`${t().refreshError}: ${data.message}`, 'error');
+        }
+      } catch (e) {
+        showToast(`${t().refreshError}: ${e.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+        icon.classList.remove('spin');
+        text.textContent = t().refreshBtn;
+      }
+    }
+
+    // ========== Translation ==========
+    async function translateText(text) {
+      if (!text || text.trim() === '') return text;
+      const key = text.substring(0, 100);
+      if (translationCache[key]) return translationCache[key];
+      try {
+        const resp = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text, target: 'zh' }),
+        });
+        const data = await resp.json();
+        if (data.translated) {
+          translationCache[key] = data.translated;
+          return data.translated;
+        }
+      } catch (e) { /* fall through */ }
+      return text;
+    }
+
+    async function translateVisibleCards() {
+      const titles = document.querySelectorAll('.card-title');
+      const descs = document.querySelectorAll('.card-desc');
+      // Translate in batches to avoid overwhelming the API
+      for (const el of titles) {
+        const original = el.dataset.original || el.textContent;
+        el.dataset.original = original;
+        el.textContent = await translateText(original);
+      }
+      for (const el of descs) {
+        const original = el.dataset.original || el.textContent;
+        el.dataset.original = original;
+        el.textContent = await translateText(original);
+      }
+    }
+
+    function restoreOriginalText() {
+      document.querySelectorAll('.card-title').forEach(el => {
+        if (el.dataset.original) el.textContent = el.dataset.original;
+      });
+      document.querySelectorAll('.card-desc').forEach(el => {
+        if (el.dataset.original) el.textContent = el.dataset.original;
+      });
+    }
+
+    async function toggleTranslate() {
+      translateMode = !translateMode;
+      const btn = document.getElementById('translate-btn');
+      const text = document.getElementById('translate-text');
+
+      if (translateMode) {
+        btn.classList.add('border-indigo-500', 'text-indigo-400');
+        text.textContent = t().translateOn;
+        await translateVisibleCards();
+      } else {
+        btn.classList.remove('border-indigo-500', 'text-indigo-400');
+        text.textContent = t().translateBtn;
+        restoreOriginalText();
+      }
     }
 
     // ========== Data Loading ==========
@@ -299,14 +498,13 @@
       let total = 0;
       domains.forEach(d => total += d.count);
 
-      let html = `<button class="chip active px-3 py-1.5 rounded-full text-xs font-medium border border-slate-600 bg-slate-800" data-domain="All">${t().allDomain} (${total})</button>`;
+      let html = `<button class="chip active px-3 py-1.5 rounded-full text-xs font-medium border border-slate-600 bg-slate-800 whitespace-nowrap" data-domain="All">${t().allDomain} (${total})</button>`;
       for (const d of domains) {
         const dc = DOMAIN_COLORS[d.domain] || DOMAIN_COLORS['Other'];
-        html += `<button class="chip px-3 py-1.5 rounded-full text-xs font-medium border" data-domain="${d.domain}" style="border-color:${dc.border};color:${dc.text};background:${dc.bg}">${domainLabel(d.domain)} (${d.count})</button>`;
+        html += `<button class="chip px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap" data-domain="${d.domain}" style="border-color:${dc.border};color:${dc.text};background:${dc.bg}">${domainLabel(d.domain)} (${d.count})</button>`;
       }
       container.innerHTML = html;
 
-      // Restore active state
       container.querySelectorAll('.chip').forEach(btn => {
         if (btn.dataset.domain === currentDomain) btn.classList.add('active');
         else btn.classList.remove('active');
@@ -314,34 +512,77 @@
           container.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           currentDomain = btn.dataset.domain;
-          loadItems();
+          resetAndLoadItems();
         });
       });
     }
 
-    async function loadItems() {
+    function resetAndLoadItems() {
+      currentOffset = 0;
+      document.getElementById('items-grid').innerHTML = `
+        <div class="skeleton h-48"></div><div class="skeleton h-48"></div>
+        <div class="skeleton h-48"></div><div class="skeleton h-48"></div>
+      `;
+      loadItems(false);
+    }
+
+    async function loadItems(append = false) {
       const params = new URLSearchParams();
       if (currentDomain !== 'All') params.set('domain', currentDomain);
       if (currentSearch) params.set('search', currentSearch);
       params.set('sort', currentSort);
+      params.set('limit', PAGE_SIZE);
+      params.set('offset', currentOffset);
 
       const resp = await fetch(`/api/items?${params}`);
-      const items = await resp.json();
+      const data = await resp.json();
+      const items = data.items;
+      totalItems = data.total;
 
       const grid = document.getElementById('items-grid');
       const empty = document.getElementById('empty-state');
       const countEl = document.getElementById('item-count');
+      const loadMoreContainer = document.getElementById('load-more-container');
+      const shownCountEl = document.getElementById('shown-count');
 
-      if (items.length === 0) {
+      if (!append && items.length === 0) {
         grid.innerHTML = '';
         empty.classList.remove('hidden');
+        loadMoreContainer.classList.add('hidden');
         countEl.textContent = t().itemCount(0);
         return;
       }
 
       empty.classList.add('hidden');
-      countEl.textContent = t().itemCount(items.length);
-      grid.innerHTML = items.map(renderCard).join('');
+      countEl.textContent = t().itemCount(totalItems);
+
+      const newHtml = items.map(renderCard).join('');
+      if (append) {
+        grid.insertAdjacentHTML('beforeend', newHtml);
+      } else {
+        grid.innerHTML = newHtml;
+      }
+
+      // Update shown count
+      const shownSoFar = currentOffset + items.length;
+      if (shownSoFar < totalItems) {
+        loadMoreContainer.classList.remove('hidden');
+        shownCountEl.textContent = t().shownCount(shownSoFar, totalItems);
+      } else {
+        loadMoreContainer.classList.remove('hidden');
+        shownCountEl.textContent = t().shownCount(shownSoFar, totalItems);
+        document.getElementById('load-more-btn').classList.add('hidden');
+      }
+
+      // Auto-translate new cards if translate mode is on
+      if (translateMode && items.length > 0) {
+        await translateVisibleCards();
+      }
+    }
+
+    async function loadMore() {
+      currentOffset += PAGE_SIZE;
+      await loadItems(true);
     }
 
     async function loadStats() {
@@ -357,19 +598,19 @@
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         currentSearch = e.target.value.trim();
-        loadItems();
+        resetAndLoadItems();
       }, 300);
     });
 
     document.getElementById('sort-select').addEventListener('change', (e) => {
       currentSort = e.target.value;
-      loadItems();
+      resetAndLoadItems();
     });
 
     // ========== Init ==========
     applyLang();
     loadDomains();
-    loadItems();
+    loadItems(false);
     loadStats();
   </script>
 </body>

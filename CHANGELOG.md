@@ -4,6 +4,34 @@
 
 ---
 
+## [0.5.0] - 2026-02-18
+
+### Added
+- 刷新数据按钮：Header 右侧新增刷新按钮，点击触发 `POST /api/collect` 采集数据，带旋转动画和 toast 提示
+- 翻译功能：Header 新增翻译开关按钮，开启后调用 Google Translate 免费 API 翻译标题和描述为中文
+- 翻译缓存：`translations` 表（MD5 hash + target_lang 唯一索引）+ SQLite 缓存查询/写入函数
+- 后端 `POST /api/translate` 端点：先查缓存，未命中调用翻译 API，结果写入缓存
+- 后端 `POST /api/collect` 端点：asyncio.Lock 防止并发采集，调用 `cmd_collect()` 执行采集
+- 分页支持：`/api/items` 新增 `offset` 参数，返回 `{ items, total, limit, offset }` 格式
+- "加载更多"按钮：前端底部加载更多 + "已显示 X / Y 条"计数
+- Toast 通知系统：右上角固定通知，5 秒后自动消失，支持 info/success/error 类型
+- 卡片可展开详情区：tags 和 heat_reason 折叠到"展开/收起"按钮中
+- 相对时间显示："2小时前"、"3天前"等
+- 卡片作者显示
+- i18n 新增键：refreshBtn、refreshing、refreshDone、refreshError、translateBtn、translateOn、expand、collapse、loadMore、shownCount
+
+### Changed
+- 页面最大宽度从 `max-w-7xl` 收窄至 `max-w-5xl`
+- Grid 布局从 `lg:grid-cols-3` 改为 `md:grid-cols-2`（最多 2 列）
+- 卡片间距从 `gap-4` 增加到 `gap-5`
+- 卡片不再整体作为 `<a>` 标签，标题链接和卡片容器分离
+- 热度 >= 70 的卡片左侧加红色边条（hot-border）
+- 描述文字截断长度从 150 字符增加到 200 字符
+- 域名筛选改为横向滚动（`overflow-x-auto`）替代换行
+- Stats 信息从 Header 移到域名筛选下方
+- `/api/items` 默认 limit 从 200 改为 20
+- store.py 新增 `hashlib` 导入用于翻译缓存
+
 ## [0.1.0] - 2026-02-17
 
 ### Added

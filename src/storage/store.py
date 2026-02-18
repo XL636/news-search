@@ -1,5 +1,6 @@
 """SQLite storage layer for InsightRadar."""
 
+import hashlib
 import json
 import sqlite3
 from datetime import datetime, timedelta
@@ -83,10 +84,21 @@ def init_db(conn: sqlite3.Connection) -> None:
             last_collected_at TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS translations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_text_hash TEXT NOT NULL,
+            target_lang TEXT NOT NULL,
+            source_text TEXT NOT NULL,
+            translated_text TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(source_text_hash, target_lang)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_raw_source ON raw_items(source);
         CREATE INDEX IF NOT EXISTS idx_raw_collected ON raw_items(collected_at);
         CREATE INDEX IF NOT EXISTS idx_classified_domain ON classified_items(domain);
         CREATE INDEX IF NOT EXISTS idx_classified_heat ON classified_items(heat_index DESC);
+        CREATE INDEX IF NOT EXISTS idx_translations_lookup ON translations(source_text_hash, target_lang);
     """)
     conn.commit()
 
@@ -334,3 +346,34 @@ def clear_processed(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM classified_items")
     conn.execute("DELETE FROM cleaned_items")
     conn.commit()
+
+
+# --- Translations Cache ---
+
+def _text_hash(text: str) -> str:
+    """MD5 hash of text for cache lookup."""
+    return hashlib.md5(text.encode("utf-8")).hexdigest()
+
+
+def get_translation(conn: sqlite3.Connection, text: str, target_lang: str) -> str | None:
+    """Look up a cached translation. Returns translated text or None."""
+    h = _text_hash(text[:500])
+    row = conn.execute(
+        "SELECT translated_text FROM translations WHERE source_text_hash = ? AND target_lang = ?",
+        (h, target_lang),
+    ).fetchone()
+    return row["translated_text"] if row else None
+
+
+def save_translation(conn: sqlite3.Connection, text: str, translated: str, target_lang: str) -> None:
+    """Save a translation to the cache."""
+    h = _text_hash(text[:500])
+    try:
+        conn.execute(
+            """INSERT INTO translations (source_text_hash, target_lang, source_text, translated_text, created_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (h, target_lang, text[:500], translated, datetime.utcnow().isoformat()),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass  # already cached

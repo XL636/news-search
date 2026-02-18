@@ -27,6 +27,9 @@
 | 18 | 采集器错误重试 | 2026-02-18 | BaseCollector max_retries=3 + 指数退避 |
 | 19 | RSS 源可配置化 | 2026-02-18 | data/feeds.json，fallback 到默认源 |
 | 20 | 增量采集支持 | 2026-02-18 | collect_meta 表记录每个源最后采集时间 |
+| 21 | Dashboard 刷新数据按钮 | 2026-02-18 | POST /api/collect + 前端刷新按钮 + toast 提示 |
+| 22 | Dashboard UI 优化 | 2026-02-18 | 2列布局、分页、卡片重设计、域名横向滚动 |
+| 23 | Dashboard 翻译功能 | 2026-02-18 | translations 表 + Google Translate API + 前端翻译开关 |
 
 ### 进行中 🔄
 
@@ -70,9 +73,10 @@
    - 多日数据对比，识别上升/下降趋势
    - 需要 classified_items 增加 `date` 索引
 
-7. **~~Web 界面~~** ✅ 已完成
+7. **~~Web 界面~~** ✅ 已完成（含 v2 升级）
    - FastAPI 后端 `src/server.py` + 前端 `src/static/index.html`
    - 领域过滤、搜索、多排序、暗色主题
+   - v2: 刷新数据按钮、分页加载更多、翻译功能、UI 优化（2列布局、卡片重设计）
 
 8. **定时调度**
    - 系统级 cron / Windows Task Scheduler
