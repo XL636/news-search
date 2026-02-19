@@ -21,7 +21,7 @@ from src.config import (
     ZHIPUAI_MODEL,
 )
 from src.pipeline import cmd_collect
-from src.storage.store import get_connection, get_translation, init_db, insert_web_search_item, save_translation
+from src.storage.store import get_connection, get_translation, get_trending_items, get_item_trend, init_db, insert_web_search_item, save_translation, take_daily_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -66,13 +66,19 @@ def _save_api_key(key: str):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database and scheduler on startup."""
     global _runtime_api_key
     conn = get_connection()
     init_db(conn)
     conn.close()
     _runtime_api_key = _load_api_key()
+    # Start scheduler
+    from src.scheduler import start_scheduler
+    start_scheduler()
     yield
+    # Shutdown scheduler
+    from src.scheduler import stop_scheduler
+    stop_scheduler()
 
 
 app = FastAPI(title="InsightRadar Dashboard", lifespan=lifespan)
@@ -727,6 +733,37 @@ async def api_ai_latest():
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# ========== Trend Tracking ==========
+
+@app.get("/api/trends")
+def api_trends(days: int = Query(3), limit: int = Query(20)):
+    """Get trending items based on heat_index changes between snapshots."""
+    conn = get_connection()
+    items = get_trending_items(conn, days=days, limit=limit)
+    for item in items:
+        item["history"] = get_item_trend(conn, item["url"], days=7)
+    conn.close()
+    return {"items": items}
+
+
+@app.post("/api/snapshot")
+def api_snapshot():
+    """Manually trigger a daily heat snapshot."""
+    conn = get_connection()
+    count = take_daily_snapshot(conn)
+    conn.close()
+    return {"status": "ok", "snapshotted": count}
+
+
+# ========== Scheduler ==========
+
+@app.get("/api/scheduler")
+def api_scheduler_status():
+    """Get scheduler status and next run times."""
+    from src.scheduler import get_scheduler_status
+    return get_scheduler_status()
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -101,6 +101,19 @@ def init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_classified_heat ON classified_items(heat_index DESC);
         CREATE INDEX IF NOT EXISTS idx_classified_url ON classified_items(url);
         CREATE INDEX IF NOT EXISTS idx_translations_lookup ON translations(source_text_hash, target_lang);
+
+        CREATE TABLE IF NOT EXISTS heat_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_url TEXT NOT NULL,
+            title TEXT,
+            domain TEXT,
+            heat_index INTEGER,
+            snapshot_date TEXT NOT NULL,
+            UNIQUE(item_url, snapshot_date)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_snapshot_date ON heat_snapshots(snapshot_date);
+        CREATE INDEX IF NOT EXISTS idx_snapshot_url_date ON heat_snapshots(item_url, snapshot_date);
     """)
     conn.commit()
 
@@ -447,3 +460,72 @@ def save_translation(conn: sqlite3.Connection, text: str, translated: str, targe
         conn.commit()
     except sqlite3.IntegrityError:
         pass  # already cached
+
+
+# --- Heat Snapshots (Trend Tracking) ---
+
+def take_daily_snapshot(conn: sqlite3.Connection) -> int:
+    """Snapshot current classified_items heat_index into heat_snapshots.
+    Returns count of items snapshotted."""
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    rows = conn.execute(
+        "SELECT url, title, domain, heat_index FROM classified_items"
+    ).fetchall()
+    count = 0
+    for r in rows:
+        try:
+            conn.execute(
+                """INSERT INTO heat_snapshots (item_url, title, domain, heat_index, snapshot_date)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (r["url"], r["title"], r["domain"], r["heat_index"], today),
+            )
+            count += 1
+        except sqlite3.IntegrityError:
+            pass  # already snapshotted today
+    conn.commit()
+    return count
+
+
+def get_trending_items(conn: sqlite3.Connection, days: int = 3, limit: int = 20) -> list[dict]:
+    """Compare latest two snapshots, return items with biggest heat_index changes."""
+    dates = conn.execute(
+        "SELECT DISTINCT snapshot_date FROM heat_snapshots ORDER BY snapshot_date DESC LIMIT 2"
+    ).fetchall()
+    if len(dates) < 2:
+        return []
+
+    latest_date = dates[0]["snapshot_date"]
+    prev_date = dates[1]["snapshot_date"]
+
+    rows = conn.execute("""
+        SELECT
+            a.item_url, a.title, a.domain, a.heat_index as current_heat,
+            b.heat_index as prev_heat,
+            (a.heat_index - b.heat_index) as delta
+        FROM heat_snapshots a
+        JOIN heat_snapshots b ON a.item_url = b.item_url
+        WHERE a.snapshot_date = ? AND b.snapshot_date = ?
+        ORDER BY ABS(a.heat_index - b.heat_index) DESC
+        LIMIT ?
+    """, (latest_date, prev_date, limit)).fetchall()
+
+    return [{
+        "url": r["item_url"],
+        "title": r["title"],
+        "domain": r["domain"],
+        "heat_index": r["current_heat"],
+        "prev_heat": r["prev_heat"],
+        "delta": r["delta"],
+        "direction": "up" if r["delta"] > 0 else ("down" if r["delta"] < 0 else "stable"),
+    } for r in rows]
+
+
+def get_item_trend(conn: sqlite3.Connection, item_url: str, days: int = 7) -> list[dict]:
+    """Return heat_index history for a single item over the last N days."""
+    rows = conn.execute(
+        """SELECT heat_index, snapshot_date FROM heat_snapshots
+           WHERE item_url = ?
+           ORDER BY snapshot_date DESC LIMIT ?""",
+        (item_url, days),
+    ).fetchall()
+    return [{"heat_index": r["heat_index"], "date": r["snapshot_date"]} for r in rows]

@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import DATA_DIR, PROCESSED_DIR, RAW_DIR
+from src.collectors.arxiv import ArXivCollector
 from src.collectors.github_trending import GitHubCollector
 from src.collectors.hackernews import HackerNewsCollector
 from src.collectors.rss_feeds import RSSCollector
@@ -35,6 +36,7 @@ COLLECTORS = {
     "github": GitHubCollector,
     "hackernews": HackerNewsCollector,
     "rss": RSSCollector,
+    "arxiv": ArXivCollector,
 }
 
 

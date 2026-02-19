@@ -19,5 +19,7 @@
   {"name": "Fireship (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"},
   {"name": "ThePrimeagen (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC8ENHE5xdFSwx71u3fDH5Xw"},
 
-  {"name": "Bilibili 科技热搜 (RSSHub)", "url": "https://rsshub.app/bilibili/vsearch/科技/order/pubdate"}
+  {"name": "Bilibili 科技热搜 (RSSHub)", "url": "https://rsshub.app/bilibili/vsearch/科技/order/pubdate"},
+
+  {"name": "Medium Tech", "url": "https://medium.com/feed/tag/technology"}
 ]

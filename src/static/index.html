@@ -461,12 +461,28 @@
           </div>
         </div>
 
+        <!-- Trend Tracking -->
+        <div class="mb-5" id="trend-section">
+          <div class="sidebar-title px-3 mb-2" id="trend-title"></div>
+          <div id="trend-list" class="flex flex-col gap-1.5 px-1">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
         <!-- Domain Navigation -->
         <div class="mb-4">
           <div class="sidebar-title px-3 mb-2" id="sidebar-domain-label"></div>
           <nav id="sidebar-domains" class="flex flex-col gap-0.5">
             <!-- filled by JS -->
           </nav>
+        </div>
+
+        <!-- Scheduler Status -->
+        <div class="mt-auto pt-4 px-3" id="scheduler-section">
+          <div class="sidebar-title mb-1.5" id="scheduler-label"></div>
+          <div id="scheduler-status" class="text-xs text-stone-500">
+            <!-- filled by JS -->
+          </div>
         </div>
       </aside>
 
@@ -615,7 +631,7 @@
           'Mobile': '移动端', 'Data': '数据', 'Blockchain': '区块链',
           'Biotech': '生物科技', 'Other': '其他',
         },
-        sourceNames: { 'github': 'GitHub', 'hackernews': 'HN', 'rss': 'RSS' },
+        sourceNames: { 'github': 'GitHub', 'hackernews': 'HN', 'rss': 'RSS', 'arxiv': '论文' },
         stars: 'Stars',
         comments: '评论',
         timeAgo: { s: '秒前', m: '分钟前', h: '小时前', d: '天前' },
@@ -642,6 +658,15 @@
         aiAnalyzing: '正在分析文章...',
         aiLatestBtn: '最新热点',
         aiLatestQuery: '今日最热科技新闻与开源动态',
+        trendTitle: '热度趋势',
+        trendUp: '上升',
+        trendDown: '下降',
+        trendStable: '持平',
+        trendEmpty: '暂无趋势数据',
+        schedulerStatus: '调度状态',
+        schedulerNext: '下次采集',
+        schedulerOff: '调度未启动',
+        schedulerRunning: '运行中',
       },
       en: {
         subtitle: 'Global Innovation Intelligence',
@@ -675,7 +700,7 @@
           'Mobile': 'Mobile', 'Data': 'Data', 'Blockchain': 'Blockchain',
           'Biotech': 'Biotech', 'Other': 'Other',
         },
-        sourceNames: { 'github': 'GitHub', 'hackernews': 'HN', 'rss': 'RSS' },
+        sourceNames: { 'github': 'GitHub', 'hackernews': 'HN', 'rss': 'RSS', 'arxiv': 'Paper' },
         stars: 'Stars',
         comments: 'Comments',
         timeAgo: { s: 's ago', m: 'm ago', h: 'h ago', d: 'd ago' },
@@ -702,6 +727,15 @@
         aiAnalyzing: 'Analyzing article...',
         aiLatestBtn: 'Trending',
         aiLatestQuery: "Today's hottest tech news and open source trends",
+        trendTitle: 'Trending',
+        trendUp: 'Up',
+        trendDown: 'Down',
+        trendStable: 'Stable',
+        trendEmpty: 'No trend data yet',
+        schedulerStatus: 'Scheduler',
+        schedulerNext: 'Next collect',
+        schedulerOff: 'Scheduler off',
+        schedulerRunning: 'Running',
       },
     };
 
@@ -731,6 +765,7 @@
         loadDomains();
         loadItems(false);
         loadStats();
+        loadTrends();
       }
     }
 
@@ -741,10 +776,12 @@
       localStorage.setItem('ir-lang', l);
       document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
       applyLang();
+      loadSchedulerStatus();
       if (feedLoaded) {
         loadDomains();
         resetAndLoadItems();
         loadStats();
+        loadTrends();
       }
     }
 
@@ -842,6 +879,7 @@
       'github': { bg: 'rgba(110,118,129,.15)', text: '#c9d1d9', label: 'GitHub' },
       'hackernews': { bg: 'rgba(255,102,0,.12)', text: '#ff8c40', label: 'HN' },
       'rss': { bg: 'rgba(74,222,128,.1)', text: '#86efac', label: 'RSS' },
+      'arxiv': { bg: 'rgba(168,85,247,.12)', text: '#c084fc', label: '论文' },
       'web_search': { bg: 'rgba(59,130,246,.12)', text: '#60a5fa', label: 'Web' },
     };
 
@@ -1854,6 +1892,46 @@
       document.getElementById('kpi-classified').textContent = stats.classified_items?.toLocaleString() || '0';
     }
 
+    // ========== Trend Tracking ==========
+    async function loadTrends() {
+      const titleEl = document.getElementById('trend-title');
+      const listEl = document.getElementById('trend-list');
+      if (!titleEl || !listEl) return;
+
+      titleEl.textContent = t().trendTitle;
+
+      try {
+        const resp = await fetch('/api/trends?limit=5');
+        const data = await resp.json();
+
+        if (!data.items || data.items.length === 0) {
+          listEl.innerHTML = `<div class="text-xs text-stone-500 px-2">${t().trendEmpty}</div>`;
+          return;
+        }
+
+        listEl.innerHTML = data.items.map(item => {
+          const arrow = item.direction === 'up' ? '\u2191' : item.direction === 'down' ? '\u2193' : '\u2192';
+          const color = item.direction === 'up' ? '#22c55e' : item.direction === 'down' ? '#ef4444' : '#a8a29e';
+          const absDelta = Math.abs(item.delta);
+          const title = item.title.length > 28 ? item.title.substring(0, 28) + '...' : item.title;
+          const barWidth = Math.min(item.heat_index, 100);
+
+          return `
+            <div class="px-2 py-1.5 rounded-lg hover:bg-white/[.03] transition-colors cursor-default" title="${item.title}">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs text-stone-300 truncate flex-1">${title}</span>
+                <span class="text-xs font-bold text-mono" style="color:${color}">${arrow}${absDelta}</span>
+              </div>
+              <div class="mt-1 h-[2px] rounded-full bg-stone-800 overflow-hidden">
+                <div class="h-full rounded-full" style="width:${barWidth}%;background:linear-gradient(90deg,#b08d57,#d97706)"></div>
+              </div>
+            </div>`;
+        }).join('');
+      } catch (e) {
+        listEl.innerHTML = `<div class="text-xs text-stone-500 px-2">${t().trendEmpty}</div>`;
+      }
+    }
+
     // ========== Events ==========
     document.getElementById('search-input').addEventListener('input', (e) => {
       clearTimeout(debounceTimer);
@@ -1868,8 +1946,45 @@
       resetAndLoadItems();
     });
 
+    // ========== Scheduler Status ==========
+    async function loadSchedulerStatus() {
+      const labelEl = document.getElementById('scheduler-label');
+      const statusEl = document.getElementById('scheduler-status');
+      if (!labelEl || !statusEl) return;
+
+      labelEl.textContent = t().schedulerStatus;
+
+      try {
+        const resp = await fetch('/api/scheduler');
+        const data = await resp.json();
+
+        if (!data.running) {
+          statusEl.innerHTML = `<span class="text-stone-600">${t().schedulerOff}</span>`;
+          return;
+        }
+
+        const collectJob = (data.jobs || []).find(j => j.id === 'daily_collect');
+        let nextRun = '';
+        if (collectJob && collectJob.next_run) {
+          const d = new Date(collectJob.next_run);
+          nextRun = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+        }
+
+        statusEl.innerHTML = `
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+            <span class="text-green-400">${t().schedulerRunning}</span>
+          </div>
+          ${nextRun ? `<div class="text-stone-500">${t().schedulerNext}: ${nextRun}</div>` : ''}
+        `;
+      } catch (e) {
+        statusEl.innerHTML = `<span class="text-stone-600">${t().schedulerOff}</span>`;
+      }
+    }
+
     // ========== Init ==========
     applyLang();
+    loadSchedulerStatus();
     // Default to AI search view - feed data loads lazily on tab switch
   </script>
 </body>

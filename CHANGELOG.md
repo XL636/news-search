@@ -4,6 +4,35 @@
 
 ---
 
+## [0.15.0] - 2026-02-19
+
+### Added
+- **ArXiv 论文采集器** `src/collectors/arxiv.py`：使用 ArXiv API 采集 cs.AI/cs.LG/cs.CL/cs.SE 类别最新论文
+  - feedparser 解析 Atom XML，映射到 RawItem（title/abstract/author/categories）
+  - `source="arxiv"`, `source_id="arxiv:{id}"`
+  - `config.py` 新增 `ARXIV_API_URL`、`ARXIV_CATEGORIES`、`ARXIV_MAX_ITEMS=30`
+  - `pipeline.py` COLLECTORS 注册 ArXivCollector
+  - `SOURCE_AUTHORITY` 新增 `"arxiv": 2`
+- **热度趋势追踪系统**（完整垂直切片）
+  - `store.py`：`heat_snapshots` 表 + `take_daily_snapshot()` + `get_trending_items()` + `get_item_trend()`
+  - `server.py`：`GET /api/trends?days=3&limit=20` + `POST /api/snapshot`
+  - 前端侧边栏趋势区块：TOP 5 趋势项，↑/↓/→ 方向标记 + 迷你热度条
+  - i18n：`trendTitle`/`trendUp`/`trendDown`/`trendStable`/`trendEmpty`（中英文）
+- **自动调度器** `src/scheduler.py`
+  - APScheduler `AsyncIOScheduler` 集成 FastAPI lifespan
+  - Job 1: 每日 08:00 UTC 执行 `cmd_collect()` 全源采集
+  - Job 2: 每日 08:30 UTC 执行 `take_daily_snapshot()` 热度快照
+  - 调度时间可通过 `data/settings.json` 配置
+  - `GET /api/scheduler` 返回调度状态（running/jobs/next_run/last_run）
+  - 前端侧边栏底部调度状态显示（绿色运行指示灯 + 下次采集时间）
+  - i18n：`schedulerStatus`/`schedulerNext`/`schedulerOff`/`schedulerRunning`（中英文）
+  - `requirements.txt` 新增 `apscheduler>=3.10,<4.0`
+- **Medium Tech RSS**：`data/feeds.json` 新增 `https://medium.com/feed/tag/technology`（总计 17 个源）
+- 前端 `SOURCE_STYLES` 新增 `arxiv` 条目：紫色风格（`#c084fc`），label 显示 "论文"
+- 前端 i18n `sourceNames` 新增 `arxiv: '论文'`(zh) / `arxiv: 'Paper'`(en)
+
+---
+
 ## [0.14.1] - 2026-02-19
 
 ### Changed

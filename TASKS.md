@@ -8,6 +8,9 @@
 
 | # | 任务 | 完成日期 | 备注 |
 |---|------|----------|------|
+| 46 | ArXiv 论文采集器 | 2026-02-19 | ArXiv API + feedparser，cs.AI/cs.LG/cs.CL/cs.SE 类别，注册到 pipeline |
+| 47 | 热度趋势追踪系统 | 2026-02-19 | heat_snapshots 表 + /api/trends + /api/snapshot + 侧边栏 TOP 5 趋势 |
+| 48 | 自动调度器 | 2026-02-19 | APScheduler AsyncIOScheduler + 每日 08:00 采集 + 08:30 快照 + /api/scheduler |
 | 1 | 项目脚手架搭建 | 2026-02-17 | 目录结构、配置、.gitignore、CLAUDE.md |
 | 2 | 数据模型 + 存储层 | 2026-02-17 | Pydantic schemas + SQLite 三表 |
 | 3 | GitHub 采集器 | 2026-02-17 | Search API，已修复 topics 解析 bug |
@@ -59,7 +62,7 @@
 |---|------|----------|------|
 | — | 暂无 | — | — |
 
-> **已完成**: #44 Dashboard Premium UI 全面升级 — 2026-02-19
+> **已完成**: #48 自动调度器 — 2026-02-19
 
 ### 待办 📋
 
@@ -87,15 +90,16 @@
 
 ### 中期优化（MVP 后）
 
-5. **更多数据源**
-   - Product Hunt API
-   - Reddit r/programming
-   - ArXiv 论文（AI 领域）
-   - Dev.to / Medium 技术博客
+5. **~~更多数据源~~** ✅ 已完成
+   - ~~Product Hunt API~~ ✅ RSS 已覆盖
+   - ~~Reddit r/programming~~ ✅ RSS 已覆盖
+   - ~~ArXiv 论文（AI 领域）~~ ✅ 专用 ArXiv API 采集器（cs.AI/cs.LG/cs.CL/cs.SE）
+   - ~~Dev.to / Medium 技术博客~~ ✅ RSS 已覆盖 + Medium Tech 新增
 
-6. **热度趋势追踪**
-   - 多日数据对比，识别上升/下降趋势
-   - 需要 classified_items 增加 `date` 索引
+6. **~~热度趋势追踪~~** ✅ 已完成
+   - heat_snapshots 表 + 每日快照 + 两次快照对比
+   - GET /api/trends + POST /api/snapshot API
+   - 侧边栏 TOP 5 趋势项（↑/↓/→ + 迷你热度条）
 
 7. **~~Web 界面~~** ✅ 已完成（含 v3 重设计）
    - FastAPI 后端 `src/server.py` + 前端 `src/static/index.html`
@@ -103,9 +107,11 @@
    - v2: 刷新数据按钮、分页加载更多、翻译功能、UI 优化（2列布局、卡片重设计）
    - v3: 侧边栏导航、KPI 统计卡片、Glass-morphism、3列响应式、ambient 渐变背景
 
-8. **定时调度**
-   - 系统级 cron / Windows Task Scheduler
-   - 每日自动采集 + 生成报告
+8. **~~定时调度~~** ✅ 已完成
+   - APScheduler AsyncIOScheduler 集成 FastAPI 生命周期
+   - 每日 08:00 UTC 自动采集 + 08:30 UTC 热度快照
+   - 时间可通过 data/settings.json 配置
+   - GET /api/scheduler 状态查询 + 侧边栏调度状态显示
 
 ### 长期优化（规模化）
 

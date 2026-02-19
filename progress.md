@@ -58,6 +58,9 @@
 | AI 搜索引用内容匹配 (v2) | ✅ 完成 | 100% |
 | Dashboard Premium UI 升级 | ✅ 完成 | 100% |
 | Dashboard 背景微调提亮 | ✅ 完成 | 100% |
+| ArXiv 论文采集器 | ✅ 完成 | 100% |
+| 热度趋势追踪系统 | ✅ 完成 | 100% |
+| 自动调度器 (APScheduler) | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -175,6 +178,34 @@ i18n：中英双语（aiKeyTitle/aiKeyDesc/aiKeySaveBtn/aiKeyPlaceholder/aiKeySa
   前端 tokenize + computeMatchScore 按上下文关键词与来源标题打分匹配
 ```
 
+### 中期优化三连发（2026-02-19）
+
+```
+ArXiv 采集器：src/collectors/arxiv.py
+  API: https://export.arxiv.org/api/query
+  类别：cs.AI, cs.LG, cs.CL, cs.SE
+  解析：feedparser Atom XML → RawItem 映射
+  注册：pipeline.py COLLECTORS + config.py 配置常量
+  前端：SOURCE_STYLES 紫色风格 + i18n '论文'/'Paper'
+
+热度趋势追踪：完整垂直切片（DB → API → UI）
+  DB: heat_snapshots 表 + take_daily_snapshot() + get_trending_items() + get_item_trend()
+  API: GET /api/trends?days=3&limit=20 + POST /api/snapshot
+  前端：侧边栏 TOP 5 趋势项（↑/↓/→ 标记 + 迷你热度条）+ i18n
+
+自动调度：APScheduler AsyncIOScheduler
+  模块：src/scheduler.py（start/stop/status）
+  Job 1: 每日 08:00 UTC 全源采集
+  Job 2: 每日 08:30 UTC 热度快照
+  配置：data/settings.json (schedule_collect_hour/minute)
+  集成：FastAPI lifespan startup/shutdown
+  API: GET /api/scheduler 状态查询
+  前端：侧边栏底部调度状态（绿色运行指示灯 + 下次采集时间）
+  依赖：apscheduler>=3.10
+
+数据源扩充：feeds.json 新增 Medium Tech RSS
+```
+
 ### Dashboard Premium UI 全面升级（2026-02-19）
 
 ```
@@ -233,12 +264,13 @@ AI 搜索：hero 浮动+呼吸 + 搜索框三层光晕 + chips 上浮 + wave 弹
 - ~~RSS 源可配置化~~ ✅ 已完成（data/feeds.json）
 - ~~增量采集~~ ✅ 已完成（collect_meta 表）
 
-### M3: 功能扩展（进行中）
-- 更多数据源
+### M3: 功能扩展 ✅ 完成
+- ~~更多数据源~~ ✅ 已完成（ArXiv 采集器 + Medium RSS + 共 17 个 RSS 源）
 - ~~Web 界面~~ ✅ 已完成（FastAPI Dashboard + 中英文 i18n）
 - ~~Dashboard v2~~ ✅ 已完成（刷新按钮 + UI 优化 + 分页 + 翻译功能）
 - ~~Dashboard v3~~ ✅ 已完成（全面视觉重设计：侧边栏 + KPI + Glass-morphism + 3列响应式）
-- 定时调度
+- ~~热度趋势追踪~~ ✅ 已完成（heat_snapshots + API + 侧边栏趋势区块）
+- ~~定时调度~~ ✅ 已完成（APScheduler + FastAPI 集成 + 调度状态 UI）
 
 ---
 

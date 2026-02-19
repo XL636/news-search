@@ -51,6 +51,11 @@ if _FEEDS_FILE.exists():
 else:
     RSS_FEEDS = _DEFAULT_RSS_FEEDS
 
+# ArXiv Paper API
+ARXIV_API_URL = "https://export.arxiv.org/api/query"
+ARXIV_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL", "cs.SE"]
+ARXIV_MAX_ITEMS = 30
+
 # Heat index weights
 HEAT_WEIGHTS = {
     "stars": 0.3,        # GitHub stars / HN points
@@ -78,6 +83,7 @@ DOMAINS = [
 SOURCE_AUTHORITY = {
     "github": 3,
     "hackernews": 2,
+    "arxiv": 2,
     "rss": 1,
 }
 
