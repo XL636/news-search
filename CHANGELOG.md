@@ -4,6 +4,25 @@
 
 ---
 
+## [0.13.0] - 2026-02-19
+
+### Fixed
+- **AI 搜索引用彻底修复**：用内容匹配替代索引匹配，解决 GLM `[N]` 与来源卡片不对应的根本问题
+  - 旧方案：`[5]` → `aiSources[4]`（索引匹配），GLM 编号错位时完全失效
+  - 新方案：提取引用上下文关键词 → tokenize → 与所有来源标题/描述打分 → 匹配真正对应的来源
+
+### Added
+- `tokenize(text)` 函数：中英文混合分词（英文单词 + 中文单字/bigram），去重
+- `computeMatchScore(contextTokens, source)` 函数：标题权重 3x + 描述权重 1x 打分
+- `filterCitedSources()` 内容匹配逻辑：上下文 80 字提取 → 逐引用最佳匹配 → usedSourceIndices 防重复 → 最低阈值 ≥2
+
+### Changed
+- `filterCitedSources()` 完全重写：索引匹配 → 内容匹配，匹配后按引用编号排序重建 aiSources
+- 未匹配引用的 citation badge 直接移除（`el.remove()`）
+- 未引用的 web 来源追加到匹配来源之后
+
+---
+
 ## [0.12.0] - 2026-02-19
 
 ### Fixed

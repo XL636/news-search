@@ -1133,49 +1133,113 @@
       });
     }
 
-    function filterCitedSources(fullText) {
-      // Extract all [N] citation numbers from the raw AI text
-      const cited = new Set();
-      const matches = fullText.matchAll(/\[(\d+)\]/g);
-      for (const m of matches) cited.add(parseInt(m[1], 10));
+    function tokenize(text) {
+      if (!text) return [];
+      const tokens = [];
+      const eng = text.match(/[a-zA-Z0-9._/-]{2,}/g);
+      if (eng) eng.forEach(w => tokens.push(w.toLowerCase()));
+      const cn = text.match(/[\u4e00-\u9fff]/g);
+      if (cn) {
+        cn.forEach(c => tokens.push(c));
+        for (let i = 0; i < cn.length - 1; i++) tokens.push(cn[i] + cn[i + 1]);
+      }
+      return [...new Set(tokens)];
+    }
 
-      // Build filtered sources: only cited items + web sources
-      let filtered;
-      if (cited.size === 0) {
-        // No citations — show only web sources if any
-        filtered = aiSources.filter(s => s._isWebSource);
-      } else {
-        filtered = aiSources.filter((s, i) => cited.has(i + 1) || s._isWebSource);
+    function computeMatchScore(contextTokens, source) {
+      const titleTokens = new Set(tokenize(source.title || ''));
+      const descTokens = new Set(tokenize(source.description || ''));
+      let score = 0;
+      for (const t of contextTokens) {
+        if (titleTokens.has(t)) score += 3;
+        if (descTokens.has(t)) score += 1;
+      }
+      return score;
+    }
+
+    function filterCitedSources(fullText) {
+      // Extract each [N] citation with ~80 chars of preceding context
+      const citationPattern = /(.{0,80})\[(\d+)\]/g;
+      const citations = []; // { num, context }
+      let m;
+      while ((m = citationPattern.exec(fullText)) !== null) {
+        citations.push({ num: parseInt(m[2], 10), context: m[1] });
       }
 
-      // Build old-index → new-index mapping (1-based)
-      const indexMap = {};
-      let newIdx = 1;
-      aiSources.forEach((s, i) => {
-        const oldNum = i + 1;
-        const isWeb = s._isWebSource;
-        if (cited.has(oldNum) || isWeb || (cited.size === 0 && isWeb)) {
-          indexMap[oldNum] = newIdx++;
-        }
-      });
+      if (citations.length === 0) {
+        // No citations — show only web sources
+        aiSources = aiSources.filter(s => s._isWebSource);
+        renderAISources(aiSources);
+        return;
+      }
 
-      // Replace aiSources with filtered list
-      aiSources = filtered;
+      // Content-match each citation to the best source
+      const usedSourceIndices = new Set();
+      const citationToSource = {}; // citNum → source index in aiSources
+
+      // Sort citations by number for deterministic assignment
+      const uniqueCitations = [];
+      const seenNums = new Set();
+      for (const c of citations) {
+        if (!seenNums.has(c.num)) {
+          seenNums.add(c.num);
+          uniqueCitations.push(c);
+        }
+      }
+
+      for (const cit of uniqueCitations) {
+        const contextTokens = tokenize(cit.context);
+        if (contextTokens.length === 0) continue;
+
+        let bestIdx = -1;
+        let bestScore = 0;
+        for (let i = 0; i < aiSources.length; i++) {
+          if (usedSourceIndices.has(i)) continue;
+          const score = computeMatchScore(contextTokens, aiSources[i]);
+          if (score > bestScore) {
+            bestScore = score;
+            bestIdx = i;
+          }
+        }
+
+        if (bestIdx >= 0 && bestScore >= 2) {
+          citationToSource[cit.num] = bestIdx;
+          usedSourceIndices.add(bestIdx);
+        }
+      }
+
+      // Build new source list: matched sources (ordered by citation num) + uncited web sources
+      const matchedNums = Object.keys(citationToSource).map(Number).sort((a, b) => a - b);
+      const newSources = [];
+      const oldCitToNew = {}; // old citation num → new 1-based index
+
+      for (const num of matchedNums) {
+        newSources.push(aiSources[citationToSource[num]]);
+        oldCitToNew[num] = newSources.length; // 1-based
+      }
+
+      // Append uncited web sources
+      for (let i = 0; i < aiSources.length; i++) {
+        if (!usedSourceIndices.has(i) && aiSources[i]._isWebSource) {
+          newSources.push(aiSources[i]);
+        }
+      }
+
+      aiSources = newSources;
       renderAISources(aiSources);
 
-      // Remap citation numbers in the rendered HTML to match new indices
+      // Remap citation badges in rendered HTML
       const content = document.getElementById('ai-answer-content');
       content.querySelectorAll('.citation').forEach(el => {
         const oldNum = parseInt(el.textContent, 10);
-        const newNum = indexMap[oldNum];
-        if (newNum && newNum !== oldNum) {
+        const newNum = oldCitToNew[oldNum];
+        if (newNum) {
           el.textContent = newNum;
           el.setAttribute('onclick', `scrollToSource(${newNum})`);
-          // Update tooltip to match new source
           const src = aiSources[newNum - 1];
           if (src) el.setAttribute('title', src.title.replace(/"/g, '&quot;').substring(0, 60));
-        } else if (!newNum) {
-          // Citation refers to a source that was filtered out — remove it
+        } else {
+          // No matching source found — remove the citation badge
           el.remove();
         }
       });

@@ -49,6 +49,7 @@
 | 40 | 网络来源展示优化 | 2026-02-19 | "联网补充"分隔线 + 引用 tooltip + 无URL卡片不可点击 + 保留无链接web结果 |
 | 41 | AI 搜索视图翻译功能 | 2026-02-19 | 翻译按钮双视图可见 + AI来源卡片 card-title/data-original + 自动翻译 |
 | 42 | AI 搜索引用不匹配修复 | 2026-02-19 | 搜索回退逻辑 + 0项GLM调用 + filterCitedSources + 引用重映射 + 25项测试计划 |
+| 43 | AI 搜索引用内容匹配修复 | 2026-02-19 | tokenize + computeMatchScore + filterCitedSources 完全重写：索引匹配→内容匹配 |
 
 ### 进行中 🔄
 
