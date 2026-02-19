@@ -374,20 +374,15 @@ def search_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[di
     items = [_row_to_item(r) for r in rows]
 
     # Layer 4: fallback — if fewer than 5 results, pad with top items
-    if len(items) < 5:
+    # Only pad if at least 1 item matched; if 0 matched, return empty (let GLM web search)
+    if 1 <= len(items) < 5:
         existing_ids = {item["id"] for item in items}
         need = limit - len(items)
-        if existing_ids:
-            placeholders = ",".join("?" * len(existing_ids))
-            extra = conn.execute(
-                f"SELECT * FROM classified_items WHERE id NOT IN ({placeholders}) ORDER BY heat_index DESC LIMIT ?",
-                [*existing_ids, need],
-            ).fetchall()
-        else:
-            extra = conn.execute(
-                "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?",
-                [need],
-            ).fetchall()
+        placeholders = ",".join("?" * len(existing_ids))
+        extra = conn.execute(
+            f"SELECT * FROM classified_items WHERE id NOT IN ({placeholders}) ORDER BY heat_index DESC LIMIT ?",
+            [*existing_ids, need],
+        ).fetchall()
         items.extend(_row_to_item(r) for r in extra)
 
     conn.close()
@@ -408,28 +403,34 @@ def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
         "6. 你具备联网搜索能力，可以搜索最新信息补充回答\n"
         "7. 优先使用提供的本地数据，联网搜索补充最新动态\n"
         "8. 如果本地数据不足以回答，请主动联网搜索获取最新信息\n"
-        "9. 联网搜索获取的补充信息，引用编号接在本地数据之后（如本地有 8 条，联网第一条用 [9]）"
+        "9. 联网搜索获取的信息，不要使用 [N] 编号引用（N 仅用于引用本地数据）。联网搜索结果请直接描述，无需编号。"
     )
 
-    source_lines = []
-    for i, item in enumerate(items, 1):
-        desc = item["description"][:200] if item["description"] else ""
-        sources = ", ".join(item["sources"]) if item["sources"] else ""
-        tags = ", ".join(item["tags"][:5]) if item["tags"] else ""
-        source_lines.append(
-            f"[{i}] {item['title']}\n"
-            f"  领域: {item['domain']} | 热度: {item['heat_index']} | Stars: {item['stars']} | 评论: {item['comments_count']}\n"
-            f"  来源: {sources} | 标签: {tags}\n"
-            f"  描述: {desc}\n"
-            f"  URL: {item['url']}"
+    if not items:
+        user_msg = (
+            f"用户问题：{query}\n\n"
+            f"本地数据库中没有相关数据。请使用联网搜索获取最新信息并回答。"
         )
+    else:
+        source_lines = []
+        for i, item in enumerate(items, 1):
+            desc = item["description"][:200] if item["description"] else ""
+            sources = ", ".join(item["sources"]) if item["sources"] else ""
+            tags = ", ".join(item["tags"][:5]) if item["tags"] else ""
+            source_lines.append(
+                f"[{i}] {item['title']}\n"
+                f"  领域: {item['domain']} | 热度: {item['heat_index']} | Stars: {item['stars']} | 评论: {item['comments_count']}\n"
+                f"  来源: {sources} | 标签: {tags}\n"
+                f"  描述: {desc}\n"
+                f"  URL: {item['url']}"
+            )
 
-    user_msg = (
-        f"用户问题：{query}\n\n"
-        f"相关数据（共 {len(items)} 条）：\n\n"
-        + "\n\n".join(source_lines)
-        + "\n\n请根据以上数据回答问题，使用 [N] 引用。"
-    )
+        user_msg = (
+            f"用户问题：{query}\n\n"
+            f"相关数据（共 {len(items)} 条）：\n\n"
+            + "\n\n".join(source_lines)
+            + "\n\n请根据以上数据回答问题，使用 [N] 引用。"
+        )
 
     return [
         {"role": "system", "content": system},
@@ -576,11 +577,6 @@ async def api_ai_search(req: AISearchRequest):
             items = search_items_for_ai(req.query)
             sources_data = json.dumps(items, ensure_ascii=False)
             yield f"event: sources\ndata: {sources_data}\n\n"
-
-            if not items:
-                yield 'data: {"text": "未找到与您查询相关的内容。请尝试其他关键词。"}\n\n'
-                yield "event: done\ndata: {}\n\n"
-                return
 
             messages = build_ai_prompt(req.query, items)
             async for chunk in _stream_glm(api_key, messages, enable_search=True):

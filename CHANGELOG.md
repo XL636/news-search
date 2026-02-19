@@ -4,6 +4,29 @@
 
 ---
 
+## [0.12.0] - 2026-02-19
+
+### Fixed
+- **AI 搜索引用不匹配**：搜索无关键词时不再返回无关热门项填充，GLM 直接使用联网搜索
+- **来源卡片过多**：前端 `filterCitedSources()` 过滤未引用来源，只显示 AI 实际引用的卡片
+- **引用编号重映射**：过滤后引用编号连续（无跳号），tooltip 和点击滚动同步更新
+
+### Added
+- `filterCitedSources()` 前端函数：扫描 AI 文本提取引用编号 → 过滤 aiSources → 重映射引用
+- AI 搜索视图来源卡片支持翻译功能：标题添加 `.card-title` class + `data-original` 属性
+- `renderAISources()` 末尾自动检测翻译模式，渲染后自动翻译新卡片
+- `build_ai_prompt()` 支持 0 项本地数据，提示 GLM 使用联网搜索
+- 25 项引用准确性测试计划 (test.md §12)
+
+### Changed
+- `search_items_for_ai()` 回退逻辑：0 匹配时返回空列表（不再填充无关热门项）；≥1 匹配时才补充
+- `api_ai_search()` 不再在 0 结果时提前返回，改为调用 GLM + web_search
+- Prompt 规则 9：明确禁止 GLM 对联网搜索结果使用 [N] 编号引用
+- 翻译按钮从信息流专属（`feed-only-btn`）改为双视图共享
+- `renderAISources()` 支持 0 来源时隐藏来源区域
+
+---
+
 ## [0.11.0] - 2026-02-19
 
 ### Fixed

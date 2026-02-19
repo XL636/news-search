@@ -217,8 +217,8 @@
           </svg>
           <span id="refresh-text" class="hidden sm:inline"></span>
         </button>
-        <!-- Transtone (feed only) -->
-        <button id="translate-btn" onclick="toggleTranstone()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium feed-only-btn hidden">
+        <!-- Translate -->
+        <button id="translate-btn" onclick="toggleTranstone()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
           </svg>
@@ -1058,7 +1058,10 @@
           },
         });
 
-        if (fullText) renderFinalMarkdown(fullText);
+        if (fullText) {
+          renderFinalMarkdown(fullText);
+          filterCitedSources(fullText);
+        }
 
       } catch (e) {
         if (e.name !== 'AbortError') {
@@ -1130,10 +1133,62 @@
       });
     }
 
+    function filterCitedSources(fullText) {
+      // Extract all [N] citation numbers from the raw AI text
+      const cited = new Set();
+      const matches = fullText.matchAll(/\[(\d+)\]/g);
+      for (const m of matches) cited.add(parseInt(m[1], 10));
+
+      // Build filtered sources: only cited items + web sources
+      let filtered;
+      if (cited.size === 0) {
+        // No citations — show only web sources if any
+        filtered = aiSources.filter(s => s._isWebSource);
+      } else {
+        filtered = aiSources.filter((s, i) => cited.has(i + 1) || s._isWebSource);
+      }
+
+      // Build old-index → new-index mapping (1-based)
+      const indexMap = {};
+      let newIdx = 1;
+      aiSources.forEach((s, i) => {
+        const oldNum = i + 1;
+        const isWeb = s._isWebSource;
+        if (cited.has(oldNum) || isWeb || (cited.size === 0 && isWeb)) {
+          indexMap[oldNum] = newIdx++;
+        }
+      });
+
+      // Replace aiSources with filtered list
+      aiSources = filtered;
+      renderAISources(aiSources);
+
+      // Remap citation numbers in the rendered HTML to match new indices
+      const content = document.getElementById('ai-answer-content');
+      content.querySelectorAll('.citation').forEach(el => {
+        const oldNum = parseInt(el.textContent, 10);
+        const newNum = indexMap[oldNum];
+        if (newNum && newNum !== oldNum) {
+          el.textContent = newNum;
+          el.setAttribute('onclick', `scrollToSource(${newNum})`);
+          // Update tooltip to match new source
+          const src = aiSources[newNum - 1];
+          if (src) el.setAttribute('title', src.title.replace(/"/g, '&quot;').substring(0, 60));
+        } else if (!newNum) {
+          // Citation refers to a source that was filtered out — remove it
+          el.remove();
+        }
+      });
+    }
+
     function renderAISources(sources) {
-      if (!sources.length) return;
       const grid = document.getElementById('ai-sources-grid');
       const section = document.getElementById('ai-sources-section');
+      if (!sources.length) {
+        section.classList.add('hidden');
+        grid.innerHTML = '';
+        return;
+      }
       section.classList.remove('hidden');
 
       const firstWebIdx = sources.findIndex(s => s._isWebSource || (s.sources && s.sources.includes('web_search')));
@@ -1158,7 +1213,7 @@
               <span class="text-[10px] font-semibold px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text}">${item.domain}</span>
               <span class="text-xs font-bold ml-auto" style="color:${heatColor}">${item.heat_index}</span>
             </div>
-            <p class="text-xs font-semibold text-stone-200 leading-snug mb-1.5 line-clamp-2">${item.title}</p>
+            <p class="card-title text-xs font-semibold text-stone-200 leading-snug mb-1.5 line-clamp-2" data-original="${item.title.replace(/"/g, '&quot;')}">${item.title}</p>
             <div class="flex items-center justify-between text-[10px]">
               <div class="flex items-center gap-2">
                 ${srcBadges}
@@ -1173,6 +1228,8 @@
           </div>
         `;
       }).join('');
+
+      if (translateMode) translateVisibleCards();
     }
 
     // ========== Markdown Rendering ==========
@@ -1467,7 +1524,10 @@
           },
         });
 
-        if (fullText) renderFinalMarkdown(fullText);
+        if (fullText) {
+          renderFinalMarkdown(fullText);
+          filterCitedSources(fullText);
+        }
       } catch (e) {
         if (e.name !== 'AbortError') {
           showAIError(e.message);
