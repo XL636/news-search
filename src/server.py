@@ -21,7 +21,7 @@ from src.config import (
     ZHIPUAI_MODEL,
 )
 from src.pipeline import cmd_collect
-from src.storage.store import get_connection, get_translation, init_db, save_translation
+from src.storage.store import get_connection, get_translation, init_db, insert_web_search_item, save_translation
 
 logger = logging.getLogger(__name__)
 
@@ -276,6 +276,46 @@ QUERY_DOMAIN_MAP = {
 }
 
 
+_DOMAIN_URL_MAP = {
+    'github.com': 'DevTools', 'gitlab.com': 'DevTools', 'npmjs.com': 'DevTools',
+    'arxiv.org': 'AI/ML', 'huggingface.co': 'AI/ML', 'openai.com': 'AI/ML',
+    'cloud.google.com': 'Cloud', 'aws.amazon.com': 'Cloud', 'azure.microsoft.com': 'Cloud',
+    'developer.apple.com': 'Mobile', 'developer.android.com': 'Mobile',
+    'cve.org': 'Security', 'nvd.nist.gov': 'Security',
+}
+
+_DOMAIN_KEYWORD_MAP = {
+    'AI/ML': ['ai', 'ml', 'llm', 'gpt', 'model', 'neural', 'deep learning', '大模型', '人工智能', '机器学习'],
+    'Security': ['security', 'vulnerability', 'cve', 'exploit', '安全', '漏洞', '攻击'],
+    'Cloud': ['cloud', 'kubernetes', 'k8s', 'docker', 'aws', 'azure', '云', '容器'],
+    'DevTools': ['developer', 'ide', 'compiler', 'framework', 'sdk', '工具', '开发'],
+    'Web': ['frontend', 'react', 'vue', 'css', 'browser', '前端', '网页'],
+    'Mobile': ['ios', 'android', 'mobile', 'app', '移动', '手机'],
+    'Data': ['database', 'sql', 'analytics', 'data', '数据', '数据库'],
+    'Blockchain': ['blockchain', 'crypto', 'web3', 'defi', '区块链', '加密'],
+    'Biotech': ['biotech', 'genomics', 'crispr', '生物', '基因'],
+    'Hardware': ['chip', 'semiconductor', 'cpu', 'gpu', '芯片', '硬件'],
+}
+
+
+def classify_web_result_domain(title: str, url: str, content: str) -> str:
+    """Classify a web search result into a domain category."""
+    # Layer 1: URL domain matching (high priority)
+    url_lower = url.lower()
+    for domain_host, domain_name in _DOMAIN_URL_MAP.items():
+        if domain_host in url_lower:
+            return domain_name
+
+    # Layer 2: keyword matching on title + content
+    text = (title + " " + content).lower()
+    for domain_name, keywords in _DOMAIN_KEYWORD_MAP.items():
+        for kw in keywords:
+            if kw in text:
+                return domain_name
+
+    return "Other"
+
+
 def _row_to_item(r) -> dict:
     return {
         "id": r["id"],
@@ -367,7 +407,8 @@ def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
         "5. 控制在 500 字以内\n"
         "6. 你具备联网搜索能力，可以搜索最新信息补充回答\n"
         "7. 优先使用提供的本地数据，联网搜索补充最新动态\n"
-        "8. 如果本地数据不足以回答，请主动联网搜索获取最新信息"
+        "8. 如果本地数据不足以回答，请主动联网搜索获取最新信息\n"
+        "9. 联网搜索获取的补充信息，引用编号接在本地数据之后（如本地有 8 条，联网第一条用 [9]）"
     )
 
     source_lines = []
@@ -418,6 +459,8 @@ async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = 
         "Content-Type": "application/json",
     }
 
+    web_results: list[dict] = []
+
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             async with client.stream(
@@ -437,6 +480,13 @@ async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = 
                         break
                     try:
                         chunk = json.loads(data_str)
+                        logger.debug("GLM raw chunk keys: %s", list(chunk.keys()))
+
+                        # Capture web_search results (top-level field alongside choices)
+                        ws = chunk.get("web_search")
+                        if ws and isinstance(ws, list):
+                            web_results.extend(ws)
+
                         delta = chunk.get("choices", [{}])[0].get("delta", {})
                         content = delta.get("content", "")
                         if content:
@@ -453,7 +503,44 @@ async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = 
         yield f'event: error\ndata: {{"error": "AI 服务异常: {str(e)[:100]}"}}\n\n'
         return
 
+    # Emit web search results before done
+    if web_results:
+        yield f"event: web_sources\ndata: {json.dumps(web_results, ensure_ascii=False)}\n\n"
+
     yield "event: done\ndata: {}\n\n"
+
+
+def _process_web_sources(raw_ws: list[dict]) -> list[dict]:
+    """Classify web search results, store in DB, and return formatted items."""
+    conn = get_connection()
+    formatted = []
+    for ws in raw_ws:
+        title = ws.get("title", "").strip()
+        link = ws.get("link", "").strip()
+        content = ws.get("content", "").strip()
+        media = ws.get("media", "").strip()
+        if not link or not title:
+            continue
+
+        domain = classify_web_result_domain(title, link, content)
+        insert_web_search_item(
+            conn, title=title, url=link, content=content, media=media, domain=domain,
+        )
+        formatted.append({
+            "title": title,
+            "url": link,
+            "description": content[:200] if content else "",
+            "domain": domain,
+            "tags": [],
+            "heat_index": 30,
+            "heat_reason": "网络搜索结果",
+            "stars": 0,
+            "comments_count": 0,
+            "sources": ["web_search"],
+            "published_at": None,
+        })
+    conn.close()
+    return formatted
 
 
 class AISearchRequest(BaseModel):
@@ -488,6 +575,17 @@ async def api_ai_search(req: AISearchRequest):
 
             messages = build_ai_prompt(req.query, items)
             async for chunk in _stream_glm(api_key, messages, enable_search=True):
+                if chunk.startswith("event: web_sources\n"):
+                    # Intercept: classify, store, and re-emit formatted web sources
+                    try:
+                        data_line = chunk.split("data: ", 1)[1].split("\n")[0]
+                        raw_ws = json.loads(data_line)
+                        formatted = _process_web_sources(raw_ws)
+                        if formatted:
+                            yield f"event: web_sources\ndata: {json.dumps(formatted, ensure_ascii=False)}\n\n"
+                    except Exception:
+                        logger.exception("Failed to process web_sources")
+                    continue
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -611,6 +709,16 @@ async def api_ai_latest():
             query = "今日最热科技新闻与开源动态"
             messages = build_ai_prompt(query, items)
             async for chunk in _stream_glm(api_key, messages, enable_search=True):
+                if chunk.startswith("event: web_sources\n"):
+                    try:
+                        data_line = chunk.split("data: ", 1)[1].split("\n")[0]
+                        raw_ws = json.loads(data_line)
+                        formatted = _process_web_sources(raw_ws)
+                        if formatted:
+                            yield f"event: web_sources\ndata: {json.dumps(formatted, ensure_ascii=False)}\n\n"
+                    except Exception:
+                        logger.exception("Failed to process web_sources")
+                    continue
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")

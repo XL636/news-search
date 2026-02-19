@@ -135,6 +135,7 @@
     .ai-source-card { background: rgba(38,35,28,.4); border: 1px solid rgba(168,162,150,.06); border-radius: 12px; padding: 14px; transition: all .2s; cursor: pointer; }
     .ai-source-card:hover { border-color: rgba(217,119,6,.3); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
     .ai-source-card.highlight { border-color: rgba(217,119,6,.5); box-shadow: 0 0 0 2px rgba(217,119,6,.15); }
+    .ai-source-card.web-source { border-left: 2px solid rgba(59,130,246,.3); }
 
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     .streaming-cursor { display: inline-block; width: 2px; height: 16px; background: #fbbf24; margin-left: 2px; vertical-align: text-bottom; animation: blink .8s step-end infinite; }
@@ -210,7 +211,7 @@
 
       <div class="flex items-center gap-2">
         <!-- Refresh (feed only) -->
-        <button id="refresh-btn" onclick="doRefresh()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium feed-only-btn hidden">
+        <button id="refresh-btn" onclick="doRefresh()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
           <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
@@ -739,6 +740,7 @@
       'github': { bg: 'rgba(110,118,129,.15)', text: '#c9d1d9', label: 'GitHub' },
       'hackernews': { bg: 'rgba(255,102,0,.12)', text: '#ff8c40', label: 'HN' },
       'rss': { bg: 'rgba(74,222,128,.1)', text: '#86efac', label: 'RSS' },
+      'web_search': { bg: 'rgba(59,130,246,.12)', text: '#60a5fa', label: 'Web' },
     };
 
     let currentDomain = 'All';
@@ -1038,6 +1040,11 @@
             aiSources = sources;
             renderAISources(aiSources);
           },
+          onWebSources: (webSources) => {
+            webSources.forEach(ws => { ws._isWebSource = true; });
+            aiSources = aiSources.concat(webSources);
+            renderAISources(aiSources);
+          },
           onChunk: (text) => {
             fullText += text;
             document.getElementById('ai-loading').classList.add('hidden');
@@ -1124,6 +1131,7 @@
       grid.innerHTML = sources.map((item, i) => {
         const cacheKey = 'aisrc-' + i;
         itemDataCache[cacheKey] = item;
+        const isWeb = item._isWebSource || (item.sources && item.sources.includes('web_search'));
         const dc = DOMAIN_COLORS[item.domain] || DOMAIN_COLORS['Other'];
         const heatColor = getHeatColor(item.heat_index);
         const srcBadges = (item.sources || []).map(s => {
@@ -1132,7 +1140,7 @@
         }).join('');
 
         return `
-          <div class="ai-source-card" id="ai-source-${i + 1}" onclick="window.open('${item.url}','_blank')">
+          <div class="ai-source-card${isWeb ? ' web-source' : ''}" id="ai-source-${i + 1}" onclick="window.open('${item.url}','_blank')">
             <div class="flex items-center gap-2 mb-2">
               <span class="text-xs font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">[${i + 1}]</span>
               <span class="text-[10px] font-semibold px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text}">${item.domain}</span>
@@ -1208,7 +1216,7 @@
     }
 
     // ========== Shared SSE Processing ==========
-    async function _processSSE(response, { onSources, onChunk, onDone, onError }) {
+    async function _processSSE(response, { onSources, onChunk, onDone, onError, onWebSources }) {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -1232,6 +1240,11 @@
 
             if (eventType === 'sources') {
               try { onSources(JSON.parse(dataStr)); } catch (e) {}
+              eventType = '';
+              continue;
+            }
+            if (eventType === 'web_sources') {
+              try { if (onWebSources) onWebSources(JSON.parse(dataStr)); } catch (e) {}
               eventType = '';
               continue;
             }
@@ -1417,6 +1430,11 @@
         await _processSSE(resp, {
           onSources: (sources) => {
             aiSources = sources;
+            renderAISources(aiSources);
+          },
+          onWebSources: (webSources) => {
+            webSources.forEach(ws => { ws._isWebSource = true; });
+            aiSources = aiSources.concat(webSources);
             renderAISources(aiSources);
           },
           onChunk: (text) => {

@@ -96,8 +96,10 @@ def init_db(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_raw_source ON raw_items(source);
         CREATE INDEX IF NOT EXISTS idx_raw_collected ON raw_items(collected_at);
+        CREATE INDEX IF NOT EXISTS idx_raw_url ON raw_items(url);
         CREATE INDEX IF NOT EXISTS idx_classified_domain ON classified_items(domain);
         CREATE INDEX IF NOT EXISTS idx_classified_heat ON classified_items(heat_index DESC);
+        CREATE INDEX IF NOT EXISTS idx_classified_url ON classified_items(url);
         CREATE INDEX IF NOT EXISTS idx_translations_lookup ON translations(source_text_hash, target_lang);
     """)
     conn.commit()
@@ -346,6 +348,74 @@ def clear_processed(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM classified_items")
     conn.execute("DELETE FROM cleaned_items")
     conn.commit()
+
+
+# --- Web Search Items ---
+
+def insert_web_search_item(
+    conn: sqlite3.Connection,
+    *,
+    title: str,
+    url: str,
+    content: str,
+    media: str,
+    domain: str,
+) -> int | None:
+    """Insert a web search result into raw→cleaned→classified pipeline.
+
+    Returns classified_items row id, or None if URL already exists.
+    """
+    # Dedup: skip if URL already in classified_items or raw_items
+    existing = conn.execute(
+        "SELECT id FROM classified_items WHERE url = ?", (url,)
+    ).fetchone()
+    if existing:
+        return None
+    existing = conn.execute(
+        "SELECT id FROM raw_items WHERE url = ?", (url,)
+    ).fetchone()
+    if existing:
+        return None
+
+    now = datetime.utcnow().isoformat()
+    source_id = hashlib.md5(url.encode("utf-8")).hexdigest()[:16]
+
+    try:
+        # 1. raw_items
+        cur = conn.execute(
+            """INSERT INTO raw_items
+               (source, source_id, title, url, description, author,
+                stars, comments_count, language, tags, published_at,
+                collected_at, raw_json)
+               VALUES (?, ?, ?, ?, ?, ?, 0, 0, '', '[]', ?, ?, '')""",
+            ("web_search", source_id, title, url, content, media, now, now),
+        )
+        raw_id = cur.lastrowid
+
+        # 2. cleaned_items
+        cur = conn.execute(
+            """INSERT INTO cleaned_items
+               (title, url, description, author, sources, source_ids,
+                stars, comments_count, language, tags, published_at,
+                cleaned_at, merge_note)
+               VALUES (?, ?, ?, ?, '["web_search"]', ?, 0, 0, '', '[]', ?, ?, '')""",
+            (title, url, content, media, json.dumps([source_id]), now, now),
+        )
+        cleaned_id = cur.lastrowid
+
+        # 3. classified_items
+        cur = conn.execute(
+            """INSERT INTO classified_items
+               (cleaned_item_id, title, url, description, author, sources,
+                domain, tags, heat_index, heat_reason, stars, comments_count,
+                language, published_at, classified_at)
+               VALUES (?, ?, ?, ?, ?, '["web_search"]', ?, '[]', 30, '网络搜索结果', 0, 0, '', ?, ?)""",
+            (cleaned_id, title, url, content, media, domain, now, now),
+        )
+        conn.commit()
+        return cur.lastrowid
+    except sqlite3.IntegrityError:
+        return None
 
 
 # --- Translations Cache ---

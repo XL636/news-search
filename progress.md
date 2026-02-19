@@ -51,6 +51,7 @@
 | AI 搜索联网增强 (web_search) | ✅ 完成 | 100% |
 | 本地搜索优化 (智能分词) | ✅ 完成 | 100% |
 | RSS 数据源扩充 (16 源) | ✅ 完成 | 100% |
+| AI 搜索虚假引用修复 + 网络结果回存 | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -140,6 +141,24 @@ i18n：中英双语（aiKeyTitle/aiKeyDesc/aiKeySaveBtn/aiKeyPlaceholder/aiKeySa
   后端：_stream_glm() 共享 GLM 流式生成器，三端点复用
   前端：_processSSE() 共享 SSE 解析，三处复用
   前端：itemDataCache 缓存卡片数据，renderAISources 改为 <div>
+```
+
+### AI 搜索虚假引用修复 + 网络结果回存（2026-02-19）
+
+```
+问题：GLM web_search 联网后回答引用 [N] 可能指向网络结果，但前端只显示本地来源卡片
+修复：
+  _stream_glm()：捕获 GLM 返回的 web_search 字段，累积到 web_results 列表
+  _process_web_sources()：分类（URL域名+关键词双层）→ insert_web_search_item() 存库
+  classify_web_result_domain()：URL 匹配（github→DevTools, arxiv→AI/ML 等）+ 关键词匹配
+  insert_web_search_item()：三表写入（raw→cleaned→classified），URL 去重，heat_index=30
+  init_db()：新增 idx_raw_url + idx_classified_url 索引
+  前端 _processSSE()：新增 onWebSources 回调处理 web_sources SSE 事件
+  前端 renderAISources()：网络来源卡片蓝色左边框 + Web badge，无 AI 解读按钮
+  SOURCE_STYLES 新增 web_search 样式（蓝色）
+  Prompt 规则 9：联网搜索引用编号接在本地数据之后
+  网络来源卡片支持 AI 解读按钮（与本地来源体验一致）
+  刷新按钮从信息流专属改为双视图共享，AI 搜索界面可直接刷新数据
 ```
 
 ### AI 搜索联网增强 + 本地搜索优化 + 数据源扩充（2026-02-18）
