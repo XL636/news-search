@@ -485,6 +485,7 @@ async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = 
                         # Capture web_search results (top-level field alongside choices)
                         ws = chunk.get("web_search")
                         if ws and isinstance(ws, list):
+                            logger.debug("GLM web_search results (%d): %s", len(ws), json.dumps(ws, ensure_ascii=False)[:500])
                             web_results.extend(ws)
 
                         delta = chunk.get("choices", [{}])[0].get("delta", {})
@@ -511,7 +512,11 @@ async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = 
 
 
 def _process_web_sources(raw_ws: list[dict]) -> list[dict]:
-    """Classify web search results, store in DB, and return formatted items."""
+    """Classify web search results, store in DB, and return formatted items.
+
+    Keeps items even without links (needed for refer-based citation mapping).
+    Only stores to DB if a valid URL is present.
+    """
     conn = get_connection()
     formatted = []
     for ws in raw_ws:
@@ -519,16 +524,19 @@ def _process_web_sources(raw_ws: list[dict]) -> list[dict]:
         link = ws.get("link", "").strip()
         content = ws.get("content", "").strip()
         media = ws.get("media", "").strip()
-        if not link or not title:
+        refer = ws.get("refer", "")
+        if not title:
             continue
 
-        domain = classify_web_result_domain(title, link, content)
-        insert_web_search_item(
-            conn, title=title, url=link, content=content, media=media, domain=domain,
-        )
+        domain = classify_web_result_domain(title, link or "", content)
+        # Only store to DB if we have a valid URL
+        if link:
+            insert_web_search_item(
+                conn, title=title, url=link, content=content, media=media, domain=domain,
+            )
         formatted.append({
             "title": title,
-            "url": link,
+            "url": link or "",
             "description": content[:200] if content else "",
             "domain": domain,
             "tags": [],
@@ -538,6 +546,7 @@ def _process_web_sources(raw_ws: list[dict]) -> list[dict]:
             "comments_count": 0,
             "sources": ["web_search"],
             "published_at": None,
+            "refer": refer,
         })
     conn.close()
     return formatted

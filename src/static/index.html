@@ -1041,8 +1041,7 @@
             renderAISources(aiSources);
           },
           onWebSources: (webSources) => {
-            webSources.forEach(ws => { ws._isWebSource = true; });
-            aiSources = aiSources.concat(webSources);
+            _mergeWebSources(webSources);
             renderAISources(aiSources);
           },
           onChunk: (text) => {
@@ -1122,11 +1121,22 @@
       }
     }
 
+    function _mergeWebSources(webSources) {
+      // Append web sources after local sources as supplementary results.
+      // GLM's refer field is just a sequential ID, not a citation number mapping.
+      webSources.forEach(ws => {
+        ws._isWebSource = true;
+        aiSources.push(ws);
+      });
+    }
+
     function renderAISources(sources) {
       if (!sources.length) return;
       const grid = document.getElementById('ai-sources-grid');
       const section = document.getElementById('ai-sources-section');
       section.classList.remove('hidden');
+
+      const firstWebIdx = sources.findIndex(s => s._isWebSource || (s.sources && s.sources.includes('web_search')));
 
       grid.innerHTML = sources.map((item, i) => {
         const cacheKey = 'aisrc-' + i;
@@ -1139,8 +1149,10 @@
           return `<span class="source-badge" style="background:${st.bg};color:${st.text}">${st.label}</span>`;
         }).join('');
 
-        return `
-          <div class="ai-source-card${isWeb ? ' web-source' : ''}" id="ai-source-${i + 1}" onclick="window.open('${item.url}','_blank')">
+        const clickAction = item.url ? `onclick="window.open('${item.url}','_blank')"` : '';
+        const divider = (i === firstWebIdx && firstWebIdx > 0) ? `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;height:1px;background:rgba(59,130,246,.25)"></div><span style="font-size:10px;color:#60a5fa;white-space:nowrap">${lang === 'zh' ? '🌐 联网补充' : '🌐 Web Results'}</span><div style="flex:1;height:1px;background:rgba(59,130,246,.25)"></div></div>` : '';
+        return divider + `
+          <div class="ai-source-card${isWeb ? ' web-source' : ''}" id="ai-source-${i + 1}" ${clickAction} style="${item.url ? 'cursor:pointer' : 'cursor:default'}">
             <div class="flex items-center gap-2 mb-2">
               <span class="text-xs font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">[${i + 1}]</span>
               <span class="text-[10px] font-semibold px-2 py-0.5 rounded" style="background:${dc.bg};color:${dc.text}">${item.domain}</span>
@@ -1174,8 +1186,13 @@
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         // Links [text](url)
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-        // Citations [N]
-        .replace(/\[(\d+)\]/g, '<span class="citation" onclick="scrollToSource($1)">$1</span>')
+        // Citations [N] — with tooltip showing source title
+        .replace(/\[(\d+)\]/g, (match, num) => {
+          const idx = parseInt(num, 10) - 1;
+          const src = (typeof aiSources !== 'undefined' && aiSources[idx]) ? aiSources[idx] : null;
+          const tip = src ? src.title.replace(/"/g, '&quot;').substring(0, 60) : '';
+          return `<span class="citation" onclick="scrollToSource(${num})" title="${tip}">${num}</span>`;
+        })
         // List items
         .replace(/^- (.+)$/gm, '<li>$1</li>')
         // Wrap consecutive <li> in <ul>
@@ -1433,8 +1450,7 @@
             renderAISources(aiSources);
           },
           onWebSources: (webSources) => {
-            webSources.forEach(ws => { ws._isWebSource = true; });
-            aiSources = aiSources.concat(webSources);
+            _mergeWebSources(webSources);
             renderAISources(aiSources);
           },
           onChunk: (text) => {

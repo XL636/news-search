@@ -7,17 +7,20 @@
 ## [0.11.0] - 2026-02-19
 
 ### Fixed
-- **AI 搜索虚假引用**：GLM `web_search` 联网返回的网络来源现在正确显示在前端来源卡片中，`[N]` 引用编号与卡片一一对应
+- **AI 搜索虚假引用修复**：GLM `web_search` 联网返回的网络来源现在正确捕获、分类、存库、并显示在前端来源卡片中
 
 ### Added
 - `_stream_glm()` 捕获 GLM 流式响应中 `web_search` 字段，累积网络搜索结果并在流结束前 yield `event: web_sources` SSE 事件
 - `classify_web_result_domain()` 两层领域分类：URL 域名匹配（github.com→DevTools, arxiv.org→AI/ML 等 12 条规则）+ 关键词匹配（10 个领域，中英文关键词）
-- `_process_web_sources()` 辅助函数：拦截 `web_sources` 事件 → 分类 → 存库 → 构造前端格式化数据
+- `_process_web_sources()` 辅助函数：拦截 `web_sources` 事件 → 分类 → 存库 → 构造前端格式化数据（含 `refer` 字段传递，支持无 URL 条目）
 - `insert_web_search_item()` 三表写入（raw_items→cleaned_items→classified_items），source=`web_search`，URL 去重，heat_index 默认 30
 - `init_db()` 新增 `idx_raw_url` 和 `idx_classified_url` 索引加速 URL 去重查询
 - 前端 `_processSSE()` 新增 `onWebSources` 回调参数
-- 前端 `doAISearch()` 和 `doLatestSearch()` 传入 `onWebSources` 回调，追加网络来源到 `aiSources` 并重新渲染
-- 前端 `renderAISources()` 支持网络来源：蓝色左边框（`.web-source`），Web badge 蓝色样式，无 AI 解读按钮
+- 前端 `_mergeWebSources()` 将网络来源追加到 `aiSources` 末尾
+- 前端 `renderAISources()` 支持网络来源：蓝色左边框（`.web-source`），Web badge 蓝色样式，AI 解读按钮
+- 前端 `renderAISources()` 新增 "🌐 联网补充" 蓝色分隔线，清晰区分本地数据与网络搜索补充
+- 前端引用 `[N]` 徽章新增 `title` 属性，hover 显示对应来源标题（辅助用户验证引用准确性）
+- 无 URL 的网络来源卡片设为不可点击（`cursor:default`）
 - `SOURCE_STYLES` 新增 `web_search` 条目：蓝色背景 + 蓝色文字 + "Web" 标签
 - `.ai-source-card.web-source` CSS：`border-left: 2px solid rgba(59,130,246,.3)`
 - Prompt 规则 9：联网搜索引用编号接在本地数据之后
@@ -25,8 +28,11 @@
 - 刷新数据按钮在 AI 搜索视图和信息流视图均可见
 
 ### Changed
-- `renderAISources()` 网络来源卡片不再隐藏 AI 解读按钮
+- `_process_web_sources()` 保留无 URL 条目（GLM 部分 web_search 结果缺少 link 字段），仅对有 URL 的条目写入数据库
 - 刷新按钮移除 `feed-only-btn` 限制，两个视图均显示
+
+### Known Issues
+- GLM `web_search` 的 `refer` 字段是顺序 ID（ref_1, ref_2...），不与 AI 文本中的 `[N]` 引用编号对应。部分引用（如 `[1]`）可能指向联网搜索结果而非本地数据卡片 — 这是 GLM API 的固有限制，已通过 hover tooltip 缓解
 
 ## [0.10.0] - 2026-02-18
 
