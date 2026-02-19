@@ -14,7 +14,7 @@
         extend: {
           fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
           colors: {
-            surface: { 50: '#faf8f5', 100: '#f0ede8', 800: '#1f1e1b', 900: '#171613', 950: '#12110f' },
+            surface: { 50: '#faf8f5', 100: '#f0ede8', 800: '#272522', 900: '#1f1d1a', 950: '#1a1816' },
           },
         },
       },
@@ -24,11 +24,11 @@
     /* === Design Tokens === */
     :root {
       /* Colors - Background */
-      --bg-base: #0f0e0c;
-      --bg-raised: rgba(22, 21, 18, .7);
-      --bg-surface: rgba(26, 25, 22, .6);
-      --bg-overlay: rgba(38, 35, 28, .5);
-      --bg-hover: rgba(38, 35, 28, .8);
+      --bg-base: #1a1816;
+      --bg-raised: rgba(32, 30, 26, .75);
+      --bg-surface: rgba(40, 38, 33, .65);
+      --bg-overlay: rgba(48, 45, 38, .55);
+      --bg-hover: rgba(48, 45, 38, .85);
       /* Colors - Border */
       --border-subtle: rgba(168,162,150,.06);
       --border-default: rgba(168,162,150,.10);
@@ -162,7 +162,7 @@
     .lang-btn.active { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; box-shadow: 0 1px 6px rgba(217,119,6,.3); }
 
     /* === Gradient Orbs (ambient background) === */
-    .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: .10; pointer-events: none; z-index: 0; animation: orbDrift 20s ease-in-out infinite; }
+    .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: .15; pointer-events: none; z-index: 0; animation: orbDrift 20s ease-in-out infinite; }
     .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #d97706, #92400e); top: -200px; right: -200px; }
     .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #92400e, #451a03); bottom: -100px; left: -150px; animation-delay: -10s; animation-direction: reverse; }
 
