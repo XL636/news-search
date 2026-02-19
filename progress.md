@@ -56,6 +56,7 @@
 | AI 搜索视图翻译功能 | ✅ 完成 | 100% |
 | AI 搜索引用准确性修复 | ✅ 完成 | 100% |
 | AI 搜索引用内容匹配 (v2) | ✅ 完成 | 100% |
+| Dashboard Premium UI 升级 | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -171,6 +172,23 @@ i18n：中英双语（aiKeyTitle/aiKeyDesc/aiKeySaveBtn/aiKeyPlaceholder/aiKeySa
   GLM refer 字段为顺序 ID（ref_1, ref_2），不直接对应 AI 文本 [N] 编号
   ~~部分引用可能指向联网结果而非对应本地卡片~~ ✅ 已通过内容匹配修复（v0.13.0）
   前端 tokenize + computeMatchScore 按上下文关键词与来源标题打分匹配
+```
+
+### Dashboard Premium UI 全面升级（2026-02-19）
+
+```
+目标：Vercel/Linear 级设计质感
+设计令牌：:root CSS 变量系统（颜色/边框/阴影/圆角/动效/时长）
+字体：JetBrains Mono（KPI/热度/引用等数字场景）
+纹理：body::before SVG feTurbulence 噪点
+光球：radial-gradient + orbDrift 20s 缓慢漂移
+卡片：顶部高光线 + hover shadow 上升 + AI 解读按钮渐显 + 热门红色光晕
+入场：card-stagger 40ms 延迟 + requestAnimationFrame
+骨架：结构化（域名条+标题行+描述行+热度条+badge）
+AI 搜索：hero 浮动+呼吸 + 搜索框三层光晕 + chips 上浮 + wave 弹跳
+引用：JetBrains Mono + border + hover 上浮 + 来源卡片高亮动画
+侧边栏：active 左侧 2px amber 指示条 + 标题 10px 大写
+全局：Toast blur 入场 + Tab gradient + 分析面板 backdrop-blur
 ```
 
 ### AI 搜索联网增强 + 本地搜索优化 + 数据源扩充（2026-02-18）

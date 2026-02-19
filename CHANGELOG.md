@@ -4,6 +4,53 @@
 
 ---
 
+## [0.14.0] - 2026-02-19
+
+### Added
+- **CSS 设计令牌系统**：`:root` 变量 — 颜色(bg/border/text)、阴影(sm~xl+glow)、圆角(sm~2xl)、动效(ease-out/spring/duration)
+- **JetBrains Mono 字体**：KPI 数字、热度分数、引用徽章使用等宽数字字体
+- **字体层级类**：`.text-display/.text-heading/.text-subheading/.text-body/.text-caption/.text-mono`
+- **噪点纹理**：`body::before` 内联 SVG feTurbulence，opacity .015
+- **光球漂移动画**：`orbDrift` 20s 缓慢漂移 + radial-gradient 光球
+- **卡片顶部高光线**：`.card::before` 1px 白色渐隐线模拟光照
+- **热门卡片红色光晕**：`.card-hot::after` 右上角 radial glow
+- **热度脉冲动画**：`heatPulse` 热门项(≥70)脉冲发光
+- **卡片 stagger 入场**：每张 40ms 延迟(max 600ms)，`requestAnimationFrame` 设置
+- **结构化骨架屏**：域名条+标题行+描述行+热度条+badge 结构
+- **Hero 浮动+呼吸**：`heroFloat`(6s 上下) + `heroPulse`(光晕呼吸)
+- **搜索框三层光晕**：focus 时 3px+1px+shadow-lg 三层效果
+- **搜索按钮高光**：`::before` hover 白色 overlay
+- **建议 chips 上浮**：hover translateY(-2px) + shadow
+- **回答面板顶部渐隐线**：amber gradient 渐隐线
+- **流式光标 gradient+glow**：渐变色 + box-shadow 发光
+- **Loading wave 弹跳**：translateY -8px 交错动画替代 pulse
+- **引用徽章升级**：border + hover 上浮 + shadow + JetBrains Mono
+- **来源卡片高亮动画**：`sourceHighlight` keyframe + amber overlay
+- **侧边栏 active 指示条**：左侧 2px amber 高度动画
+- **侧边栏标题样式**：10px 大写 + 0.08em letter-spacing
+- **AI 解读按钮渐显**：默认隐藏，card:hover 时 fade-in
+- **分析面板背景模糊**：overlay backdrop-filter: blur(4px) + panel shadow
+- **闪电按钮 border 化**：透明底色 + border + hover glow
+- **Toast 模糊入场**：blur(2px) + scale(.95) 入场动画
+- **Tab active 高光**：gradient + inset 高光 + shadow
+- **Lang 切换 gradient**：active 态 amber gradient + shadow
+- **Ghost 按钮 glow**：hover 时 `::before` radial amber glow
+- **Divider 工具类**：`.divider-gradient` / `.divider-accent`
+
+### Changed
+- 底色加深 `#12110f` → `#0f0e0c`(更深更沉稳)
+- 滚动条更细 6px → 5px + 更透明
+- `::selection` 加 color: #fff
+- 全局 heading 加 `letter-spacing: -0.025em`
+- Heat bar 更细 3px → 2px + 过渡 0.8s
+- Tag pill 加 hover 态
+- KPI 卡片使用 JetBrains Mono + hover amber overlay
+- Domain count badge 使用 JetBrains Mono
+- 卡片 hover 改为 shadow 上升 + border 变色（移除 translateY 跳跃）
+- `.glass-light` 更透明(.4 → .35)
+
+---
+
 ## [0.13.0] - 2026-02-19
 
 ### Fixed
