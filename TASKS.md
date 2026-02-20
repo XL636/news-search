@@ -78,6 +78,12 @@
 | 69 | 数据导出功能 | 2026-02-20 | GET /api/export?format=json\|csv — 一键下载 |
 | 70 | RSS 源健康监控 | 2026-02-20 | GET /api/feed-health — 各 RSS 源成功率/延迟 |
 | 71 | 全文搜索 (FTS5) | 2026-02-20 | classified_items_fts 虚拟表 + 3 sync triggers + search_fts() |
+| 72 | 异步数据库 (aiosqlite) | 2026-02-20 | aget_db/aget_stats/aget_domains/aget_classified_items 等 14 个 async 函数 + 路由端点全面 async 化 |
+| 73 | 内存 TTL 缓存 (cachetools) | 2026-02-20 | src/cache.py — stats/items/trends 三级 TTL 缓存 + 采集后自动失效 |
+| 74 | Docker 容器化 | 2026-02-20 | Dockerfile (multi-stage python:3.12-slim) + docker-compose.yml + .dockerignore |
+| 75 | CI/CD Pipeline | 2026-02-20 | .github/workflows/ci.yml — ruff lint/format + pytest，push/PR 自动触发 |
+| 76 | 性能监控 (OpenTelemetry) | 2026-02-20 | src/telemetry.py + TracerProvider + ConsoleSpanExporter + FastAPIInstrumentor |
+| 77 | API 速率限制 (slowapi) | 2026-02-20 | AI 10/min + 读 120/min + 写 5/min + 429 JSON 响应 |
 
 ### 进行中 🔄
 
@@ -88,6 +94,7 @@
 > **已完成**: #51-#57 Tier 1 快速修复 7 项 — 2026-02-20
 > **已完成**: #58-#64 Tier 2 代码质量 7 项 — 2026-02-20
 > **已完成**: #65-#71 Tier 3 功能增强 7 项 — 2026-02-20
+> **已完成**: #72-#77 Tier 4 架构演进 6 项 — 2026-02-20
 
 ### 待办 📋
 
@@ -99,13 +106,13 @@
 | | **~~Tier 2 — 代码质量~~** ✅ 已完成 | | |
 | | **~~Tier 3 — 功能增强~~** ✅ 已完成 | | |
 
-| | **Tier 4 — 架构演进 (Architecture)** | | |
-| 72 | 异步数据库 (aiosqlite) | P3 | 替代同步 sqlite3，消除阻塞 |
-| 73 | Redis 缓存层 | P3 | 热点数据缓存，减少 SQLite 查询 |
-| 74 | Docker 容器化 | P3 | Dockerfile + docker-compose.yml |
-| 75 | CI/CD Pipeline | P3 | GitHub Actions: lint + test + build |
-| 76 | 性能监控 (OpenTelemetry) | P3 | 请求追踪 + 采集器性能指标 |
-| 77 | API 速率限制 | P3 | slowapi 限流保护 |
+| | **~~Tier 4 — 架构演进~~** ✅ 已完成 | | |
+| ~~72~~ | ~~异步数据库 (aiosqlite)~~ | ~~P3~~ | ✅ 14 个 async DB 函数 + 路由端点转 async |
+| ~~73~~ | ~~内存 TTL 缓存 (cachetools)~~ | ~~P3~~ | ✅ stats/items/trends 三级缓存 + 自动失效 |
+| ~~74~~ | ~~Docker 容器化~~ | ~~P3~~ | ✅ Dockerfile + docker-compose.yml + .dockerignore |
+| ~~75~~ | ~~CI/CD Pipeline~~ | ~~P3~~ | ✅ GitHub Actions lint + test |
+| ~~76~~ | ~~性能监控 (OpenTelemetry)~~ | ~~P3~~ | ✅ TracerProvider + FastAPIInstrumentor |
+| ~~77~~ | ~~API 速率限制 (slowapi)~~ | ~~P3~~ | ✅ AI 10/min + 读 120/min + 写 5/min |
 
 ---
 

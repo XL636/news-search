@@ -77,6 +77,12 @@
 | ArXiv 论文采集器 | ✅ 完成 | 100% |
 | 热度趋势追踪系统 | ✅ 完成 | 100% |
 | 自动调度器 (APScheduler) | ✅ 完成 | 100% |
+| 异步数据库 (aiosqlite) | ✅ 完成 | 100% |
+| 内存 TTL 缓存 (cachetools) | ✅ 完成 | 100% |
+| Docker 容器化 | ✅ 完成 | 100% |
+| CI/CD Pipeline (GitHub Actions) | ✅ 完成 | 100% |
+| 性能监控 (OpenTelemetry) | ✅ 完成 | 100% |
+| API 速率限制 (slowapi) | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -385,7 +391,8 @@ AI 搜索：hero 浮动+呼吸 + 搜索框三层光晕 + chips 上浮 + wave 弹
 2. ~~Phase 1: Tier 1 快速修复~~ ✅ 已完成
 3. ~~Phase 2: Tier 2 代码质量~~ ✅ 已完成
 4. ~~Phase 3-4: Tier 3 功能增强~~ ✅ 已完成
-5. **Phase 5-6: Tier 4 架构演进** — aiosqlite/Redis/Docker/CI/CD/OpenTelemetry/速率限制
+5. ~~Phase 5-6: Tier 4 架构演进~~ ✅ aiosqlite/cachetools/Docker/CI-CD/OpenTelemetry/slowapi
+6. **全部 27 项优化已完成** — 项目进入维护阶段
 
 ---
 
@@ -433,8 +440,63 @@ RSS 健康：GET /api/feed-health — 各 RSS 源成功率/延迟监控
   init_db() 自动创建 FTS 表/触发器 + rebuild_fts_index()
 ```
 
+### Tier 4 架构演进 — 异步 DB + OpenTelemetry（2026-02-20）
+
+```
+异步数据库 (aiosqlite):
+  store.py 新增 14 个 async 函数（aget_db/aget_connection/ainit_db/aget_classified_items/
+    aget_stats/aget_domains/asearch_fts/aget_trending_items/aget_item_trend/
+    aget_feed_health/aget_export_items/aget_translation/asave_translation）
+  所有 sync 函数保持不变，CLI/scheduler 继续使用同步版本
+  路由端点全面 async 化：
+    data.py: api_domains/api_items/api_stats/api_trends/api_health/api_export/api_feed_health
+    translate.py: api_translate
+    ai.py: asearch_items_for_ai/aget_top_items（async 版本 + 端点生成器调用）
+  依赖：aiosqlite>=0.20
+
+OpenTelemetry 性能监控:
+  src/telemetry.py: setup_telemetry(app)
+    TracerProvider + Resource(service.name=insightradar)
+    ConsoleSpanExporter (dev mode, 可替换为 OTLP)
+    FastAPIInstrumentor 自动追踪所有 HTTP 请求
+  server.py lifespan: 启动时调用 setup_telemetry(app)
+  依赖：opentelemetry-api/sdk/instrumentation-fastapi
+
+版本：0.19.0 → 0.20.0
+测试：14 个 pytest 测试全部通过
+```
+
+### Tier 4 架构演进 — Docker + CI/CD + 缓存 + 限流（2026-02-20）
+
+```
+Docker 容器化:
+  Dockerfile: multi-stage build, python:3.12-slim, requirements layer cache
+  docker-compose.yml: web service port 8000, ./data volume, env vars
+  .dockerignore: 排除 .venv/__pycache__/.git/tests/*.png
+
+CI/CD Pipeline:
+  .github/workflows/ci.yml: push/PR 触发
+  Job 1: ruff check + ruff format --check (lint)
+  Job 2: pytest --tb=short (test, depends on lint)
+  Python 3.12 + pip cache
+
+API 速率限制 (slowapi):
+  SlowAPIMiddleware + get_remote_address 客户端 IP 识别
+  AI 端点: 10/minute (ai-search/ai-analyze/ai-latest)
+  读端点: 120/minute (items/domains/stats/trends)
+  写端点: 5/minute (collect/snapshot)
+  429 RateLimitExceeded JSON 响应
+
+内存 TTL 缓存 (cachetools):
+  src/cache.py: 三级 TTLCache
+  stats_cache: maxsize=100, ttl=60s
+  items_cache: maxsize=50, ttl=30s
+  trends_cache: maxsize=10, ttl=120s
+  采集/快照后自动 invalidate()
+```
+
 ### 当前状态
 - **Phase 1**: ✅ 已完成（Tier 1 快速修复 7 项 — 2026-02-20）
 - **Phase 2**: ✅ 已完成（Tier 2 代码质量 7 项 — 2026-02-20）
 - **Phase 3-4**: ✅ 已完成（Tier 3 功能增强 7 项 — 2026-02-20）
-- **Phase 5-6**: 📋 待办（Tier 4 架构演进 — aiosqlite/Redis/Docker/CI/CD）
+- **Phase 5-6**: ✅ 已完成（Tier 4 架构演进 6 项 — 2026-02-20）

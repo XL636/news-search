@@ -1,0 +1,49 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime data (mounted as volume instead)
+data/*.db
+data/raw/
+data/processed/
+
+# Images / screenshots
+*.png
+
+# Tests
+tests/
+
+# Claude / project meta
+.claude/
+CLAUDE.md
+TASKS.md
+progress.md
+CHANGELOG.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+
+# Docker (avoid recursive context)
+Dockerfile
+docker-compose.yml

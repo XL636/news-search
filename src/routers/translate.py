@@ -4,7 +4,7 @@ import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from src.storage.store import get_connection, get_translation, save_translation
+from src.storage.store import aget_db, aget_translation, asave_translation
 
 router = APIRouter(prefix="/api", tags=["translate"])
 
@@ -22,33 +22,30 @@ async def api_translate(req: TranslateRequest):
         return {"translated": ""}
 
     # Check cache
-    conn = get_connection()
-    cached = get_translation(conn, text, req.target)
-    if cached:
-        conn.close()
-        return {"translated": cached, "cached": True}
+    async with aget_db() as conn:
+        cached = await aget_translation(conn, text, req.target)
+        if cached:
+            return {"translated": cached, "cached": True}
 
-    # Call Google Translate free endpoint
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                "https://translate.googleapis.com/translate_a/single",
-                params={
-                    "client": "gtx",
-                    "sl": "auto",
-                    "tl": req.target,
-                    "dt": "t",
-                    "q": text[:500],
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            translated = "".join(part[0] for part in data[0] if part[0])
-    except Exception as e:
-        conn.close()
-        return {"translated": "", "error": str(e)}
+        # Call Google Translate free endpoint
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(
+                    "https://translate.googleapis.com/translate_a/single",
+                    params={
+                        "client": "gtx",
+                        "sl": "auto",
+                        "tl": req.target,
+                        "dt": "t",
+                        "q": text[:500],
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                translated = "".join(part[0] for part in data[0] if part[0])
+        except Exception as e:
+            return {"translated": "", "error": str(e)}
 
-    # Save to cache
-    save_translation(conn, text, translated, req.target)
-    conn.close()
+        # Save to cache
+        await asave_translation(conn, text, translated, req.target)
     return {"translated": translated, "cached": False}

@@ -4,9 +4,11 @@ import hashlib
 import json
 import re
 import sqlite3
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+import aiosqlite
 
 from src.config import DB_PATH
 from src.models.schemas import ClassifiedItem, CleanedItem, RawItem
@@ -672,3 +674,404 @@ def search_fts(conn: sqlite3.Connection, query: str, limit: int = 20, offset: in
             "language": r["language"] or "",
         })
     return items
+
+
+# =====================================================================
+# Async Database Layer (aiosqlite) — for web endpoint handlers
+# All sync functions above remain unchanged for CLI / scheduler use.
+# =====================================================================
+
+_INIT_SQL = """
+    CREATE TABLE IF NOT EXISTS raw_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        url TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        author TEXT DEFAULT '',
+        stars INTEGER DEFAULT 0,
+        comments_count INTEGER DEFAULT 0,
+        language TEXT DEFAULT '',
+        tags TEXT DEFAULT '[]',
+        published_at TEXT,
+        collected_at TEXT NOT NULL,
+        raw_json TEXT DEFAULT '',
+        UNIQUE(source, source_id)
+    );
+    CREATE TABLE IF NOT EXISTS cleaned_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        url TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        author TEXT DEFAULT '',
+        sources TEXT DEFAULT '[]',
+        source_ids TEXT DEFAULT '[]',
+        stars INTEGER DEFAULT 0,
+        comments_count INTEGER DEFAULT 0,
+        language TEXT DEFAULT '',
+        tags TEXT DEFAULT '[]',
+        published_at TEXT,
+        cleaned_at TEXT NOT NULL,
+        merge_note TEXT DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS classified_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cleaned_item_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        url TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        author TEXT DEFAULT '',
+        sources TEXT DEFAULT '[]',
+        domain TEXT DEFAULT 'Other',
+        tags TEXT DEFAULT '[]',
+        heat_index INTEGER DEFAULT 0,
+        heat_reason TEXT DEFAULT '',
+        stars INTEGER DEFAULT 0,
+        comments_count INTEGER DEFAULT 0,
+        language TEXT DEFAULT '',
+        published_at TEXT,
+        classified_at TEXT NOT NULL,
+        FOREIGN KEY (cleaned_item_id) REFERENCES cleaned_items(id)
+    );
+    CREATE TABLE IF NOT EXISTS collect_meta (
+        source TEXT PRIMARY KEY,
+        last_collected_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS translations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_text_hash TEXT NOT NULL,
+        target_lang TEXT NOT NULL,
+        source_text TEXT NOT NULL,
+        translated_text TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(source_text_hash, target_lang)
+    );
+    CREATE INDEX IF NOT EXISTS idx_raw_source ON raw_items(source);
+    CREATE INDEX IF NOT EXISTS idx_raw_collected ON raw_items(collected_at);
+    CREATE INDEX IF NOT EXISTS idx_raw_url ON raw_items(url);
+    CREATE INDEX IF NOT EXISTS idx_classified_domain ON classified_items(domain);
+    CREATE INDEX IF NOT EXISTS idx_classified_heat ON classified_items(heat_index DESC);
+    CREATE INDEX IF NOT EXISTS idx_classified_url ON classified_items(url);
+    CREATE INDEX IF NOT EXISTS idx_translations_lookup ON translations(source_text_hash, target_lang);
+    CREATE TABLE IF NOT EXISTS heat_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_url TEXT NOT NULL,
+        title TEXT,
+        domain TEXT,
+        heat_index INTEGER,
+        snapshot_date TEXT NOT NULL,
+        UNIQUE(item_url, snapshot_date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_snapshot_date ON heat_snapshots(snapshot_date);
+    CREATE INDEX IF NOT EXISTS idx_snapshot_url_date ON heat_snapshots(item_url, snapshot_date);
+"""
+
+
+async def aget_connection(db_path: Path | None = None) -> aiosqlite.Connection:
+    """Get an async aiosqlite connection with WAL mode."""
+    path = db_path or DB_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = await aiosqlite.connect(str(path))
+    conn.row_factory = aiosqlite.Row
+    await conn.execute("PRAGMA journal_mode=WAL")
+    await conn.execute("PRAGMA foreign_keys=ON")
+    return conn
+
+
+@asynccontextmanager
+async def aget_db(db_path: Path | None = None):
+    """Async context manager for database connections. Auto-closes on exit."""
+    conn = await aget_connection(db_path)
+    try:
+        yield conn
+    finally:
+        await conn.close()
+
+
+async def ainit_db(conn: aiosqlite.Connection) -> None:
+    """Create tables if they don't exist (async version)."""
+    await conn.executescript(_INIT_SQL)
+
+    for stmt in [
+        """CREATE VIRTUAL TABLE IF NOT EXISTS classified_items_fts USING fts5(
+               title, description, tags,
+               content='classified_items',
+               content_rowid='id'
+           )""",
+        """CREATE TRIGGER IF NOT EXISTS fts_ai AFTER INSERT ON classified_items BEGIN
+               INSERT INTO classified_items_fts(rowid, title, description, tags)
+               VALUES (new.id, new.title, new.description, new.tags);
+           END""",
+        """CREATE TRIGGER IF NOT EXISTS fts_ad AFTER DELETE ON classified_items BEGIN
+               INSERT INTO classified_items_fts(classified_items_fts, rowid, title, description, tags)
+               VALUES ('delete', old.id, old.title, old.description, old.tags);
+           END""",
+        """CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON classified_items BEGIN
+               INSERT INTO classified_items_fts(classified_items_fts, rowid, title, description, tags)
+               VALUES ('delete', old.id, old.title, old.description, old.tags);
+               INSERT INTO classified_items_fts(rowid, title, description, tags)
+               VALUES (new.id, new.title, new.description, new.tags);
+           END""",
+    ]:
+        try:
+            await conn.execute(stmt)
+        except Exception:
+            pass
+
+    await conn.commit()
+
+
+async def aget_classified_items(
+    conn: aiosqlite.Connection,
+    domain: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    search: str | None = None,
+    sort: str = "heat",
+) -> tuple[list[dict], int]:
+    """Async query classified items with filters. Returns (items, total)."""
+    base_where = "WHERE 1=1"
+    params: list = []
+
+    if domain and domain != "All":
+        base_where += " AND domain = ?"
+        params.append(domain)
+
+    if search:
+        base_where += " AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)"
+        term = f"%{search}%"
+        params.extend([term, term, term])
+
+    # Count total
+    async with conn.execute(
+        f"SELECT COUNT(*) FROM classified_items {base_where}", params
+    ) as cursor:
+        row = await cursor.fetchone()
+        total = row[0]
+
+    # Build order clause
+    order = " ORDER BY heat_index DESC"
+    if sort == "stars":
+        order = " ORDER BY stars DESC"
+    elif sort == "recent":
+        order = " ORDER BY published_at DESC"
+    elif sort == "comments":
+        order = " ORDER BY comments_count DESC"
+
+    query = f"SELECT * FROM classified_items {base_where}{order} LIMIT ? OFFSET ?"
+    async with conn.execute(query, [*params, limit, offset]) as cursor:
+        rows = await cursor.fetchall()
+
+    items = []
+    for r in rows:
+        items.append({
+            "id": r["id"],
+            "title": r["title"],
+            "url": r["url"],
+            "description": r["description"],
+            "author": r["author"],
+            "sources": json.loads(r["sources"]) if r["sources"] else [],
+            "domain": r["domain"],
+            "tags": json.loads(r["tags"]) if r["tags"] else [],
+            "heat_index": r["heat_index"],
+            "heat_reason": r["heat_reason"],
+            "stars": r["stars"],
+            "comments_count": r["comments_count"],
+            "language": r["language"],
+            "published_at": r["published_at"],
+        })
+    return items, total
+
+
+async def aget_stats(conn: aiosqlite.Connection) -> dict:
+    """Async database statistics."""
+    stats = {}
+    for table in ["raw_items", "cleaned_items", "classified_items"]:
+        async with conn.execute(f"SELECT COUNT(*) FROM {table}") as cursor:
+            row = await cursor.fetchone()
+            stats[table] = row[0]
+
+    async with conn.execute(
+        "SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source"
+    ) as cursor:
+        rows = await cursor.fetchall()
+        stats["sources"] = {r["source"]: r["cnt"] for r in rows}
+
+    return stats
+
+
+async def aget_domains(conn: aiosqlite.Connection) -> list[dict]:
+    """Async get all domains with item counts."""
+    async with conn.execute(
+        "SELECT domain, COUNT(*) as count FROM classified_items GROUP BY domain ORDER BY count DESC"
+    ) as cursor:
+        rows = await cursor.fetchall()
+    return [{"domain": r["domain"], "count": r["count"]} for r in rows]
+
+
+async def asearch_fts(
+    conn: aiosqlite.Connection, query: str, limit: int = 20, offset: int = 0
+) -> list[dict]:
+    """Async full-text search using FTS5."""
+    tokens = re.findall(r'[a-zA-Z0-9]+|[\u4e00-\u9fff]+', query)
+    if not tokens:
+        return []
+
+    fts_query = " OR ".join(f'"{t}"' for t in tokens)
+
+    async with conn.execute(
+        """SELECT c.* FROM classified_items_fts f
+           JOIN classified_items c ON f.rowid = c.id
+           WHERE classified_items_fts MATCH ?
+           ORDER BY rank
+           LIMIT ? OFFSET ?""",
+        (fts_query, limit, offset),
+    ) as cursor:
+        rows = await cursor.fetchall()
+
+    items = []
+    for r in rows:
+        items.append({
+            "id": r["id"],
+            "title": r["title"],
+            "url": r["url"],
+            "description": r["description"] or "",
+            "domain": r["domain"],
+            "tags": json.loads(r["tags"]) if r["tags"] else [],
+            "heat_index": r["heat_index"],
+            "heat_reason": r["heat_reason"] or "",
+            "stars": r["stars"],
+            "comments_count": r["comments_count"],
+            "sources": json.loads(r["sources"]) if r["sources"] else [],
+            "published_at": r["published_at"],
+            "author": r["author"] or "",
+            "language": r["language"] or "",
+        })
+    return items
+
+
+async def aget_trending_items(
+    conn: aiosqlite.Connection, days: int = 3, limit: int = 20
+) -> list[dict]:
+    """Async compare latest two snapshots, return items with biggest changes."""
+    async with conn.execute(
+        "SELECT DISTINCT snapshot_date FROM heat_snapshots ORDER BY snapshot_date DESC LIMIT 2"
+    ) as cursor:
+        dates = await cursor.fetchall()
+
+    if len(dates) < 2:
+        return []
+
+    latest_date = dates[0]["snapshot_date"]
+    prev_date = dates[1]["snapshot_date"]
+
+    async with conn.execute(
+        """SELECT
+            a.item_url, a.title, a.domain, a.heat_index as current_heat,
+            b.heat_index as prev_heat,
+            (a.heat_index - b.heat_index) as delta
+        FROM heat_snapshots a
+        JOIN heat_snapshots b ON a.item_url = b.item_url
+        WHERE a.snapshot_date = ? AND b.snapshot_date = ?
+        ORDER BY ABS(a.heat_index - b.heat_index) DESC
+        LIMIT ?""",
+        (latest_date, prev_date, limit),
+    ) as cursor:
+        rows = await cursor.fetchall()
+
+    return [{
+        "url": r["item_url"],
+        "title": r["title"],
+        "domain": r["domain"],
+        "heat_index": r["current_heat"],
+        "prev_heat": r["prev_heat"],
+        "delta": r["delta"],
+        "direction": "up" if r["delta"] > 0 else ("down" if r["delta"] < 0 else "stable"),
+    } for r in rows]
+
+
+async def aget_item_trend(
+    conn: aiosqlite.Connection, item_url: str, days: int = 7
+) -> list[dict]:
+    """Async heat_index history for a single item over the last N days."""
+    async with conn.execute(
+        """SELECT heat_index, snapshot_date FROM heat_snapshots
+           WHERE item_url = ?
+           ORDER BY snapshot_date DESC LIMIT ?""",
+        (item_url, days),
+    ) as cursor:
+        rows = await cursor.fetchall()
+    return [{"heat_index": r["heat_index"], "date": r["snapshot_date"]} for r in rows]
+
+
+async def aget_feed_health(conn: aiosqlite.Connection) -> list[dict]:
+    """Async get RSS feed health status from collect_meta."""
+    async with conn.execute(
+        "SELECT source, last_collected_at FROM collect_meta ORDER BY source"
+    ) as cursor:
+        rows = await cursor.fetchall()
+
+    now = datetime.now(timezone.utc)
+    health = []
+    for r in rows:
+        last = r["last_collected_at"]
+        try:
+            last_dt = datetime.fromisoformat(last)
+            hours_ago = (now - last_dt).total_seconds() / 3600
+            status = "healthy" if hours_ago < 25 else ("stale" if hours_ago < 72 else "dead")
+        except Exception:
+            hours_ago = -1
+            status = "unknown"
+        health.append({
+            "source": r["source"],
+            "last_collected": last,
+            "hours_ago": round(hours_ago, 1),
+            "status": status,
+        })
+    return health
+
+
+async def aget_export_items(conn: aiosqlite.Connection, limit: int = 5000) -> list[dict]:
+    """Async export classified items."""
+    async with conn.execute(
+        "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", (limit,)
+    ) as cursor:
+        rows = await cursor.fetchall()
+
+    items = []
+    for r in rows:
+        items.append({
+            "id": r["id"], "title": r["title"], "url": r["url"],
+            "description": r["description"] or "", "domain": r["domain"],
+            "tags": r["tags"] or "[]", "heat_index": r["heat_index"],
+            "stars": r["stars"], "comments_count": r["comments_count"],
+            "language": r["language"] or "", "published_at": r["published_at"] or "",
+            "sources": r["sources"] or "[]",
+        })
+    return items
+
+
+async def aget_translation(conn: aiosqlite.Connection, text: str, target_lang: str) -> str | None:
+    """Async look up a cached translation."""
+    h = _text_hash(text[:500])
+    async with conn.execute(
+        "SELECT translated_text FROM translations WHERE source_text_hash = ? AND target_lang = ?",
+        (h, target_lang),
+    ) as cursor:
+        row = await cursor.fetchone()
+    return row["translated_text"] if row else None
+
+
+async def asave_translation(conn: aiosqlite.Connection, text: str, translated: str, target_lang: str) -> None:
+    """Async save a translation to the cache."""
+    h = _text_hash(text[:500])
+    try:
+        await conn.execute(
+            """INSERT INTO translations (source_text_hash, target_lang, source_text, translated_text, created_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (h, target_lang, text[:500], translated, datetime.now(timezone.utc).isoformat()),
+        )
+        await conn.commit()
+    except Exception:
+        pass  # already cached

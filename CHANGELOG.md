@@ -4,6 +4,45 @@
 
 ---
 
+## [0.20.0] - 2026-02-20
+
+### Added
+- **Async Database Layer (aiosqlite)** — 14 个异步 DB 函数，Web 端点不再阻塞事件循环
+  - `aget_connection()` / `aget_db()` async context manager / `ainit_db()` async init
+  - `aget_classified_items()` — async 查询 + 过滤 + 分页 + 排序
+  - `aget_stats()` / `aget_domains()` — async 统计和领域列表
+  - `asearch_fts()` — async FTS5 全文搜索
+  - `aget_trending_items()` / `aget_item_trend()` — async 趋势数据
+  - `aget_feed_health()` / `aget_export_items()` — async 源健康和数据导出
+  - `aget_translation()` / `asave_translation()` — async 翻译缓存
+  - 所有 sync 函数保持不变，CLI/scheduler 继续使用同步版本
+- **OpenTelemetry 性能监控** — `src/telemetry.py`
+  - `TracerProvider` + `ConsoleSpanExporter` (开发模式，可替换为 OTLP 导出器)
+  - `FastAPIInstrumentor` 自动追踪所有 HTTP 请求 (延迟/状态码/路径)
+  - `setup_telemetry(app)` 在 FastAPI lifespan 中初始化
+- AI 路由 async 搜索：`asearch_items_for_ai()` / `aget_top_items()` 异步版本
+- `requirements.txt` 新增：`aiosqlite>=0.20`、`opentelemetry-api>=1.20`、`opentelemetry-sdk>=1.20`、`opentelemetry-instrumentation-fastapi>=0.41b0`
+
+### Changed
+- **路由端点全面 async 化**：7 个 data.py 端点 + 1 个 translate.py 端点从 sync→async
+  - `api_domains` / `api_items` / `api_stats` / `api_trends` / `api_health` / `api_export` / `api_feed_health`
+  - `api_translate` — 翻译缓存读写使用 async DB
+  - `api_ai_search` / `api_ai_latest` — 生成器内部搜索改用 async 版本
+- **Docker 容器化** — `Dockerfile` (multi-stage python:3.12-slim) + `docker-compose.yml` (port 8000, data volume) + `.dockerignore`
+- **CI/CD Pipeline** — `.github/workflows/ci.yml`：push/PR 触发 ruff lint/format + pytest，Python 3.12 + pip 缓存
+- **API 速率限制 (slowapi)** — `SlowAPIMiddleware` + 分级限流：AI 端点 10/min、读端点 120/min、写端点 5/min、429 JSON 响应
+- **内存 TTL 缓存 (cachetools)** — `src/cache.py`：stats 60s / items 30s / trends 120s 三级 TTL 缓存，采集/快照后自动失效
+- `requirements.txt` 新增：`slowapi>=0.1.9`、`cachetools>=5.0`
+
+### Changed
+- **路由端点全面 async 化**：7 个 data.py 端点 + 1 个 translate.py 端点从 sync→async
+  - `api_domains` / `api_items` / `api_stats` / `api_trends` / `api_health` / `api_export` / `api_feed_health`
+  - `api_translate` — 翻译缓存读写使用 async DB
+  - `api_ai_search` / `api_ai_latest` — 生成器内部搜索改用 async 版本
+- 版本号 0.19.0 → 0.20.0
+
+---
+
 ## [0.19.0] - 2026-02-20
 
 ### Added

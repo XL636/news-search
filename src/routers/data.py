@@ -4,23 +4,32 @@ import asyncio
 import csv
 import io
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
+from src.cache import invalidate, items_cache, stats_cache, trends_cache
 from src.pipeline import cmd_collect
 from src.storage.store import (
+    aget_classified_items,
+    aget_db,
+    aget_domains,
+    aget_export_items,
+    aget_feed_health,
+    aget_item_trend,
+    aget_stats,
+    aget_trending_items,
     get_connection,
-    get_item_trend,
-    get_trending_items,
     take_daily_snapshot,
 )
 
 router = APIRouter(prefix="/api", tags=["data"])
 
+limiter = Limiter(key_func=get_remote_address)
 _collect_lock = asyncio.Lock()
 
 SETTINGS_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "settings.json"
@@ -53,21 +62,28 @@ ws_manager = ConnectionManager()
 # ========== Endpoints ==========
 
 @router.get("/domains")
-def api_domains():
+@limiter.limit("120/minute")
+async def api_domains(request: Request):
     """Get all domains with item counts."""
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT domain, COUNT(*) as count FROM classified_items GROUP BY domain ORDER BY count DESC"
-    ).fetchall()
-    conn.close()
+    cache_key = "domains"
+    if cache_key in stats_cache:
+        return JSONResponse(
+            content=stats_cache[cache_key],
+            headers={"Cache-Control": "public, max-age=60"},
+        )
+    async with aget_db() as conn:
+        result = await aget_domains(conn)
+    stats_cache[cache_key] = result
     return JSONResponse(
-        content=[{"domain": r["domain"], "count": r["count"]} for r in rows],
+        content=result,
         headers={"Cache-Control": "public, max-age=60"},
     )
 
 
 @router.get("/items")
-def api_items(
+@limiter.limit("120/minute")
+async def api_items(
+    request: Request,
     domain: str | None = Query(None),
     search: str | None = Query(None, max_length=200),
     sort: str = Query("heat"),
@@ -75,79 +91,34 @@ def api_items(
     offset: int = Query(0),
 ):
     """Get classified items with optional filters and pagination."""
-    conn = get_connection()
-    base_where = "WHERE 1=1"
-    params: list = []
-
-    if domain and domain != "All":
-        base_where += " AND domain = ?"
-        params.append(domain)
-
-    if search:
-        base_where += " AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)"
-        term = f"%{search}%"
-        params.extend([term, term, term])
-
-    # Count total
-    count_row = conn.execute(
-        f"SELECT COUNT(*) FROM classified_items {base_where}", params
-    ).fetchone()
-    total = count_row[0]
-
-    # Build order clause
-    order = " ORDER BY heat_index DESC"
-    if sort == "stars":
-        order = " ORDER BY stars DESC"
-    elif sort == "recent":
-        order = " ORDER BY published_at DESC"
-    elif sort == "comments":
-        order = " ORDER BY comments_count DESC"
-
-    query = f"SELECT * FROM classified_items {base_where}{order} LIMIT ? OFFSET ?"
-    rows = conn.execute(query, [*params, limit, offset]).fetchall()
-    conn.close()
-
-    items = []
-    for r in rows:
-        items.append({
-            "id": r["id"],
-            "title": r["title"],
-            "url": r["url"],
-            "description": r["description"],
-            "author": r["author"],
-            "sources": json.loads(r["sources"]) if r["sources"] else [],
-            "domain": r["domain"],
-            "tags": json.loads(r["tags"]) if r["tags"] else [],
-            "heat_index": r["heat_index"],
-            "heat_reason": r["heat_reason"],
-            "stars": r["stars"],
-            "comments_count": r["comments_count"],
-            "language": r["language"],
-            "published_at": r["published_at"],
-        })
-    return {"items": items, "total": total, "limit": limit, "offset": offset}
+    cache_key = f"items:{domain}:{search}:{sort}:{limit}:{offset}"
+    if cache_key in items_cache:
+        return items_cache[cache_key]
+    async with aget_db() as conn:
+        items, total = await aget_classified_items(
+            conn, domain=domain, limit=limit, offset=offset, search=search, sort=sort,
+        )
+    result = {"items": items, "total": total, "limit": limit, "offset": offset}
+    items_cache[cache_key] = result
+    return result
 
 
 @router.get("/stats")
-def api_stats():
+@limiter.limit("120/minute")
+async def api_stats(request: Request):
     """Get database statistics."""
-    conn = get_connection()
-    stats = {}
-    for table in ["raw_items", "cleaned_items", "classified_items"]:
-        count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-        stats[table] = count
-
-    rows = conn.execute(
-        "SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source"
-    ).fetchall()
-    stats["sources"] = {r["source"]: r["cnt"] for r in rows}
-
-    conn.close()
+    cache_key = "stats"
+    if cache_key in stats_cache:
+        return JSONResponse(content=stats_cache[cache_key], headers={"Cache-Control": "public, max-age=60"})
+    async with aget_db() as conn:
+        stats = await aget_stats(conn)
+    stats_cache[cache_key] = stats
     return JSONResponse(content=stats, headers={"Cache-Control": "public, max-age=60"})
 
 
 @router.post("/collect")
-async def api_collect():
+@limiter.limit("5/minute")
+async def api_collect(request: Request):
     """Trigger data collection. Returns 409 if already running."""
     if _collect_lock.locked():
         return {"status": "busy", "message": "Collection already in progress"}
@@ -155,6 +126,7 @@ async def api_collect():
     async with _collect_lock:
         try:
             result = await cmd_collect()
+            invalidate(stats_cache, items_cache, trends_cache)
             await ws_manager.broadcast({"type": "collection_complete", "stats": result})
             return {
                 "status": "ok",
@@ -166,22 +138,29 @@ async def api_collect():
 
 
 @router.get("/trends")
-def api_trends(days: int = Query(3), limit: int = Query(20)):
+@limiter.limit("120/minute")
+async def api_trends(request: Request, days: int = Query(3), limit: int = Query(20)):
     """Get trending items based on heat_index changes between snapshots."""
-    conn = get_connection()
-    items = get_trending_items(conn, days=days, limit=limit)
-    for item in items:
-        item["history"] = get_item_trend(conn, item["url"], days=7)
-    conn.close()
-    return JSONResponse(content={"items": items}, headers={"Cache-Control": "public, max-age=60"})
+    cache_key = f"trends:{days}:{limit}"
+    if cache_key in trends_cache:
+        return JSONResponse(content=trends_cache[cache_key], headers={"Cache-Control": "public, max-age=60"})
+    async with aget_db() as conn:
+        items = await aget_trending_items(conn, days=days, limit=limit)
+        for item in items:
+            item["history"] = await aget_item_trend(conn, item["url"], days=7)
+    result = {"items": items}
+    trends_cache[cache_key] = result
+    return JSONResponse(content=result, headers={"Cache-Control": "public, max-age=60"})
 
 
 @router.post("/snapshot")
-def api_snapshot():
+@limiter.limit("5/minute")
+def api_snapshot(request: Request):
     """Manually trigger a daily heat snapshot."""
     conn = get_connection()
     count = take_daily_snapshot(conn)
     conn.close()
+    invalidate(trends_cache)
     return {"status": "ok", "snapshotted": count}
 
 
@@ -195,15 +174,14 @@ def api_scheduler_status():
 # ========== Health Check ==========
 
 @router.get("/health")
-def api_health():
+async def api_health():
     """Health check endpoint returning system status."""
     status = {"status": "ok", "checks": {}}
 
     # Database check
     try:
-        conn = get_connection()
-        conn.execute("SELECT 1")
-        conn.close()
+        async with aget_db() as conn:
+            await conn.execute("SELECT 1")
         status["checks"]["database"] = {"status": "ok"}
     except Exception as e:
         status["checks"]["database"] = {"status": "error", "detail": str(e)[:100]}
@@ -274,24 +252,10 @@ def save_preferences(prefs: UserPreferences):
 # ========== Data Export ==========
 
 @router.get("/export")
-def api_export(format: str = Query("json", pattern="^(json|csv)$")):
+async def api_export(format: str = Query("json", pattern="^(json|csv)$")):
     """Export classified items as JSON or CSV."""
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT 5000"
-    ).fetchall()
-    conn.close()
-
-    items = []
-    for r in rows:
-        items.append({
-            "id": r["id"], "title": r["title"], "url": r["url"],
-            "description": r["description"] or "", "domain": r["domain"],
-            "tags": r["tags"] or "[]", "heat_index": r["heat_index"],
-            "stars": r["stars"], "comments_count": r["comments_count"],
-            "language": r["language"] or "", "published_at": r["published_at"] or "",
-            "sources": r["sources"] or "[]",
-        })
+    async with aget_db() as conn:
+        items = await aget_export_items(conn)
 
     if format == "csv":
         output = io.StringIO()
@@ -315,29 +279,8 @@ def api_export(format: str = Query("json", pattern="^(json|csv)$")):
 # ========== Feed Health ==========
 
 @router.get("/feed-health")
-def api_feed_health():
+async def api_feed_health():
     """Get RSS feed health status from collect_meta."""
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT source, last_collected_at FROM collect_meta ORDER BY source"
-    ).fetchall()
-    conn.close()
-
-    now = datetime.now(timezone.utc)
-    health = []
-    for r in rows:
-        last = r["last_collected_at"]
-        try:
-            last_dt = datetime.fromisoformat(last)
-            hours_ago = (now - last_dt).total_seconds() / 3600
-            status = "healthy" if hours_ago < 25 else ("stale" if hours_ago < 72 else "dead")
-        except Exception:
-            hours_ago = -1
-            status = "unknown"
-        health.append({
-            "source": r["source"],
-            "last_collected": last,
-            "hours_ago": round(hours_ago, 1),
-            "status": status,
-        })
+    async with aget_db() as conn:
+        health = await aget_feed_health(conn)
     return {"feeds": health}

@@ -4,10 +4,14 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
@@ -59,18 +63,27 @@ async def lifespan(app: FastAPI):
     # Start scheduler
     from src.scheduler import start_scheduler
     start_scheduler()
+    # Initialize OpenTelemetry tracing
+    from src.telemetry import setup_telemetry
+    setup_telemetry(app)
     yield
     # Shutdown scheduler
     from src.scheduler import stop_scheduler
     stop_scheduler()
 
 
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
 app = FastAPI(
     title="InsightRadar",
     description="全球创新与开源情报聚合系统 — AI-powered tech news aggregation and analysis",
-    version="0.19.0",
+    version="0.20.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

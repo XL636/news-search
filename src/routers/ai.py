@@ -6,15 +6,18 @@ import logging
 import re
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from src.config import AI_SEARCH_MAX_ITEMS, ZHIPUAI_BASE_URL, ZHIPUAI_MODEL
-from src.storage.store import get_connection, insert_web_search_item
+from src.storage.store import aget_db, get_connection, insert_web_search_item
 
 router = APIRouter(prefix="/api", tags=["ai"])
 
+limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 
 # Runtime state — set by server.py lifespan
@@ -151,6 +154,66 @@ def search_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[di
 
     conn.close()
     return items
+
+
+async def asearch_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[dict]:
+    """Async search classified_items with smart tokenization + domain mapping + fallback."""
+    async with aget_db() as conn:
+        tokens = re.findall(r'[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+', query)
+
+        expanded = []
+        for tok in tokens:
+            expanded.append(tok)
+            if re.match(r'[\u4e00-\u9fff]', tok) and len(tok) > 2:
+                for i in range(len(tok) - 1):
+                    expanded.append(tok[i:i+2])
+
+        conditions = []
+        params: list = []
+        for tok in set(expanded):
+            conditions.append("(title LIKE ? OR description LIKE ? OR tags LIKE ? OR domain LIKE ?)")
+            t = f"%{tok}%"
+            params.extend([t, t, t, t])
+
+        matched_domains = set()
+        for tok in tokens:
+            domain = QUERY_DOMAIN_MAP.get(tok.lower())
+            if domain:
+                matched_domains.add(domain)
+        for d in matched_domains:
+            conditions.append("domain = ?")
+            params.append(d)
+
+        where = " OR ".join(conditions) if conditions else "1=1"
+        sql = f"SELECT * FROM classified_items WHERE {where} ORDER BY heat_index DESC LIMIT ?"
+        params.append(limit)
+        async with conn.execute(sql, params) as cursor:
+            rows = await cursor.fetchall()
+
+        items = [_row_to_item(r) for r in rows]
+
+        if 1 <= len(items) < 5:
+            existing_ids = {item["id"] for item in items}
+            need = limit - len(items)
+            placeholders = ",".join("?" * len(existing_ids))
+            async with conn.execute(
+                f"SELECT * FROM classified_items WHERE id NOT IN ({placeholders}) ORDER BY heat_index DESC LIMIT ?",
+                [*existing_ids, need],
+            ) as cursor:
+                extra = await cursor.fetchall()
+            items.extend(_row_to_item(r) for r in extra)
+
+    return items
+
+
+async def aget_top_items(limit: int = 20) -> list[dict]:
+    """Async get top items by heat_index for trending summary."""
+    async with aget_db() as conn:
+        async with conn.execute(
+            "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]
+        ) as cursor:
+            rows = await cursor.fetchall()
+    return [_row_to_item(r) for r in rows]
 
 
 def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
@@ -409,7 +472,8 @@ def api_ai_config_post(req: AIConfigRequest):
 
 
 @router.post("/ai-search")
-async def api_ai_search(req: AISearchRequest):
+@limiter.limit("10/minute")
+async def api_ai_search(request: Request, req: AISearchRequest):
     """AI search with streaming SSE response."""
     if not _ai_search_semaphore._value:
         return StreamingResponse(
@@ -425,7 +489,7 @@ async def api_ai_search(req: AISearchRequest):
                 yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
                 return
 
-            items = search_items_for_ai(req.query)
+            items = await asearch_items_for_ai(req.query)
             sources_data = json.dumps(items, ensure_ascii=False)
             yield f"event: sources\ndata: {sources_data}\n\n"
 
@@ -447,7 +511,8 @@ async def api_ai_search(req: AISearchRequest):
 
 
 @router.post("/ai-analyze")
-async def api_ai_analyze(req: AIAnalyzeRequest):
+@limiter.limit("10/minute")
+async def api_ai_analyze(request: Request, req: AIAnalyzeRequest):
     """Article deep analysis with streaming SSE response."""
     if not _ai_search_semaphore._value:
         return StreamingResponse(
@@ -471,7 +536,8 @@ async def api_ai_analyze(req: AIAnalyzeRequest):
 
 
 @router.post("/ai-latest")
-async def api_ai_latest():
+@limiter.limit("10/minute")
+async def api_ai_latest(request: Request):
     """Trending news AI summary with streaming SSE response."""
     if not _ai_search_semaphore._value:
         return StreamingResponse(
@@ -487,7 +553,7 @@ async def api_ai_latest():
                 yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
                 return
 
-            items = get_top_items(20)
+            items = await aget_top_items(20)
             sources_data = json.dumps(items, ensure_ascii=False)
             yield f"event: sources\ndata: {sources_data}\n\n"
 
