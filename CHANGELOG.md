@@ -4,6 +4,25 @@
 
 ---
 
+## [0.19.0] - 2026-02-20
+
+### Added
+- **Structured JSON Logging** `src/logging_config.py` — `JSONFormatter` 格式化为 JSON lines + `setup_logging()` 配置函数（支持 JSON/human-readable 双模式）
+  - 支持 `request_id` 追踪、异常堆栈、日志级别配置
+  - 自动降噪：httpx/httpcore WARNING、apscheduler INFO
+- **Unit Test Framework** — pytest + pytest-asyncio 测试套件，14 个测试全部通过
+  - `tests/conftest.py`：`db_conn` 临时数据库 fixture + `sample_raw_item` 样本数据
+  - `tests/test_store.py`：存储层测试（插入/去重/查询/统计/采集元数据）
+  - `tests/test_schemas.py`：数据模型测试（默认值/unique_key/UTC 时区）
+  - `tests/test_config.py`：配置测试（DOMAINS/API/DB_PATH）
+  - `pytest.ini`：测试配置（testpaths/asyncio_mode=auto）
+- **Pre-commit Hooks** — ruff lint + format 自动检查
+  - `ruff.toml`：target-version py312, line-length 120, select E/F/W/I/UP/B/SIM
+  - `.pre-commit-config.yaml`：ruff-pre-commit v0.4.4（lint --fix + format）
+- `requirements.txt` 新增：`pytest>=8.0`、`pytest-asyncio>=0.23`、`ruff>=0.4`
+
+---
+
 ## [0.18.0] - 2026-02-20
 
 ### Fixed

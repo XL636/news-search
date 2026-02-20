@@ -60,6 +60,9 @@
 | Dashboard 背景微调提亮 | ✅ 完成 | 100% |
 | Dashboard UI/UX Accessibility 优化 | ✅ 完成 | 100% |
 | Dashboard 视觉美化 (Visual Beautification) | ✅ 完成 | 100% |
+| 结构化日志 (JSON Logging) | ✅ 完成 | 100% |
+| 单元测试框架 (pytest) | ✅ 完成 | 100% |
+| Pre-commit Hooks (ruff) | ✅ 完成 | 100% |
 | ArXiv 论文采集器 | ✅ 完成 | 100% |
 | 热度趋势追踪系统 | ✅ 完成 | 100% |
 | 自动调度器 (APScheduler) | ✅ 完成 | 100% |
@@ -390,5 +393,5 @@ AI 搜索：hero 浮动+呼吸 + 搜索框三层光晕 + chips 上浮 + wave 弹
 
 ### 当前状态
 - **Phase 1**: ✅ 已完成（Tier 1 快速修复 7 项 — 2026-02-20）
-- **Phase 2**: 📋 下一步（Tier 2 代码质量 7 项）
+- **Phase 2**: 🔄 进行中（Tier 2 代码质量 — 3/7 完成：日志/测试/Hooks）
 - **Phase 3-6**: 📋 待办

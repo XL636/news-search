@@ -64,6 +64,9 @@
 | 55 | OpenAPI 文档元数据 | 2026-02-20 | title=InsightRadar, version=0.18.0, /docs 可用 |
 | 56 | Content-Security-Policy 头 | 2026-02-20 | CSPMiddleware + cdn.jsdelivr.net 白名单 |
 | 57 | `get_classified_items()` 加 LIMIT | 2026-02-20 | limit=1000, offset=0 分页参数 |
+| 62 | 结构化日志 (JSON) | 2026-02-20 | src/logging_config.py — JSONFormatter + setup_logging() |
+| 63 | 单元测试框架 | 2026-02-20 | pytest + 14 个测试（store/schemas/config）全部通过 |
+| 64 | pre-commit hooks | 2026-02-20 | ruff lint + format + .pre-commit-config.yaml |
 
 ### 进行中 🔄
 
@@ -72,6 +75,7 @@
 | — | 暂无 | — | — |
 
 > **已完成**: #51-#57 Tier 1 快速修复 7 项 — 2026-02-20
+> **已完成**: #62-#64 Tier 2 代码质量 3 项 — 2026-02-20
 
 ### 待办 📋
 
@@ -86,9 +90,9 @@
 | 59 | 路由拆分 (APIRouter) | P2 | server.py 按功能拆分为 ai_router, data_router 等 |
 | 60 | 统一错误响应格式 | P2 | ErrorResponse model + exception handlers |
 | 61 | Pydantic Settings 配置管理 | P2 | 替代手动 env/json 读取 |
-| 62 | 结构化日志 (JSON) | P2 | JSON formatter + 请求 ID 追踪 |
-| 63 | 单元测试框架 | P2 | pytest + fixtures + 采集器/存储层测试 |
-| 64 | pre-commit hooks | P2 | ruff lint + black format 自动检查 |
+| ~~62~~ | ~~结构化日志 (JSON)~~ | ~~P2~~ | ✅ 已完成 — src/logging_config.py |
+| ~~63~~ | ~~单元测试框架~~ | ~~P2~~ | ✅ 已完成 — pytest + 14 tests |
+| ~~64~~ | ~~pre-commit hooks~~ | ~~P2~~ | ✅ 已完成 — ruff + .pre-commit-config.yaml |
 
 | | **Tier 3 — 功能增强 (Features)** | | |
 | 65 | 数据过期清理 (TTL) | P2 | 定期清理超过 N 天的旧数据 |
