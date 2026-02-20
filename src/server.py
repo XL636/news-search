@@ -9,9 +9,12 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Query
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
 
 from src.config import (
     AI_SEARCH_MAX_ITEMS,
@@ -81,7 +84,37 @@ async def lifespan(app: FastAPI):
     stop_scheduler()
 
 
-app = FastAPI(title="InsightRadar Dashboard", lifespan=lifespan)
+app = FastAPI(
+    title="InsightRadar",
+    description="全球创新与开源情报聚合系统 — AI-powered tech news aggregation and analysis",
+    version="0.18.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class CSPMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://translate.googleapis.com https://open.bigmodel.cn"
+        )
+        return response
+
+
+app.add_middleware(CSPMiddleware)
 
 
 @app.get("/api/domains")
@@ -92,13 +125,16 @@ def api_domains():
         "SELECT domain, COUNT(*) as count FROM classified_items GROUP BY domain ORDER BY count DESC"
     ).fetchall()
     conn.close()
-    return [{"domain": r["domain"], "count": r["count"]} for r in rows]
+    return JSONResponse(
+        content=[{"domain": r["domain"], "count": r["count"]} for r in rows],
+        headers={"Cache-Control": "public, max-age=60"},
+    )
 
 
 @app.get("/api/items")
 def api_items(
     domain: str | None = Query(None),
-    search: str | None = Query(None),
+    search: str | None = Query(None, max_length=200),
     sort: str = Query("heat"),
     limit: int = Query(20),
     offset: int = Query(0),
@@ -172,7 +208,7 @@ def api_stats():
     stats["sources"] = {r["source"]: r["cnt"] for r in rows}
 
     conn.close()
-    return stats
+    return JSONResponse(content=stats, headers={"Cache-Control": "public, max-age=60"})
 
 
 @app.post("/api/collect")
@@ -194,7 +230,7 @@ async def api_collect():
 
 
 class TranslateRequest(BaseModel):
-    text: str
+    text: str = Field(..., max_length=2000)
     target: str = "zh"
 
 
@@ -560,7 +596,7 @@ def _process_web_sources(raw_ws: list[dict]) -> list[dict]:
 
 
 class AISearchRequest(BaseModel):
-    query: str
+    query: str = Field(..., max_length=500)
 
 
 @app.post("/api/ai-search")
@@ -745,7 +781,7 @@ def api_trends(days: int = Query(3), limit: int = Query(20)):
     for item in items:
         item["history"] = get_item_trend(conn, item["url"], days=7)
     conn.close()
-    return {"items": items}
+    return JSONResponse(content={"items": items}, headers={"Cache-Control": "public, max-age=60"})
 
 
 @app.post("/api/snapshot")
@@ -763,7 +799,7 @@ def api_snapshot():
 def api_scheduler_status():
     """Get scheduler status and next run times."""
     from src.scheduler import get_scheduler_status
-    return get_scheduler_status()
+    return JSONResponse(content=get_scheduler_status(), headers={"Cache-Control": "public, max-age=10"})
 
 
 @app.get("/", response_class=HTMLResponse)

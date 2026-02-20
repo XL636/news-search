@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -26,7 +26,7 @@ class GitHubCollector(BaseCollector):
 
     async def collect(self) -> list[RawItem]:
         items: list[RawItem] = []
-        since = (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d")
+        since = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
         query = f"stars:>50 pushed:>{since}"
 
         headers = {

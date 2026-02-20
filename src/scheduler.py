@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -52,7 +52,7 @@ async def _job_collect():
     try:
         from src.pipeline import cmd_collect
         result = await cmd_collect()
-        _last_collect_run = datetime.utcnow().isoformat()
+        _last_collect_run = datetime.now(timezone.utc).isoformat()
         logger.info("Scheduled collect completed: %s", result)
     except Exception as e:
         logger.exception("Scheduled collect failed: %s", e)
@@ -67,7 +67,7 @@ async def _job_snapshot():
         conn = get_connection()
         count = take_daily_snapshot(conn)
         conn.close()
-        _last_snapshot_run = datetime.utcnow().isoformat()
+        _last_snapshot_run = datetime.now(timezone.utc).isoformat()
         logger.info("Scheduled snapshot completed: %d items", count)
     except Exception as e:
         logger.exception("Scheduled snapshot failed: %s", e)

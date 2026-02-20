@@ -4,6 +4,30 @@
 
 ---
 
+## [0.18.0] - 2026-02-20
+
+### Fixed
+- **`datetime.utcnow()` 全局替换** — 5 个文件全部从 `datetime.utcnow()` 迁移到 `datetime.now(timezone.utc)`，消除 Python 3.12+ DeprecationWarning
+  - `src/models/schemas.py`：4 个 Field default_factory
+  - `src/storage/store.py`：5 处 utcnow() 调用
+  - `src/scheduler.py`：2 处时间戳记录
+  - `src/collectors/github_trending.py`：日期计算
+  - `src/collectors/hackernews.py`：`utcfromtimestamp()` → `fromtimestamp(tz=timezone.utc)`
+
+### Added
+- **CORS 中间件** — `CORSMiddleware` 允许跨域访问（allow_origins=*, allow_methods=*, allow_headers=*）
+- **Content-Security-Policy 头** — `CSPMiddleware` 设置 CSP 安全头（script-src/style-src/font-src/img-src/connect-src 白名单）
+- **HTTP 缓存头** — `/api/domains`, `/api/stats`, `/api/trends`: `Cache-Control: public, max-age=60`; `/api/scheduler`: `max-age=10`
+- **OpenAPI 文档元数据** — `FastAPI(title="InsightRadar", description=..., version="0.18.0")`，访问 `/docs` 查看完整 API 文档
+- **搜索输入长度校验** — `AISearchRequest.query` max_length=500, `api_items search` max_length=200, `TranslateRequest.text` max_length=2000
+- **`get_classified_items()` 分页** — 新增 `limit=1000, offset=0` 参数防止全表扫描
+- **优化路线图** — TASKS.md 新增 27 项 Tier 1-4 优化任务（#51-#77），progress.md 新增 6 Phase 路线图
+
+### Removed
+- **14 个未引用截图** — 清理项目根目录未被任何文档引用的 PNG 文件，保留 6 个被引用的
+
+---
+
 ## [0.17.0] - 2026-02-20
 
 ### Added

@@ -72,6 +72,41 @@
 |---|------|--------|------|
 | 16 | 修复 Skill 注册问题 | P2 | YAML frontmatter 格式正确但 Claude Code 未加载 |
 
+| | **Tier 1 — 快速修复 (Quick Wins)** | | |
+| 51 | `datetime.utcnow()` 全局替换 | P1 | 替换为 `datetime.now(timezone.utc)`，消除 DeprecationWarning |
+| 52 | 搜索输入长度校验 | P1 | AISearchRequest.query max_length=500, search max_length=200, TranslateRequest.text max_length=2000 |
+| 53 | HTTP 缓存头 | P1 | /api/domains, /api/stats, /api/trends: max-age=60; /api/scheduler: max-age=10 |
+| 54 | CORS 中间件 | P1 | FastAPI CORSMiddleware，允许跨域访问 |
+| 55 | OpenAPI 文档元数据 | P1 | FastAPI 构造函数添加 title/description/version |
+| 56 | Content-Security-Policy 头 | P1 | 中间件设置 CSP 安全头 |
+| 57 | `get_classified_items()` 加 LIMIT | P1 | 添加 limit=1000, offset=0 参数防止全表扫描 |
+
+| | **Tier 2 — 代码质量 (Code Quality)** | | |
+| 58 | 数据库连接上下文管理器 | P2 | store.py 封装 `with get_connection() as conn` 自动关闭 |
+| 59 | 路由拆分 (APIRouter) | P2 | server.py 按功能拆分为 ai_router, data_router 等 |
+| 60 | 统一错误响应格式 | P2 | ErrorResponse model + exception handlers |
+| 61 | Pydantic Settings 配置管理 | P2 | 替代手动 env/json 读取 |
+| 62 | 结构化日志 (JSON) | P2 | JSON formatter + 请求 ID 追踪 |
+| 63 | 单元测试框架 | P2 | pytest + fixtures + 采集器/存储层测试 |
+| 64 | pre-commit hooks | P2 | ruff lint + black format 自动检查 |
+
+| | **Tier 3 — 功能增强 (Features)** | | |
+| 65 | 数据过期清理 (TTL) | P2 | 定期清理超过 N 天的旧数据 |
+| 66 | 健康检查端点 | P2 | GET /api/health 返回各采集器状态 |
+| 67 | WebSocket 实时推送 | P2 | 替代 SSE 轮询，实时数据更新 |
+| 68 | 用户偏好后端持久化 | P2 | localStorage → 后端 settings API |
+| 69 | 数据导出功能 | P2 | CSV/JSON 一键下载 classified_items |
+| 70 | RSS 源健康监控 | P2 | 记录每个 RSS 源的成功率和延迟 |
+| 71 | 全文搜索 (FTS5) | P2 | SQLite FTS5 虚拟表加速搜索 |
+
+| | **Tier 4 — 架构演进 (Architecture)** | | |
+| 72 | 异步数据库 (aiosqlite) | P3 | 替代同步 sqlite3，消除阻塞 |
+| 73 | Redis 缓存层 | P3 | 热点数据缓存，减少 SQLite 查询 |
+| 74 | Docker 容器化 | P3 | Dockerfile + docker-compose.yml |
+| 75 | CI/CD Pipeline | P3 | GitHub Actions: lint + test + build |
+| 76 | 性能监控 (OpenTelemetry) | P3 | 请求追踪 + 采集器性能指标 |
+| 77 | API 速率限制 | P3 | slowapi 限流保护 |
+
 ---
 
 ## 优化方案

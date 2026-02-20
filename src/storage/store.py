@@ -3,7 +3,7 @@
 import hashlib
 import json
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from src.config import DB_PATH
@@ -175,7 +175,7 @@ def get_raw_items(
         params.append(source)
 
     if since_hours > 0:
-        cutoff = datetime.utcnow() - timedelta(hours=since_hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
         query += " AND collected_at >= ?"
         params.append(cutoff.isoformat())
 
@@ -291,10 +291,11 @@ def insert_classified_item(conn: sqlite3.Connection, item: ClassifiedItem) -> in
     return cursor.lastrowid
 
 
-def get_classified_items(conn: sqlite3.Connection) -> list[ClassifiedItem]:
-    """Get all classified items, ordered by heat index."""
+def get_classified_items(conn: sqlite3.Connection, limit: int = 1000, offset: int = 0) -> list[ClassifiedItem]:
+    """Get classified items, ordered by heat index, with pagination."""
     rows = conn.execute(
-        "SELECT * FROM classified_items ORDER BY heat_index DESC"
+        "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ? OFFSET ?",
+        (limit, offset),
     ).fetchall()
     items = []
     for row in rows:
@@ -347,7 +348,7 @@ def get_last_collect_time(conn: sqlite3.Connection, source: str) -> str | None:
 
 def set_last_collect_time(conn: sqlite3.Connection, source: str) -> None:
     """Record the current time as last collection time for a source."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     conn.execute(
         """INSERT INTO collect_meta (source, last_collected_at) VALUES (?, ?)
            ON CONFLICT(source) DO UPDATE SET last_collected_at = excluded.last_collected_at""",
@@ -390,7 +391,7 @@ def insert_web_search_item(
     if existing:
         return None
 
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     source_id = hashlib.md5(url.encode("utf-8")).hexdigest()[:16]
 
     try:
@@ -455,7 +456,7 @@ def save_translation(conn: sqlite3.Connection, text: str, translated: str, targe
         conn.execute(
             """INSERT INTO translations (source_text_hash, target_lang, source_text, translated_text, created_at)
                VALUES (?, ?, ?, ?, ?)""",
-            (h, target_lang, text[:500], translated, datetime.utcnow().isoformat()),
+            (h, target_lang, text[:500], translated, datetime.now(timezone.utc).isoformat()),
         )
         conn.commit()
     except sqlite3.IntegrityError:
@@ -467,7 +468,7 @@ def save_translation(conn: sqlite3.Connection, text: str, translated: str, targe
 def take_daily_snapshot(conn: sqlite3.Connection) -> int:
     """Snapshot current classified_items heat_index into heat_snapshots.
     Returns count of items snapshotted."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     rows = conn.execute(
         "SELECT url, title, domain, heat_index FROM classified_items"
     ).fetchall()

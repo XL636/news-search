@@ -361,11 +361,33 @@ AI 搜索：hero 浮动+呼吸 + 搜索框三层光晕 + chips 上浮 + wave 弹
 | # | 问题 | 严重度 | 状态 |
 |---|------|--------|------|
 | 1 | ~~GitHub API 无认证，速率限制 60 次/h~~ | 低 | ✅ 已修复，使用 GITHUB_PERSONAL_ACCESS_TOKEN |
-| 2 | `datetime.utcnow()` 弃用警告（schemas.py 中） | 低 | models 层仍用 utcnow，pipeline 已修复 |
+| 2 | ~~`datetime.utcnow()` 弃用警告~~ | 低 | ✅ 已修复，全局替换为 `datetime.now(timezone.utc)` |
 
 ---
 
 ## 下一步行动
 
-1. 修复 Skill 注册问题（SKILL.md frontmatter 正确但 Claude Code 未加载）
-2. 进入 M3 功能扩展：更多数据源、定时调度等
+1. ~~修复 Skill 注册问题~~ (P2, 待排查)
+2. **Phase 1: Tier 1 快速修复** — datetime/CORS/CSP/缓存/校验/OpenAPI/LIMIT
+3. Phase 2: 代码质量 — 测试/Lint/路由拆分/配置管理
+4. Phase 3-4: 功能增强 — 健康检查/导出/FTS5/WebSocket
+5. Phase 5-6: 架构演进 — aiosqlite/Redis/Docker/CI/CD
+
+---
+
+## 下一阶段：优化路线图
+
+> 全面审计后整理出 4 层 27 项优化，分 6 个 Phase 渐进执行。
+
+| Phase | 内容 | 任务数 | 优先级 | 预期效果 |
+|-------|------|--------|--------|----------|
+| Phase 1 | Tier 1 快速修复 | 7 | P1 | 消除 deprecation 警告、安全加固、性能基线 |
+| Phase 2 | Tier 2 代码质量 | 7 | P2 | 可维护性提升、测试覆盖、开发规范 |
+| Phase 3 | Tier 3 功能增强 (前半) | 4 | P2 | 数据生命周期管理、健康监控、导出 |
+| Phase 4 | Tier 3 功能增强 (后半) | 3 | P2 | 实时推送、全文搜索、用户偏好 |
+| Phase 5 | Tier 4 架构演进 (前半) | 3 | P3 | 异步 DB、缓存层、容器化 |
+| Phase 6 | Tier 4 架构演进 (后半) | 3 | P3 | CI/CD、性能监控、速率限制 |
+
+### 当前状态
+- **Phase 1**: 🔄 执行中（Tier 1 快速修复 7 项）
+- **Phase 2-6**: 📋 待办

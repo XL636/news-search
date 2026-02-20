@@ -3,7 +3,7 @@
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 
@@ -75,7 +75,7 @@ class HackerNewsCollector(BaseCollector):
 
                     published = None
                     if story.get("time"):
-                        published = datetime.utcfromtimestamp(story["time"])
+                        published = datetime.fromtimestamp(story["time"], tz=timezone.utc)
 
                     hn_url = story.get("url", "")
                     if not hn_url:

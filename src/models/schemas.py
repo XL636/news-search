@@ -1,6 +1,6 @@
 """Pydantic data models for InsightRadar."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -21,7 +21,7 @@ class RawItem(BaseModel):
     language: str = ""  # programming language (GitHub)
     tags: list[str] = Field(default_factory=list)
     published_at: Optional[datetime] = None
-    collected_at: datetime = Field(default_factory=datetime.utcnow)
+    collected_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     raw_json: str = ""  # original JSON for debugging
 
     def unique_key(self) -> str:
@@ -43,7 +43,7 @@ class CleanedItem(BaseModel):
     language: str = ""
     tags: list[str] = Field(default_factory=list)
     published_at: Optional[datetime] = None
-    cleaned_at: datetime = Field(default_factory=datetime.utcnow)
+    cleaned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     merge_note: str = ""  # why items were merged
 
 
@@ -65,7 +65,7 @@ class ClassifiedItem(BaseModel):
     comments_count: int = 0
     language: str = ""
     published_at: Optional[datetime] = None
-    classified_at: datetime = Field(default_factory=datetime.utcnow)
+    classified_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class DailyDigest(BaseModel):
@@ -77,5 +77,5 @@ class DailyDigest(BaseModel):
     total_classified: int = 0
     sources_summary: dict[str, int] = Field(default_factory=dict)
     top_domains: list[str] = Field(default_factory=list)
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     output_path: str = ""
