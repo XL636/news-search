@@ -93,6 +93,7 @@
 
 | 84 | 单篇文章导出按钮 | 2026-02-20 | 删除 Header 全局导出 → 每张卡片 footer 导出按钮，纯前端 Markdown 生成下载 |
 | 85 | AI 对话讨论功能 | 2026-02-20 | AI 解读面板增加多轮对话，POST /api/ai-chat SSE 端点 + 前端气泡 UI |
+| 86 | Docker 本地部署验证 | 2026-02-20 | docker-compose up -d --build 构建成功，容器运行于 localhost:8000，调度器/OTel 正常 |
 
 ### 进行中 🔄
 
