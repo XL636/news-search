@@ -4,6 +4,40 @@
 
 ---
 
+## [0.17.0] - 2026-02-20
+
+### Added
+- **Typography Upgrade** — 字体从 Inter + JetBrains Mono 升级为 Fira Sans + Fira Code（更技术感的 dashboard 字体，支持连字）
+- **4-Level Elevation System** — 新增 `--elevation-1` 到 `--elevation-4` 维度层级阴影系统，替代扁平阴影
+- **KPI Bento Grid** — KPI 卡片从 1 列改为 2 列 bento 布局，首行跨列；新增图标、渐变强调条、stagger 入场动画
+- **KPI Count-up Animation** — KPI 数字加载时 ease-out 计数动画（`animateCount()` 函数）
+- **Glass Light Reflections** — `.glass` 和 `.glass-light` 新增顶部边缘高光渐变
+- **Ambient Orb-3** — 新增第三个暖琥珀色光球（底部右侧，更丰富的环境深度）
+- **AI Hero Radial Halo** — AI 搜索 hero 图标新增双层放射状光晕 + 呼吸动画
+- **Search Box Glow Border** — 搜索框 focus 时新增 conic-gradient 旋转发光边框
+- **AI Answer Panel Accent Stripe** — AI 回答面板左侧新增 amber 渐变色条
+- **Header Logo-Tab Separator** — header 中 logo 与 tab 导航间新增渐变分隔线
+- **Sidebar Visual Separators** — 侧边栏 KPI/趋势/域名 区块间新增渐变分隔线
+- **Sidebar Glass Section Headers** — 侧边栏标题新增玻璃磨砂背景
+- **Colored Trend Indicators** — 趋势方向从文字箭头升级为彩色 SVG 箭头 + 背景色调
+
+### Changed
+- **3-Stop CTA Gradient** — 所有 amber 按钮/激活态梯度升级为 `#fbbf24 → #d97706 → #b45309`（Tab/Lang/Chip/搜索按钮/Logo）
+- **Card Elevation** — 卡片默认 elevation-1，hover 升至 elevation-3 + glow + scale(1.005)
+- **Card Top Accent Line** — 卡片顶部高光线从白色换为 amber 渐变
+- **Card Hover Inner Glow** — 卡片 hover 新增暖色 amber wash 覆盖渐变
+- **KPI Card Elevation** — KPI 卡片默认 elevation-2，hover 升至 elevation-3 + glow
+- **Source Badges Pill Style** — 来源徽章改为圆角药丸样式 + 更多内边距 + 模糊背景
+- **Tag Pills Softer** — 标签改为圆角药丸 + 更柔和背景 + 更多内边距
+- **Suggestion Chips Glass** — 建议芯片改为玻璃磨砂效果 + 更大圆角 + hover elevation
+- **Toast Glass Enhancement** — Toast 通知改为更强的模糊效果 + spring 弹性动画 + elevation-3
+- **Analyze Panel Elevation-4** — AI 解读侧滑面板使用最高层级 elevation-4 阴影
+- **Sidebar Hover Glow** — 域名项 hover 新增左侧内发光效果
+- **Scrollbar Warm Tint** — 滚动条 thumb hover 颜色改为暖 amber 色调
+- **Empty State Warm Gradient** — 空态图标背景改为 amber 暖色渐变
+- **Header Blur Increased** — 头部模糊从 20px 增强到 24px
+- **Border Subtle Brightness** — 全局 `--border-subtle` 透明度从 .06 提升到 .08
+
 ## [0.16.0] - 2026-02-20
 
 ### Added

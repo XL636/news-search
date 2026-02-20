@@ -7,12 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          fontFamily: { sans: ['Fira Sans', 'system-ui', 'sans-serif'] },
           colors: {
             surface: { 50: '#faf8f5', 100: '#f0ede8', 800: '#272522', 900: '#1f1d1a', 950: '#1a1816' },
           },
@@ -30,7 +30,7 @@
       --bg-overlay: rgba(48, 45, 38, .55);
       --bg-hover: rgba(48, 45, 38, .85);
       /* Colors - Border */
-      --border-subtle: rgba(168,162,150,.06);
+      --border-subtle: rgba(168,162,150,.08);
       --border-default: rgba(168,162,150,.10);
       --border-strong: rgba(168,162,150,.16);
       --border-accent: rgba(217,119,6,.30);
@@ -39,11 +39,17 @@
       --text-secondary: #b5b0a6;
       --text-tertiary: #7c7770;
       --text-accent: #fbbf24;
-      /* Shadows */
-      --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
-      --shadow-md: 0 4px 16px rgba(0,0,0,.25);
-      --shadow-lg: 0 12px 40px rgba(0,0,0,.3);
-      --shadow-xl: 0 24px 64px rgba(0,0,0,.4);
+      --accent-warm: #f59e0b;
+      /* Elevation System (4-level dimensional layering) */
+      --elevation-1: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+      --elevation-2: 0 4px 12px rgba(0,0,0,.15), 0 2px 4px rgba(0,0,0,.10);
+      --elevation-3: 0 12px 32px rgba(0,0,0,.20), 0 4px 8px rgba(0,0,0,.10);
+      --elevation-4: 0 24px 56px rgba(0,0,0,.30), 0 8px 16px rgba(0,0,0,.15);
+      /* Legacy shadow aliases */
+      --shadow-sm: var(--elevation-1);
+      --shadow-md: var(--elevation-2);
+      --shadow-lg: var(--elevation-3);
+      --shadow-xl: var(--elevation-4);
       --shadow-glow: 0 0 20px rgba(217,119,6,.08);
       --shadow-glow-hover: 0 0 30px rgba(217,119,6,.15);
       /* Radius */
@@ -68,7 +74,7 @@
     .text-subheading { font-size: 14px; font-weight: 600; letter-spacing: -0.015em; }
     .text-body { font-size: 14px; font-weight: 400; line-height: 1.65; }
     .text-caption { font-size: 11px; font-weight: 500; letter-spacing: 0.01em; }
-    .text-mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+    .text-mono { font-family: 'Fira Code', monospace; font-weight: 500; }
     h1, h2, h3, h4 { letter-spacing: -0.025em; }
 
     /* === Base === */
@@ -77,21 +83,23 @@
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(168,162,150,.12); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(168,162,150,.2); }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(217,119,6,.2); }
 
     /* === Noise Texture === */
     body::before { content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .015; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
     /* === Glass === */
-    .glass { background: var(--bg-raised); backdrop-filter: blur(20px) saturate(180%); border: 1px solid var(--border-subtle); }
-    .glass-light { background: rgba(38, 35, 28, .35); backdrop-filter: blur(12px); border: 1px solid var(--border-subtle); }
+    .glass { background: var(--bg-raised); backdrop-filter: blur(24px) saturate(180%); border: 1px solid var(--border-subtle); background-image: linear-gradient(to bottom, rgba(255,255,255,.04) 0%, transparent 40%); }
+    .glass-light { background: rgba(38, 35, 28, .35); backdrop-filter: blur(12px); border: 1px solid var(--border-subtle); background-image: linear-gradient(to bottom, rgba(255,255,255,.03) 0%, transparent 40%); }
 
     /* === Cards === */
-    .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); transition: border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out); position: relative; overflow: hidden; }
-    .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent); pointer-events: none; }
-    .card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px); }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); transition: border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out); position: relative; overflow: hidden; box-shadow: var(--elevation-1); }
+    .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent 10%, rgba(217,119,6,.15), transparent 90%); pointer-events: none; }
+    .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(217,119,6,.04), transparent 60%); opacity: 0; transition: opacity var(--duration-normal) var(--ease-out); pointer-events: none; z-index: 0; }
+    .card:hover { border-color: var(--border-accent); box-shadow: var(--elevation-3), var(--shadow-glow-hover); transform: translateY(-2px) scale(1.005); }
+    .card:hover::after { opacity: 1; }
     .card-hot { border-left: 3px solid #ef4444; }
-    .card-hot::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(239,68,68,.10) 0%, rgba(239,68,68,.04) 40%, transparent 70%); pointer-events: none; }
+    .card-hot .card-hot-glow { position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(239,68,68,.10) 0%, rgba(239,68,68,.04) 40%, transparent 70%); pointer-events: none; z-index: 0; }
 
     /* AI Analyze btn: semi-visible by default, full on hover (touch-friendly) */
     .card .btn-ai-analyze { opacity: .45; transition: opacity var(--duration-normal) var(--ease-out), background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast); }
@@ -100,14 +108,18 @@
     /* === Chips === */
     .chip { transition: all var(--duration-normal) var(--ease-out); border-radius: var(--radius-sm); }
     .chip:hover { background: rgba(217,119,6,.1); border-color: rgba(217,119,6,.25); }
-    .chip.active { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; border-color: transparent; box-shadow: 0 2px 12px rgba(217,119,6,.3); }
+    .chip.active { background: linear-gradient(135deg, #fbbf24, #d97706, #b45309); color: #fff; border-color: transparent; box-shadow: 0 2px 12px rgba(217,119,6,.3); }
 
-    /* === KPI Cards === */
-    .kpi-card { background: linear-gradient(135deg, rgba(38,35,28,.6), rgba(22,21,18,.8)); border: 1px solid var(--border-default); border-radius: var(--radius-lg); transition: all var(--duration-normal) var(--ease-out); position: relative; overflow: hidden; }
-    .kpi-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(217,119,6,.06), transparent); opacity: 0; transition: opacity var(--duration-normal) var(--ease-out); pointer-events: none; }
-    .kpi-card:hover { border-color: rgba(217,119,6,.2); }
+    /* === KPI Cards (Bento Grid Style) === */
+    .kpi-card { background: linear-gradient(135deg, rgba(38,35,28,.6), rgba(22,21,18,.8)); border: 1px solid var(--border-default); border-radius: var(--radius-lg); transition: all var(--duration-normal) var(--ease-out); position: relative; overflow: hidden; box-shadow: var(--elevation-2); background-image: linear-gradient(to bottom, rgba(255,255,255,.03) 0%, transparent 40%); }
+    .kpi-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(217,119,6,.08), transparent); opacity: 0; transition: opacity var(--duration-normal) var(--ease-out); pointer-events: none; }
+    .kpi-card:hover { border-color: rgba(217,119,6,.25); box-shadow: var(--elevation-3), var(--shadow-glow); transform: translateY(-1px); }
     .kpi-card:hover::before { opacity: 1; }
-    .kpi-value { font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; background: linear-gradient(135deg, #ece9e1, #a8a29e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .kpi-card .kpi-accent-bar { height: 3px; border-radius: 2px; margin-top: 8px; opacity: .6; }
+    .kpi-card .kpi-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .kpi-value { font-family: 'Fira Code', monospace; letter-spacing: -0.02em; background: linear-gradient(135deg, #ece9e1, #a8a29e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-feature-settings: 'tnum'; }
+    .kpi-stagger { opacity: 0; transform: translateY(10px); animation: kpiEnter .5s var(--ease-out) forwards; }
+    @keyframes kpiEnter { to { opacity: 1; transform: translateY(0); } }
 
     /* === Animations === */
     .fade-in { animation: fadeIn var(--duration-slow) var(--ease-out); }
@@ -134,19 +146,19 @@
     .heat-bar-fill { height: 2px; border-radius: 2px; transition: width .8s var(--ease-out); }
 
     /* === Source Badges === */
-    .source-badge { font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 500; letter-spacing: .3px; }
+    .source-badge { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 600; letter-spacing: .3px; border: 1px solid rgba(255,255,255,.04); backdrop-filter: blur(4px); }
 
     /* === Tags === */
-    .tag-pill { font-size: 10px; padding: 2px 8px; border-radius: var(--radius-sm); background: rgba(38,35,28,.8); color: var(--text-secondary); border: 1px solid var(--border-subtle); transition: all var(--duration-fast); }
-    .tag-pill:hover { border-color: var(--border-default); color: var(--text-primary); }
+    .tag-pill { font-size: 10px; padding: 3px 10px; border-radius: 20px; background: rgba(38,35,28,.6); color: var(--text-secondary); border: 1px solid var(--border-subtle); transition: all var(--duration-fast); backdrop-filter: blur(4px); }
+    .tag-pill:hover { border-color: var(--border-default); color: var(--text-primary); background: rgba(48,45,38,.7); }
 
     /* === Details === */
     .details-content { max-height: 0; overflow: hidden; transition: max-height .3s var(--ease-out); }
     .details-content.open { max-height: 500px; }
 
     /* === Toast === */
-    .toast-enter { animation: toastIn .3s var(--ease-out); backdrop-filter: blur(2px); }
-    @keyframes toastIn { from { opacity: 0; transform: translateX(50px) scale(.95); filter: blur(2px); } to { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); } }
+    .toast-enter { animation: toastIn .4s var(--ease-spring); backdrop-filter: blur(12px); box-shadow: var(--elevation-3); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(60px) scale(.9); filter: blur(4px); } to { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); } }
     .toast-exit { animation: toastOut .3s ease forwards; }
     @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(50px) scale(.95); } }
 
@@ -160,12 +172,13 @@
     /* === Lang Toggle === */
     .lang-toggle { background: var(--bg-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px; }
     .lang-btn { transition: all var(--duration-normal) var(--ease-out); border-radius: 6px; }
-    .lang-btn.active { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; box-shadow: 0 1px 6px rgba(217,119,6,.3); }
+    .lang-btn.active { background: linear-gradient(135deg, #fbbf24, #d97706, #b45309); color: #fff; box-shadow: 0 1px 6px rgba(217,119,6,.3); }
 
     /* === Gradient Orbs (ambient background) === */
     .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: .12; pointer-events: none; z-index: 0; animation: orbDrift 20s ease-in-out infinite; }
     .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #d97706, #92400e); top: -200px; right: -200px; }
     .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #92400e, #451a03); bottom: -100px; left: -150px; animation-delay: -10s; animation-direction: reverse; }
+    .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, #f59e0b, #b45309); bottom: -120px; right: -80px; opacity: .06; animation-delay: -5s; }
 
     /* === Dividers === */
     .divider-gradient { height: 1px; background: linear-gradient(90deg, transparent, var(--border-default), transparent); }
@@ -174,46 +187,54 @@
     /* === Sidebar domain list === */
     .domain-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: all var(--duration-normal) var(--ease-out); font-size: 13px; color: var(--text-secondary); position: relative; }
     .domain-item::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 2px; height: 0; background: var(--text-accent); border-radius: 1px; transition: height var(--duration-normal) var(--ease-out); }
-    .domain-item:hover { background: rgba(217,119,6,.06); color: #fde68a; }
+    .domain-item:hover { background: rgba(217,119,6,.06); color: #fde68a; box-shadow: inset 3px 0 8px -2px rgba(217,119,6,.12); }
     .domain-item.active { background: rgba(217,119,6,.08); color: var(--text-accent); font-weight: 600; }
     .domain-item.active::before { height: 16px; }
-    .domain-item .count { font-size: 11px; font-family: 'JetBrains Mono', monospace; background: rgba(38,35,28,.8); padding: 1px 8px; border-radius: var(--radius-sm); color: var(--text-tertiary); transition: all var(--duration-normal); }
+    .domain-item .count { font-size: 11px; font-family: 'Fira Code', monospace; background: rgba(38,35,28,.8); padding: 1px 8px; border-radius: var(--radius-sm); color: var(--text-tertiary); transition: all var(--duration-normal); }
     .domain-item.active .count { background: rgba(217,119,6,.15); color: var(--text-accent); }
 
     /* === Sidebar title === */
-    .sidebar-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--text-tertiary); }
+    .sidebar-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--text-tertiary); padding: 6px 10px; background: rgba(38,35,28,.3); backdrop-filter: blur(8px); border-radius: 6px; border: 1px solid var(--border-subtle); }
+    .sidebar-separator { height: 1px; background: linear-gradient(90deg, transparent, var(--border-default), transparent); margin: 12px 4px; }
 
     /* === Tab Navigation === */
     .tab-nav { background: var(--bg-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px; }
     .tab-btn { transition: all var(--duration-normal) var(--ease-out); border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
     .tab-btn:hover { color: #fde68a; }
-    .tab-btn.active { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; box-shadow: 0 2px 12px rgba(217,119,6,.25), inset 0 1px 0 rgba(255,255,255,.1); }
+    .tab-btn.active { background: linear-gradient(135deg, #fbbf24, #d97706, #b45309); color: #fff; box-shadow: 0 2px 12px rgba(217,119,6,.25), inset 0 1px 0 rgba(255,255,255,.15), inset 0 -1px 2px rgba(0,0,0,.1); }
 
     /* === View Toggle === */
     .view.hidden { display: none !important; }
 
     /* === AI Search === */
-    .ai-hero-icon { width: 64px; height: 64px; border-radius: var(--radius-xl); background: linear-gradient(135deg, #d97706, #b45309, #92400e); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(217,119,6,.3); animation: heroFloat 8s ease-in-out infinite; position: relative; }
+    .ai-hero-icon { width: 64px; height: 64px; border-radius: var(--radius-xl); background: linear-gradient(135deg, #fbbf24, #d97706, #b45309, #92400e); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(217,119,6,.3), 0 0 60px rgba(217,119,6,.12), 0 0 100px rgba(217,119,6,.06); animation: heroFloat 8s ease-in-out infinite; position: relative; }
+    .ai-hero-halo { position: absolute; inset: -20px; border-radius: 50%; background: radial-gradient(circle, rgba(217,119,6,.12) 0%, rgba(217,119,6,.06) 40%, transparent 70%); pointer-events: none; animation: heroBreath 4s ease-in-out infinite; }
+    .ai-hero-halo-outer { position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(circle, rgba(251,191,36,.04) 0%, transparent 60%); pointer-events: none; animation: heroBreath 4s ease-in-out infinite 1s; }
+    @keyframes heroBreath { 0%, 100% { opacity: .6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
     .ai-hero-icon::after { content: ''; position: absolute; inset: -4px; border-radius: 24px; background: linear-gradient(135deg, rgba(217,119,6,.3), transparent); opacity: 0; animation: heroPulse 3s ease-in-out infinite; pointer-events: none; }
     @keyframes heroFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
     @keyframes heroPulse { 0%, 100% { opacity: 0; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
 
-    .ai-search-box { background: rgba(22,21,18,.6); backdrop-filter: blur(16px); border: 1px solid var(--border-default); border-radius: var(--radius-lg); transition: all var(--duration-normal) var(--ease-out); }
-    .ai-search-box:focus-within { border-color: rgba(217,119,6,.4); box-shadow: 0 0 0 3px rgba(217,119,6,.08), 0 0 0 1px rgba(217,119,6,.2), var(--shadow-lg); transform: scale(1.01); }
+    .ai-search-box { background: rgba(22,21,18,.6); backdrop-filter: blur(16px); border: 1px solid var(--border-default); border-radius: var(--radius-lg); transition: all var(--duration-normal) var(--ease-out); position: relative; }
+    .ai-search-box::before { content: ''; position: absolute; inset: -1px; border-radius: calc(var(--radius-lg) + 1px); background: conic-gradient(from 0deg, transparent 0%, rgba(217,119,6,.3) 25%, transparent 50%, rgba(251,191,36,.2) 75%, transparent 100%); opacity: 0; transition: opacity var(--duration-slow); pointer-events: none; z-index: -1; }
+    .ai-search-box:focus-within { border-color: rgba(217,119,6,.4); box-shadow: 0 0 0 3px rgba(217,119,6,.08), 0 0 0 1px rgba(217,119,6,.2), var(--elevation-3); transform: scale(1.01); }
+    .ai-search-box:focus-within::before { opacity: 1; animation: searchGlow 3s linear infinite; }
+    @keyframes searchGlow { to { transform: rotate(360deg); } }
     .ai-search-input { background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 15px; width: 100%; }
     .ai-search-input::placeholder { color: #57534e; }
-    .ai-search-btn { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; border: none; border-radius: var(--radius-md); padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--duration-normal) var(--ease-out); white-space: nowrap; position: relative; overflow: hidden; }
+    .ai-search-btn { background: linear-gradient(135deg, #fbbf24, #d97706, #b45309); color: #fff; border: none; border-radius: var(--radius-md); padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--duration-normal) var(--ease-out); white-space: nowrap; position: relative; overflow: hidden; }
     .ai-search-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,.15), transparent); opacity: 0; transition: opacity var(--duration-fast); pointer-events: none; }
     .ai-search-btn:hover { box-shadow: 0 4px 20px rgba(217,119,6,.4); transform: translateY(-1px); }
     .ai-search-btn:hover::before { opacity: 1; }
     .ai-search-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    .suggestion-chip { background: var(--bg-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 6px 14px; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all var(--duration-normal) var(--ease-out); }
-    .suggestion-chip:hover { background: rgba(217,119,6,.08); border-color: var(--border-accent); color: #fde68a; transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+    .suggestion-chip { background: rgba(38,35,28,.4); backdrop-filter: blur(12px); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px 18px; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all var(--duration-normal) var(--ease-out); background-image: linear-gradient(to bottom, rgba(255,255,255,.02) 0%, transparent 50%); }
+    .suggestion-chip:hover { background: rgba(217,119,6,.08); border-color: var(--border-accent); color: #fde68a; transform: translateY(-2px); box-shadow: var(--elevation-2), var(--shadow-glow); }
 
     /* AI Answer */
     .ai-answer-panel { background: rgba(22,21,18,.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); position: relative; overflow: hidden; }
-    .ai-answer-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(217,119,6,.15), transparent); pointer-events: none; }
+    .ai-answer-panel::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #fbbf24, #d97706, transparent); border-radius: 3px 0 0 3px; pointer-events: none; }
+    .ai-answer-panel::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(217,119,6,.15), transparent); pointer-events: none; }
     #ai-answer-content h3 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 20px 0 8px 0; letter-spacing: -0.025em; }
     #ai-answer-content h3:first-child { margin-top: 0; }
     #ai-answer-content p { font-size: 14px; line-height: 1.75; color: var(--text-secondary); margin: 8px 0; }
@@ -222,7 +243,7 @@
     #ai-answer-content strong { color: var(--text-primary); }
     #ai-answer-content a { color: var(--text-accent); text-decoration: underline; text-underline-offset: 2px; }
 
-    .citation { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; font-size: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace; background: rgba(217,119,6,.15); color: var(--text-accent); border: 1px solid rgba(217,119,6,.2); border-radius: 5px; cursor: pointer; vertical-align: super; margin: 0 1px; transition: all var(--duration-fast); line-height: 1; }
+    .citation { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; font-size: 10px; font-weight: 700; font-family: 'Fira Code', monospace; background: rgba(217,119,6,.15); color: var(--text-accent); border: 1px solid rgba(217,119,6,.2); border-radius: 5px; cursor: pointer; vertical-align: super; margin: 0 1px; transition: all var(--duration-fast); line-height: 1; }
     .citation:hover { background: rgba(217,119,6,.35); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(217,119,6,.2); }
 
     .ai-source-card { background: rgba(38,35,28,.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; transition: all var(--duration-normal) var(--ease-out); cursor: pointer; position: relative; overflow: hidden; }
@@ -251,7 +272,7 @@
     #ai-analyze-overlay { position: fixed; inset: 0; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .3s var(--ease-out); }
     #ai-analyze-overlay.open { pointer-events: auto; opacity: 1; }
     #ai-analyze-overlay .overlay-bg { position: absolute; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(4px); }
-    #ai-analyze-panel { position: absolute; top: 0; right: 0; width: 480px; max-width: 100vw; height: 100vh; background: var(--bg-base); border-left: 1px solid var(--border-default); transform: translateX(100%); transition: transform .35s var(--ease-out); display: flex; flex-direction: column; overflow: hidden; box-shadow: -20px 0 60px rgba(0,0,0,.4); }
+    #ai-analyze-panel { position: absolute; top: 0; right: 0; width: 480px; max-width: 100vw; height: 100vh; background: var(--bg-base); border-left: 1px solid var(--border-default); transform: translateX(100%); transition: transform .35s var(--ease-out); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--elevation-4), -20px 0 60px rgba(0,0,0,.4); }
     #ai-analyze-overlay.open #ai-analyze-panel { transform: translateX(0); }
     #ai-analyze-panel-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
     #ai-analyze-panel-content h3 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 20px 0 8px 0; letter-spacing: -0.025em; }
@@ -286,14 +307,17 @@
       .orb { animation: none !important; }
       .ai-hero-icon { animation: none !important; }
       .ai-hero-icon::after { animation: none !important; }
+      .ai-hero-halo, .ai-hero-halo-outer { animation: none !important; opacity: .4 !important; }
       .heat-pulse { animation: none !important; }
       .card-stagger { opacity: 1 !important; transform: none !important; animation: none !important; }
+      .kpi-stagger { opacity: 1 !important; transform: none !important; animation: none !important; }
       .skeleton, .skeleton-line { animation: none !important; }
       .streaming-cursor { animation: none !important; opacity: 1; }
       .ai-loading-dots span { animation: none !important; }
       .toast-enter { animation: none !important; }
       .toast-exit { animation: none !important; }
       .spin { animation: none !important; }
+      .ai-search-box::before { animation: none !important; }
     }
 
     /* === Responsive === */
@@ -316,6 +340,7 @@
   <!-- Ambient Background Orbs -->
   <div class="orb orb-1" aria-hidden="true"></div>
   <div class="orb orb-2" aria-hidden="true"></div>
+  <div class="orb orb-3" aria-hidden="true"></div>
 
   <!-- Toast Container -->
   <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2" role="status" aria-live="polite"></div>
@@ -324,12 +349,14 @@
   <header class="glass sticky top-0 z-50" style="border-bottom: 1px solid transparent; background-image: linear-gradient(var(--bg-raised), var(--bg-raised)), linear-gradient(90deg, transparent, rgba(217,119,6,.10), transparent); background-origin: border-box; background-clip: padding-box, border-box;">
     <div class="max-w-[1400px] mx-auto px-4 lg:px-6 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-amber-500/20">IR</div>
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-amber-500/20" style="background:linear-gradient(135deg,#fbbf24,#d97706,#b45309)">IR</div>
         <div>
           <h1 class="text-base font-bold text-white tracking-tight">InsightRadar</h1>
           <p id="subtitle" class="text-[10px] text-stone-500 font-medium tracking-wide uppercase"></p>
         </div>
       </div>
+
+      <div class="hidden sm:block w-px h-6 bg-gradient-to-b from-transparent via-stone-600/30 to-transparent mx-2" aria-hidden="true"></div>
 
       <!-- Center: Tab Navigation -->
       <div class="tab-nav flex items-center">
@@ -370,10 +397,14 @@
     <div class="max-w-[860px] mx-auto px-4 lg:px-6 py-8 relative z-10">
       <!-- Hero -->
       <div id="ai-hero" class="text-center mb-8 fade-in">
-        <div class="ai-hero-icon mx-auto mb-5" aria-hidden="true">
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
-          </svg>
+        <div class="relative inline-block mb-5" aria-hidden="true">
+          <div class="ai-hero-halo-outer"></div>
+          <div class="ai-hero-halo"></div>
+          <div class="ai-hero-icon relative">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
+            </svg>
+          </div>
         </div>
         <h2 id="ai-greeting" class="text-2xl font-bold text-white mb-2"></h2>
         <p id="ai-subtitle-text" class="text-sm text-stone-400"></p>
@@ -474,35 +505,63 @@
 
       <!-- Sidebar (desktop) -->
       <aside class="sidebar w-56 shrink-0 sticky top-[72px] self-start hidden lg:block" style="max-height: calc(100vh - 88px); overflow-y: auto;">
-        <!-- KPI Stats -->
+        <!-- KPI Stats (Bento Grid) -->
         <div class="mb-5">
-          <div class="grid grid-cols-1 gap-2">
-            <div class="kpi-card px-3.5 py-3">
-              <div class="text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1" id="kpi-label-raw"></div>
-              <div class="kpi-value text-xl font-bold" id="kpi-raw">-</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="kpi-card px-3.5 py-3 col-span-2 kpi-stagger" style="animation-delay:0ms">
+              <div class="flex items-center gap-2.5">
+                <div class="kpi-icon" style="background:rgba(217,119,6,.12)">
+                  <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                </div>
+                <div class="flex-1">
+                  <div class="text-[10px] font-medium text-stone-500 uppercase tracking-wider" id="kpi-label-raw"></div>
+                  <div class="kpi-value text-2xl font-bold" id="kpi-raw">-</div>
+                </div>
+              </div>
+              <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#fbbf24,#d97706,transparent)"></div>
             </div>
-            <div class="kpi-card px-3.5 py-3">
-              <div class="text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1" id="kpi-label-clean"></div>
-              <div class="kpi-value text-xl font-bold" id="kpi-clean">-</div>
+            <div class="kpi-card px-3.5 py-3 kpi-stagger" style="animation-delay:80ms">
+              <div class="flex items-center gap-2">
+                <div class="kpi-icon" style="background:rgba(74,222,128,.12)">
+                  <svg class="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                </div>
+                <div>
+                  <div class="text-[10px] font-medium text-stone-500 uppercase tracking-wider" id="kpi-label-clean"></div>
+                  <div class="kpi-value text-xl font-bold" id="kpi-clean">-</div>
+                </div>
+              </div>
+              <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#4ade80,#22c55e,transparent)"></div>
             </div>
-            <div class="kpi-card px-3.5 py-3">
-              <div class="text-[10px] font-medium text-stone-500 uppercase tracking-wider mb-1" id="kpi-label-classified"></div>
-              <div class="kpi-value text-xl font-bold" id="kpi-classified">-</div>
+            <div class="kpi-card px-3.5 py-3 kpi-stagger" style="animation-delay:160ms">
+              <div class="flex items-center gap-2">
+                <div class="kpi-icon" style="background:rgba(96,165,250,.12)">
+                  <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                </div>
+                <div>
+                  <div class="text-[10px] font-medium text-stone-500 uppercase tracking-wider" id="kpi-label-classified"></div>
+                  <div class="kpi-value text-xl font-bold" id="kpi-classified">-</div>
+                </div>
+              </div>
+              <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#60a5fa,#3b82f6,transparent)"></div>
             </div>
           </div>
         </div>
 
+        <div class="sidebar-separator" aria-hidden="true"></div>
+
         <!-- Trend Tracking -->
         <div class="mb-5" id="trend-section">
-          <div class="sidebar-title px-3 mb-2" id="trend-title"></div>
+          <div class="sidebar-title mb-2" id="trend-title"></div>
           <div id="trend-list" class="flex flex-col gap-1.5 px-1">
             <!-- filled by JS -->
           </div>
         </div>
 
+        <div class="sidebar-separator" aria-hidden="true"></div>
+
         <!-- Domain Navigation -->
         <div class="mb-4">
-          <div class="sidebar-title px-3 mb-2" id="sidebar-domain-label"></div>
+          <div class="sidebar-title mb-2" id="sidebar-domain-label"></div>
           <nav id="sidebar-domains" class="flex flex-col gap-0.5">
             <!-- filled by JS -->
           </nav>
@@ -561,8 +620,8 @@
 
         <!-- Empty State -->
         <div id="empty-state" class="hidden text-center py-20">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-stone-800/50 flex items-center justify-center">
-            <svg class="w-8 h-8 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-stone-800/50 to-amber-900/20 flex items-center justify-center border border-stone-700/20">
+            <svg class="w-8 h-8 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
           </div>
@@ -1011,6 +1070,7 @@
 
       return `
         <div class="card p-5 card-stagger ${isHot ? 'card-hot' : ''}">
+          ${isHot ? '<div class="card-hot-glow"></div>' : ''}
           <!-- Top row: domain + heat -->
           <div class="flex items-center justify-between mb-3">
             <span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style="background:${dc.bg};color:${dc.text};border:1px solid ${dc.border}">${domainLabel(item.domain)}</span>
@@ -1926,12 +1986,28 @@
       await loadItems(true);
     }
 
+    function animateCount(el, target, duration = 800) {
+      const start = parseInt(el.textContent.replace(/,/g, ''), 10) || 0;
+      if (start === target) return;
+      const startTime = performance.now();
+      function tick(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + (target - start) * eased);
+        el.textContent = current.toLocaleString();
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
     async function loadStats() {
       const resp = await fetch('/api/stats');
       const stats = await resp.json();
-      document.getElementById('kpi-raw').textContent = stats.raw_items?.toLocaleString() || '0';
-      document.getElementById('kpi-clean').textContent = stats.cleaned_items?.toLocaleString() || '0';
-      document.getElementById('kpi-classified').textContent = stats.classified_items?.toLocaleString() || '0';
+      animateCount(document.getElementById('kpi-raw'), stats.raw_items || 0);
+      animateCount(document.getElementById('kpi-clean'), stats.cleaned_items || 0, 900);
+      animateCount(document.getElementById('kpi-classified'), stats.classified_items || 0, 1000);
     }
 
     // ========== Trend Tracking ==========
@@ -1952,17 +2028,22 @@
         }
 
         listEl.innerHTML = data.items.map(item => {
-          const arrow = item.direction === 'up' ? '\u2191' : item.direction === 'down' ? '\u2193' : '\u2192';
+          const arrowSvg = item.direction === 'up'
+            ? '<svg class="w-3 h-3" fill="none" stroke="#22c55e" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>'
+            : item.direction === 'down'
+            ? '<svg class="w-3 h-3" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>'
+            : '<svg class="w-3 h-3" fill="none" stroke="#a8a29e" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14"/></svg>';
           const color = item.direction === 'up' ? '#22c55e' : item.direction === 'down' ? '#ef4444' : '#a8a29e';
+          const bgTint = item.direction === 'up' ? 'rgba(34,197,94,.06)' : item.direction === 'down' ? 'rgba(239,68,68,.06)' : 'transparent';
           const absDelta = Math.abs(item.delta);
           const title = item.title.length > 28 ? item.title.substring(0, 28) + '...' : item.title;
           const barWidth = Math.min(item.heat_index, 100);
 
           return `
-            <div class="px-2 py-1.5 rounded-lg hover:bg-white/[.03] transition-colors cursor-default" title="${item.title}">
+            <div class="px-2 py-1.5 rounded-lg hover:bg-white/[.03] transition-colors cursor-default" title="${item.title}" style="background:${bgTint}">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs text-stone-300 truncate flex-1">${title}</span>
-                <span class="text-xs font-bold text-mono" style="color:${color}">${arrow}${absDelta}</span>
+                <span class="flex items-center gap-1 text-xs font-bold text-mono" style="color:${color}">${arrowSvg} ${absDelta}</span>
               </div>
               <div class="mt-1 h-[2px] rounded-full bg-stone-800 overflow-hidden">
                 <div class="h-full rounded-full" style="width:${barWidth}%;background:linear-gradient(90deg,#b08d57,#d97706)"></div>
