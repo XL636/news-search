@@ -57,6 +57,13 @@
 | 45 | Dashboard 背景微调提亮 | 2026-02-19 | bg-base #0f0e0c→#1a1816 + 五层背景变量提亮 + orb 透明度 .10→.15 + Tailwind surface 色值同步 |
 | 49 | Dashboard UI/UX Pro Max 优化 | 2026-02-20 | Round 1: prefers-reduced-motion + focus-visible + aria-labels + 键盘导航 + z-index修正 + emoji→SVG + 动画减弱 + 卡片上浮 + 搜索框微交互 + 排版微调; Round 2 (Skill Audit): aria-live + skip-nav + form labels + aria-hidden + role landmarks + 触屏按钮可见 |
 | 50 | Dashboard 视觉美化 (Visual Beautification) | 2026-02-20 | Fira Sans/Code 字体升级 + 4级 Elevation 阴影系统 + KPI Bento Grid + 玻璃光反射 + hero 光晕 + 搜索框旋转发光 + AI 回答面板色条 + 3-stop 渐变升级 + 侧边栏分隔线/玻璃标题 + 彩色趋势指标 + count-up 动画 + 第三光球 + 药丸徽章/标签 |
+| 51 | `datetime.utcnow()` 全局替换 | 2026-02-20 | 5 文件 14 处替换为 `datetime.now(timezone.utc)` |
+| 52 | 搜索输入长度校验 | 2026-02-20 | AISearchRequest 500 / search 200 / TranslateRequest 2000 |
+| 53 | HTTP 缓存头 | 2026-02-20 | domains/stats/trends max-age=60, scheduler max-age=10 |
+| 54 | CORS 中间件 | 2026-02-20 | CORSMiddleware allow_origins=* |
+| 55 | OpenAPI 文档元数据 | 2026-02-20 | title=InsightRadar, version=0.18.0, /docs 可用 |
+| 56 | Content-Security-Policy 头 | 2026-02-20 | CSPMiddleware + cdn.jsdelivr.net 白名单 |
+| 57 | `get_classified_items()` 加 LIMIT | 2026-02-20 | limit=1000, offset=0 分页参数 |
 
 ### 进行中 🔄
 
@@ -64,7 +71,7 @@
 |---|------|----------|------|
 | — | 暂无 | — | — |
 
-> **已完成**: #50 Dashboard 视觉美化 — 2026-02-20
+> **已完成**: #51-#57 Tier 1 快速修复 7 项 — 2026-02-20
 
 ### 待办 📋
 
@@ -72,14 +79,7 @@
 |---|------|--------|------|
 | 16 | 修复 Skill 注册问题 | P2 | YAML frontmatter 格式正确但 Claude Code 未加载 |
 
-| | **Tier 1 — 快速修复 (Quick Wins)** | | |
-| 51 | `datetime.utcnow()` 全局替换 | P1 | 替换为 `datetime.now(timezone.utc)`，消除 DeprecationWarning |
-| 52 | 搜索输入长度校验 | P1 | AISearchRequest.query max_length=500, search max_length=200, TranslateRequest.text max_length=2000 |
-| 53 | HTTP 缓存头 | P1 | /api/domains, /api/stats, /api/trends: max-age=60; /api/scheduler: max-age=10 |
-| 54 | CORS 中间件 | P1 | FastAPI CORSMiddleware，允许跨域访问 |
-| 55 | OpenAPI 文档元数据 | P1 | FastAPI 构造函数添加 title/description/version |
-| 56 | Content-Security-Policy 头 | P1 | 中间件设置 CSP 安全头 |
-| 57 | `get_classified_items()` 加 LIMIT | P1 | 添加 limit=1000, offset=0 参数防止全表扫描 |
+| | **~~Tier 1 — 快速修复~~** ✅ 已完成 | | |
 
 | | **Tier 2 — 代码质量 (Code Quality)** | | |
 | 58 | 数据库连接上下文管理器 | P2 | store.py 封装 `with get_connection() as conn` 自动关闭 |
