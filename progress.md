@@ -58,6 +58,7 @@
 | AI 搜索引用内容匹配 (v2) | ✅ 完成 | 100% |
 | Dashboard Premium UI 升级 | ✅ 完成 | 100% |
 | Dashboard 背景微调提亮 | ✅ 完成 | 100% |
+| Dashboard UI/UX Accessibility 优化 | ✅ 完成 | 100% |
 | ArXiv 论文采集器 | ✅ 完成 | 100% |
 | 热度趋势追踪系统 | ✅ 完成 | 100% |
 | 自动调度器 (APScheduler) | ✅ 完成 | 100% |
@@ -204,6 +205,24 @@ ArXiv 采集器：src/collectors/arxiv.py
   依赖：apscheduler>=3.10
 
 数据源扩充：feeds.json 新增 Medium Tech RSS
+```
+
+### Dashboard UI/UX Accessibility 优化（2026-02-20）
+
+```
+Accessibility:
+  prefers-reduced-motion: @media block 禁用所有装饰动画（orb/hero/heat/card/skeleton/cursor/toast）
+  focus-visible: 所有交互元素 2px amber outline（按钮/Tab/chips/域名/输入框/链接）
+  aria-labels: icon-only 按钮添加 i18n-aware aria-label（刷新/翻译/关闭/搜索）
+  键盘导航: 侧边栏 domain-item 添加 tabindex="0" + role="button" + Enter/Space handler
+
+UI Polish:
+  z-index: body::before 噪点纹理 9999 → 1
+  emoji→SVG: 联网来源分隔线 🌐 → inline SVG globe
+  动画减弱: orb 透明度 .15→.12，hero 浮动 6s→8s
+  卡片交互: hover translateY(-2px) 上浮 + 热门卡片柔和光晕
+  搜索框: focus-within scale(1.01) 微放大
+  排版: card-title letter-spacing -0.01em，kpi-value letter-spacing -0.02em
 ```
 
 ### Dashboard Premium UI 全面升级（2026-02-19）

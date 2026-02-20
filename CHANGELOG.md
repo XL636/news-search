@@ -4,6 +4,22 @@
 
 ---
 
+## [0.16.0] - 2026-02-20
+
+### Added
+- **Accessibility: `prefers-reduced-motion`** — 新增 `@media (prefers-reduced-motion: reduce)` CSS 块，禁用/减速所有装饰动画（orb漂移、hero浮动、热度脉冲、卡片入场、骨架屏闪烁、loading波浪、toast动画）
+- **Accessibility: focus-visible 样式** — 所有可交互元素（按钮、Tab、chips、域名项、输入框、链接）添加 `2px amber outline` focus-visible 样式
+- **Accessibility: aria-labels** — icon-only 按钮（刷新、翻译、关闭面板、搜索）添加 i18n-aware `aria-label`
+- **Accessibility: 键盘导航** — 侧边栏域名项添加 `tabindex="0"`、`role="button"` 及 Enter/Space 键盘处理
+
+### Changed
+- **z-index 修正** — `body::before` 噪点纹理从 `z-index: 9999` 降为 `z-index: 1`（已有 `pointer-events: none`）
+- **Emoji → SVG** — 网络来源分隔线中的 🌐 emoji 替换为内联 SVG globe 图标
+- **装饰动画减弱** — orb 透明度 `.15` → `.12`；hero 浮动动画 `6s` → `8s`（更柔和）
+- **卡片交互升级** — hover 新增 `translateY(-2px)` 上浮效果 + transition 包含 transform；热门卡片光晕改为柔和渐变
+- **搜索框微交互** — `focus-within` 新增 `scale(1.01)` 微放大效果
+- **排版微调** — 卡片标题统一 `letter-spacing: -0.01em`；KPI 数字新增 `letter-spacing: -0.02em`
+
 ## [0.15.0] - 2026-02-19
 
 ### Added

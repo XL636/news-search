@@ -64,6 +64,7 @@
     /* === Typography === */
     .text-display { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
     .text-heading { font-size: 18px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.3; }
+    .card-title { letter-spacing: -0.01em; }
     .text-subheading { font-size: 14px; font-weight: 600; letter-spacing: -0.015em; }
     .text-body { font-size: 14px; font-weight: 400; line-height: 1.65; }
     .text-caption { font-size: 11px; font-weight: 500; letter-spacing: 0.01em; }
@@ -79,18 +80,18 @@
     ::-webkit-scrollbar-thumb:hover { background: rgba(168,162,150,.2); }
 
     /* === Noise Texture === */
-    body::before { content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: .015; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    body::before { content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .015; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
     /* === Glass === */
     .glass { background: var(--bg-raised); backdrop-filter: blur(20px) saturate(180%); border: 1px solid var(--border-subtle); }
     .glass-light { background: rgba(38, 35, 28, .35); backdrop-filter: blur(12px); border: 1px solid var(--border-subtle); }
 
     /* === Cards === */
-    .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); transition: border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out); position: relative; overflow: hidden; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); transition: border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out); position: relative; overflow: hidden; }
     .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent); pointer-events: none; }
-    .card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-lg), var(--shadow-glow); }
+    .card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px); }
     .card-hot { border-left: 3px solid #ef4444; }
-    .card-hot::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(239,68,68,.12) 0%, transparent 70%); pointer-events: none; }
+    .card-hot::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(239,68,68,.10) 0%, rgba(239,68,68,.04) 40%, transparent 70%); pointer-events: none; }
 
     /* AI Analyze btn: default hidden, fade-in on hover */
     .card .btn-ai-analyze { opacity: 0; transition: opacity var(--duration-normal) var(--ease-out), background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast); }
@@ -106,7 +107,7 @@
     .kpi-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(217,119,6,.06), transparent); opacity: 0; transition: opacity var(--duration-normal) var(--ease-out); pointer-events: none; }
     .kpi-card:hover { border-color: rgba(217,119,6,.2); }
     .kpi-card:hover::before { opacity: 1; }
-    .kpi-value { font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, #ece9e1, #a8a29e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .kpi-value { font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; background: linear-gradient(135deg, #ece9e1, #a8a29e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
     /* === Animations === */
     .fade-in { animation: fadeIn var(--duration-slow) var(--ease-out); }
@@ -162,7 +163,7 @@
     .lang-btn.active { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; box-shadow: 0 1px 6px rgba(217,119,6,.3); }
 
     /* === Gradient Orbs (ambient background) === */
-    .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: .15; pointer-events: none; z-index: 0; animation: orbDrift 20s ease-in-out infinite; }
+    .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: .12; pointer-events: none; z-index: 0; animation: orbDrift 20s ease-in-out infinite; }
     .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #d97706, #92400e); top: -200px; right: -200px; }
     .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #92400e, #451a03); bottom: -100px; left: -150px; animation-delay: -10s; animation-direction: reverse; }
 
@@ -192,13 +193,13 @@
     .view.hidden { display: none !important; }
 
     /* === AI Search === */
-    .ai-hero-icon { width: 64px; height: 64px; border-radius: var(--radius-xl); background: linear-gradient(135deg, #d97706, #b45309, #92400e); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(217,119,6,.3); animation: heroFloat 6s ease-in-out infinite; position: relative; }
+    .ai-hero-icon { width: 64px; height: 64px; border-radius: var(--radius-xl); background: linear-gradient(135deg, #d97706, #b45309, #92400e); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(217,119,6,.3); animation: heroFloat 8s ease-in-out infinite; position: relative; }
     .ai-hero-icon::after { content: ''; position: absolute; inset: -4px; border-radius: 24px; background: linear-gradient(135deg, rgba(217,119,6,.3), transparent); opacity: 0; animation: heroPulse 3s ease-in-out infinite; pointer-events: none; }
     @keyframes heroFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
     @keyframes heroPulse { 0%, 100% { opacity: 0; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
 
     .ai-search-box { background: rgba(22,21,18,.6); backdrop-filter: blur(16px); border: 1px solid var(--border-default); border-radius: var(--radius-lg); transition: all var(--duration-normal) var(--ease-out); }
-    .ai-search-box:focus-within { border-color: rgba(217,119,6,.4); box-shadow: 0 0 0 3px rgba(217,119,6,.08), 0 0 0 1px rgba(217,119,6,.2), var(--shadow-lg); }
+    .ai-search-box:focus-within { border-color: rgba(217,119,6,.4); box-shadow: 0 0 0 3px rgba(217,119,6,.08), 0 0 0 1px rgba(217,119,6,.2), var(--shadow-lg); transform: scale(1.01); }
     .ai-search-input { background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 15px; width: 100%; }
     .ai-search-input::placeholder { color: #57534e; }
     .ai-search-btn { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; border: none; border-radius: var(--radius-md); padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--duration-normal) var(--ease-out); white-space: nowrap; position: relative; overflow: hidden; }
@@ -269,6 +270,32 @@
     .skeleton-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; }
     .skeleton-line { border-radius: 4px; background: linear-gradient(90deg, rgba(38,35,28,.5) 25%, rgba(55,50,42,.5) 50%, rgba(38,35,28,.5) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 
+    /* === Focus-Visible (Accessibility) === */
+    :focus-visible { outline: 2px solid rgba(217,119,6,.6); outline-offset: 2px; }
+    .btn-ghost:focus-visible, .tab-btn:focus-visible, .chip:focus-visible, .lang-btn:focus-visible,
+    .ai-search-btn:focus-visible, .ai-latest-btn:focus-visible, .suggestion-chip:focus-visible,
+    .domain-item:focus-visible, .btn-ai-analyze:focus-visible {
+      outline: 2px solid rgba(217,119,6,.6); outline-offset: 2px;
+    }
+    input:focus-visible, select:focus-visible { outline: 2px solid rgba(217,119,6,.6); outline-offset: 2px; }
+    a:focus-visible { outline: 2px solid rgba(217,119,6,.6); outline-offset: 2px; border-radius: 2px; }
+
+    /* === Reduced Motion (Accessibility) === */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+      .orb { animation: none !important; }
+      .ai-hero-icon { animation: none !important; }
+      .ai-hero-icon::after { animation: none !important; }
+      .heat-pulse { animation: none !important; }
+      .card-stagger { opacity: 1 !important; transform: none !important; animation: none !important; }
+      .skeleton, .skeleton-line { animation: none !important; }
+      .streaming-cursor { animation: none !important; opacity: 1; }
+      .ai-loading-dots span { animation: none !important; }
+      .toast-enter { animation: none !important; }
+      .toast-exit { animation: none !important; }
+      .spin { animation: none !important; }
+    }
+
     /* === Responsive === */
     @media (max-width: 1023px) {
       .sidebar { display: none !important; }
@@ -313,14 +340,14 @@
 
       <div class="flex items-center gap-2">
         <!-- Refresh (feed only) -->
-        <button id="refresh-btn" onclick="doRefresh()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
+        <button id="refresh-btn" onclick="doRefresh()" aria-label="Refresh data" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
           <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
           <span id="refresh-text" class="hidden sm:inline"></span>
         </button>
         <!-- Translate -->
-        <button id="translate-btn" onclick="toggleTranstone()" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
+        <button id="translate-btn" onclick="toggleTranstone()" aria-label="Translate" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
           </svg>
@@ -360,7 +387,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           <span id="ai-latest-btn-text"></span>
         </button>
-        <button id="ai-search-btn" onclick="doAISearch()" class="ai-search-btn"></button>
+        <button id="ai-search-btn" onclick="doAISearch()" aria-label="Search" class="ai-search-btn"></button>
       </div>
 
       <!-- Suggestions -->
@@ -556,7 +583,7 @@
           </div>
           <span id="analyze-panel-title" class="text-sm font-semibold text-white"></span>
         </div>
-        <button onclick="closeAnalyzePanel()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[.06] text-stone-400 hover:text-white transition-colors">
+        <button onclick="closeAnalyzePanel()" aria-label="Close panel" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[.06] text-stone-400 hover:text-white transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
@@ -845,6 +872,10 @@
 
       // Lightning button
       document.getElementById('ai-latest-btn-text').textContent = s.aiLatestBtn;
+
+      // Aria labels (i18n-aware)
+      document.getElementById('refresh-btn').setAttribute('aria-label', lang === 'zh' ? '刷新数据' : 'Refresh data');
+      document.getElementById('translate-btn').setAttribute('aria-label', lang === 'zh' ? '翻译' : 'Translate');
 
       // Render suggestions
       const sugContainer = document.getElementById('ai-suggestions');
@@ -1409,7 +1440,8 @@
         }).join('');
 
         const clickAction = item.url ? `onclick="window.open('${item.url}','_blank')"` : '';
-        const divider = (i === firstWebIdx && firstWebIdx > 0) ? `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;height:1px;background:rgba(59,130,246,.25)"></div><span style="font-size:10px;color:#60a5fa;white-space:nowrap">${lang === 'zh' ? '🌐 联网补充' : '🌐 Web Results'}</span><div style="flex:1;height:1px;background:rgba(59,130,246,.25)"></div></div>` : '';
+        const globeSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>';
+        const divider = (i === firstWebIdx && firstWebIdx > 0) ? `<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;height:1px;background:rgba(59,130,246,.25)"></div><span style="font-size:10px;color:#60a5fa;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">${globeSvg} ${lang === 'zh' ? '联网补充' : 'Web Results'}</span><div style="flex:1;height:1px;background:rgba(59,130,246,.25)"></div></div>` : '';
         return divider + `
           <div class="ai-source-card${isWeb ? ' web-source' : ''}" id="ai-source-${i + 1}" ${clickAction} style="${item.url ? 'cursor:pointer' : 'cursor:default'}">
             <div class="flex items-center gap-2 mb-2">
@@ -1754,24 +1786,27 @@
 
       // Sidebar domains (desktop)
       const sidebar = document.getElementById('sidebar-domains');
-      let sidebarHtml = `<div class="domain-item ${currentDomain === 'All' ? 'active' : ''}" data-domain="All">
+      let sidebarHtml = `<div class="domain-item ${currentDomain === 'All' ? 'active' : ''}" data-domain="All" tabindex="0" role="button">
         <span>${t().allDomain}</span><span class="count">${total}</span>
       </div>`;
       for (const d of domains) {
         const icon = DOMAIN_ICONS[d.domain] || '';
-        sidebarHtml += `<div class="domain-item ${currentDomain === d.domain ? 'active' : ''}" data-domain="${d.domain}">
+        sidebarHtml += `<div class="domain-item ${currentDomain === d.domain ? 'active' : ''}" data-domain="${d.domain}" tabindex="0" role="button">
           <span>${domainLabel(d.domain)}</span><span class="count">${d.count}</span>
         </div>`;
       }
       sidebar.innerHTML = sidebarHtml;
       sidebar.querySelectorAll('.domain-item').forEach(el => {
-        el.addEventListener('click', () => {
+        const activate = () => {
           sidebar.querySelectorAll('.domain-item').forEach(e => e.classList.remove('active'));
           el.classList.add('active');
           currentDomain = el.dataset.domain;
-          // sync mobile
           syncMobileDomainActive();
           resetAndLoadItems();
+        };
+        el.addEventListener('click', activate);
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
         });
       });
 
