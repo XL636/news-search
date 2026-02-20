@@ -23,6 +23,7 @@ from src.storage.store import (
     aget_item_trend,
     aget_stats,
     aget_trending_items,
+    asearch_fts,
     get_connection,
     take_daily_snapshot,
 )
@@ -101,6 +102,20 @@ async def api_items(
     result = {"items": items, "total": total, "limit": limit, "offset": offset}
     items_cache[cache_key] = result
     return result
+
+
+@router.get("/search")
+@limiter.limit("120/minute")
+async def api_search(
+    request: Request,
+    q: str = Query(..., min_length=1, max_length=200),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """Full-text search across classified items using FTS5."""
+    async with aget_db() as conn:
+        items = await asearch_fts(conn, q, limit, offset)
+    return {"items": items, "query": q, "total": len(items)}
 
 
 @router.get("/stats")

@@ -83,6 +83,12 @@
 | CI/CD Pipeline (GitHub Actions) | ✅ 完成 | 100% |
 | 性能监控 (OpenTelemetry) | ✅ 完成 | 100% |
 | API 速率限制 (slowapi) | ✅ 完成 | 100% |
+| WebSocket 前端自动刷新 | ✅ 完成 | 100% |
+| 一键导出按钮 | ✅ 完成 | 100% |
+| 用户偏好同步 | ✅ 完成 | 100% |
+| RSS 源健康监控前端 | ✅ 完成 | 100% |
+| 系统状态指示 | ✅ 完成 | 100% |
+| 全文搜索 API (FTS5) | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -493,6 +499,38 @@ API 速率限制 (slowapi):
   items_cache: maxsize=50, ttl=30s
   trends_cache: maxsize=10, ttl=120s
   采集/快照后自动 invalidate()
+```
+
+### 前端 API 对接 (v0.21.0) — 2026-02-20
+
+```
+WebSocket 前端自动刷新:
+  Header logo 旁绿色脉冲指示灯（连接中/已连接/已断开三态）
+  采集完成 WebSocket 消息触发自动刷新页面数据
+  断线指数退避重连（1s→2s→4s→...→30s 上限）
+
+一键导出按钮:
+  Header 导出按钮 + glass 风格 CSV/JSON 下拉菜单
+  点击触发浏览器下载 /api/export?format=csv|json
+
+用户偏好同步:
+  页面加载时 GET /api/preferences 应用服务器偏好（语言/排序/视图/PAGE_SIZE）
+  切换语言/排序/视图时自动 POST /api/preferences 保存到服务器
+
+RSS 源健康监控前端:
+  侧边栏新增数据源状态区块
+  GET /api/feed-health 获取各源状态
+  绿/黄/红状态点实时显示源健康度
+
+系统状态指示:
+  Logo 旁 8px 状态点（绿色=健康/黄色=降级/红色=异常）
+  /api/health 60 秒轮询 + tooltip 显示详情
+
+全文搜索 API:
+  新增 GET /api/search FTS5 端点（routers/data.py）
+  前端信息流搜索优先使用 FTS，fallback 到 LIKE
+  PAGE_SIZE 从 const 改为 let，支持偏好动态设置
+  15 个新增 i18n 键（中英文）
 ```
 
 ### 当前状态

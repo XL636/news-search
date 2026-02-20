@@ -320,6 +320,38 @@
       .ai-search-box::before { animation: none !important; }
     }
 
+    /* === WebSocket Live Dot === */
+    .ws-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; transition: background var(--duration-normal); }
+    .ws-live-dot.connected { animation: wsPulse 2s ease-in-out infinite; }
+    .ws-live-dot.disconnected { background: #78716c; animation: none; }
+    @keyframes wsPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.4); } 50% { box-shadow: 0 0 0 4px rgba(34,197,94,0); } }
+
+    /* === Export Dropdown === */
+    .export-dropdown-wrap { position: relative; }
+    .export-dropdown { position: absolute; top: calc(100% + 6px); right: 0; min-width: 140px; background: var(--bg-raised); backdrop-filter: blur(24px) saturate(180%); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 4px; box-shadow: var(--elevation-3); z-index: 60; opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out); }
+    .export-dropdown.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .export-dropdown button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--text-secondary); border: none; background: transparent; border-radius: 6px; cursor: pointer; transition: all var(--duration-fast); }
+    .export-dropdown button:hover { background: rgba(217,119,6,.1); color: #fde68a; }
+
+    /* === Feed Health === */
+    .feed-health-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .feed-health-dot.healthy { background: #22c55e; }
+    .feed-health-dot.stale { background: #eab308; }
+    .feed-health-dot.dead { background: #ef4444; }
+    .feed-health-dot.unknown { background: #78716c; }
+
+    /* === System Health Dot === */
+    .health-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .health-dot.ok { background: #22c55e; animation: wsPulse 2s ease-in-out infinite; }
+    .health-dot.degraded { background: #eab308; }
+    .health-dot.error { background: #ef4444; }
+
+    /* === Reduced Motion: disable new pulse animations === */
+    @media (prefers-reduced-motion: reduce) {
+      .ws-live-dot.connected { animation: none !important; }
+      .health-dot.ok { animation: none !important; }
+    }
+
     /* === Responsive === */
     @media (max-width: 1023px) {
       .sidebar { display: none !important; }
@@ -351,9 +383,13 @@
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-amber-500/20" style="background:linear-gradient(135deg,#fbbf24,#d97706,#b45309)">IR</div>
         <div>
-          <h1 class="text-base font-bold text-white tracking-tight">InsightRadar</h1>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-base font-bold text-white tracking-tight">InsightRadar</h1>
+            <span id="health-dot" class="health-dot" title="" aria-label="System health"></span>
+          </div>
           <p id="subtitle" class="text-[10px] text-stone-500 font-medium tracking-wide uppercase"></p>
         </div>
+        <span id="ws-live-dot" class="ws-live-dot disconnected ml-1" aria-label="WebSocket status" title=""></span>
       </div>
 
       <div class="hidden sm:block w-px h-6 bg-gradient-to-b from-transparent via-stone-600/30 to-transparent mx-2" aria-hidden="true"></div>
@@ -369,6 +405,25 @@
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- Export -->
+        <div class="export-dropdown-wrap">
+          <button id="export-btn" onclick="toggleExportDropdown()" aria-label="Export data" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span id="export-text" class="hidden sm:inline"></span>
+          </button>
+          <div id="export-dropdown" class="export-dropdown">
+            <button onclick="doExport('csv')" aria-label="Export CSV">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              CSV
+            </button>
+            <button onclick="doExport('json')" aria-label="Export JSON">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+              JSON
+            </button>
+          </div>
+        </div>
         <!-- Refresh (feed only) -->
         <button id="refresh-btn" onclick="doRefresh()" aria-label="Refresh data" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
           <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -574,6 +629,16 @@
             <!-- filled by JS -->
           </div>
         </div>
+
+        <div class="sidebar-separator" aria-hidden="true"></div>
+
+        <!-- Feed Health -->
+        <div class="px-3 pb-3" id="feed-health-section">
+          <div class="sidebar-title mb-2" id="feed-health-label"></div>
+          <div id="feed-health-list" class="flex flex-col gap-1.5">
+            <!-- filled by JS -->
+          </div>
+        </div>
       </aside>
 
       <!-- Content Area -->
@@ -757,6 +822,25 @@
         schedulerNext: '下次采集',
         schedulerOff: '调度未启动',
         schedulerRunning: '运行中',
+        // WebSocket
+        wsConnected: '实时连接',
+        wsDisconnected: '已断开',
+        wsNewData: '有新数据，已自动刷新',
+        // Export
+        exportBtn: '导出',
+        exportStarted: '正在下载...',
+        // Feed Health
+        feedHealth: '数据源状态',
+        feedHealthy: '正常',
+        feedStale: '延迟',
+        feedDead: '离线',
+        feedUnknown: '未知',
+        // System Health
+        healthOk: '系统正常',
+        healthDegraded: '部分异常',
+        healthError: '连接失败',
+        healthDb: '数据库',
+        healthSched: '调度器',
       },
       en: {
         subtitle: 'Global Innovation Intelligence',
@@ -826,6 +910,25 @@
         schedulerNext: 'Next collect',
         schedulerOff: 'Scheduler off',
         schedulerRunning: 'Running',
+        // WebSocket
+        wsConnected: 'Live',
+        wsDisconnected: 'Offline',
+        wsNewData: 'New data — auto-refreshed',
+        // Export
+        exportBtn: 'Export',
+        exportStarted: 'Downloading...',
+        // Feed Health
+        feedHealth: 'Source Health',
+        feedHealthy: 'Healthy',
+        feedStale: 'Stale',
+        feedDead: 'Dead',
+        feedUnknown: 'Unknown',
+        // System Health
+        healthOk: 'System OK',
+        healthDegraded: 'Degraded',
+        healthError: 'Connection failed',
+        healthDb: 'Database',
+        healthSched: 'Scheduler',
       },
     };
 
@@ -943,6 +1046,18 @@
       document.getElementById('search-input').setAttribute('aria-label', lang === 'zh' ? '搜索条目' : 'Search items');
       document.getElementById('sort-select').setAttribute('aria-label', lang === 'zh' ? '排序方式' : 'Sort order');
 
+      // Export button label
+      document.getElementById('export-text').textContent = s.exportBtn;
+      document.getElementById('export-btn').setAttribute('aria-label', lang === 'zh' ? '导出数据' : 'Export data');
+
+      // WS dot tooltip
+      const wsDot = document.getElementById('ws-live-dot');
+      wsDot.title = wsDot.classList.contains('connected') ? s.wsConnected : s.wsDisconnected;
+
+      // Feed health label
+      const feedHealthLabel = document.getElementById('feed-health-label');
+      if (feedHealthLabel) feedHealthLabel.textContent = s.feedHealth;
+
       // Render suggestions
       const sugContainer = document.getElementById('ai-suggestions');
       sugContainer.innerHTML = s.aiSuggestions.map(sug =>
@@ -984,7 +1099,7 @@
     let currentSearch = '';
     let currentSort = 'heat';
     let debounceTimer = null;
-    const PAGE_SIZE = 20;
+    let PAGE_SIZE = 20;
     let currentOffset = 0;
     let totalItems = 0;
     let translateMode = false;
@@ -2064,11 +2179,6 @@
       }, 300);
     });
 
-    document.getElementById('sort-select').addEventListener('change', (e) => {
-      currentSort = e.target.value;
-      resetAndLoadItems();
-    });
-
     // ========== Scheduler Status ==========
     async function loadSchedulerStatus() {
       const labelEl = document.getElementById('scheduler-label');
@@ -2105,10 +2215,272 @@
       }
     }
 
+    // ========== Export ==========
+    function toggleExportDropdown() {
+      const dd = document.getElementById('export-dropdown');
+      dd.classList.toggle('open');
+    }
+    function doExport(format) {
+      document.getElementById('export-dropdown').classList.remove('open');
+      showToast(t().exportStarted, 'info');
+      window.location = '/api/export?format=' + format;
+    }
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      const wrap = document.querySelector('.export-dropdown-wrap');
+      if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('export-dropdown').classList.remove('open');
+      }
+    });
+
+    // ========== WebSocket Auto-Refresh ==========
+    let wsReconnectDelay = 3000;
+    let wsReconnectTimer = null;
+    let ws = null;
+
+    function connectWebSocket() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      try {
+        ws = new WebSocket(`${protocol}//${location.host}/api/ws`);
+      } catch (e) { return; }
+
+      ws.addEventListener('open', () => {
+        wsReconnectDelay = 3000;
+        const dot = document.getElementById('ws-live-dot');
+        dot.classList.remove('disconnected');
+        dot.classList.add('connected');
+        dot.title = t().wsConnected;
+      });
+
+      ws.addEventListener('message', (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.type === 'collection_complete') {
+            if (feedLoaded) {
+              loadDomains();
+              loadItems(false);
+              loadStats();
+              loadTrends();
+            }
+            showToast(t().wsNewData, 'success');
+          }
+        } catch (e) {}
+      });
+
+      ws.addEventListener('close', () => {
+        const dot = document.getElementById('ws-live-dot');
+        dot.classList.remove('connected');
+        dot.classList.add('disconnected');
+        dot.title = t().wsDisconnected;
+        scheduleWsReconnect();
+      });
+
+      ws.addEventListener('error', () => {
+        // error fires before close; close handler will schedule reconnect
+      });
+    }
+
+    function scheduleWsReconnect() {
+      if (wsReconnectTimer) return;
+      wsReconnectTimer = setTimeout(() => {
+        wsReconnectTimer = null;
+        connectWebSocket();
+        wsReconnectDelay = Math.min(wsReconnectDelay * 2, 30000);
+      }, wsReconnectDelay);
+    }
+
+    // ========== User Preferences Sync ==========
+    async function loadPreferences() {
+      try {
+        const resp = await fetch('/api/preferences');
+        if (!resp.ok) return;
+        const prefs = await resp.json();
+        if (prefs.language && (prefs.language === 'zh' || prefs.language === 'en')) {
+          lang = prefs.language;
+          localStorage.setItem('ir-lang', lang);
+          document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+        }
+        if (prefs.sort) currentSort = prefs.sort;
+        if (prefs.view && (prefs.view === 'ai-search' || prefs.view === 'feed')) {
+          currentView = prefs.view;
+        }
+        if (prefs.items_per_page && Number.isFinite(prefs.items_per_page)) {
+          PAGE_SIZE = prefs.items_per_page;
+        }
+      } catch (e) {}
+    }
+
+    function savePreference(key, value) {
+      fetch('/api/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      }).catch(() => {});
+    }
+
+    // ========== Feed Health ==========
+    async function loadFeedHealth() {
+      const labelEl = document.getElementById('feed-health-label');
+      const listEl = document.getElementById('feed-health-list');
+      if (!labelEl || !listEl) return;
+
+      labelEl.textContent = t().feedHealth;
+
+      try {
+        const resp = await fetch('/api/feed-health');
+        if (!resp.ok) { listEl.innerHTML = ''; return; }
+        const data = await resp.json();
+        const sources = data.sources || data;
+        if (!Array.isArray(sources) || sources.length === 0) {
+          listEl.innerHTML = '';
+          return;
+        }
+
+        listEl.innerHTML = sources.map(src => {
+          let statusClass = 'unknown';
+          let statusText = t().feedUnknown;
+          if (src.last_success) {
+            const hoursSince = (Date.now() - new Date(src.last_success).getTime()) / 3600000;
+            if (hoursSince <= 24) { statusClass = 'healthy'; statusText = t().feedHealthy; }
+            else if (hoursSince <= 72) { statusClass = 'stale'; statusText = t().feedStale; }
+            else { statusClass = 'dead'; statusText = t().feedDead; }
+          } else {
+            statusClass = 'dead'; statusText = t().feedDead;
+          }
+          const ago = src.last_success ? timeAgo(src.last_success) : '—';
+          return `
+            <div class="flex items-center gap-2 px-1 py-1">
+              <span class="feed-health-dot ${statusClass}"></span>
+              <span class="text-xs text-stone-300 flex-1 truncate">${src.name || src.source}</span>
+              <span class="text-[10px] text-stone-500">${ago}</span>
+            </div>`;
+        }).join('');
+      } catch (e) {
+        listEl.innerHTML = '';
+      }
+    }
+
+    // ========== System Health Indicator ==========
+    async function checkSystemHealth() {
+      const dot = document.getElementById('health-dot');
+      if (!dot) return;
+      try {
+        const resp = await fetch('/api/health');
+        if (!resp.ok) throw new Error();
+        const data = await resp.json();
+        const status = data.status || 'ok';
+        dot.className = 'health-dot ' + (status === 'ok' ? 'ok' : 'degraded');
+        const dbStatus = data.database || data.db || '?';
+        const schedStatus = data.scheduler || '?';
+        dot.title = status === 'ok' ? t().healthOk : t().healthDegraded;
+        dot.title += ` | ${t().healthDb}: ${dbStatus} | ${t().healthSched}: ${schedStatus}`;
+      } catch (e) {
+        dot.className = 'health-dot error';
+        dot.title = t().healthError;
+      }
+    }
+
+    // ========== FTS Search Upgrade ==========
+    // Patch loadItems to use /api/search (FTS) when no domain filter is active
+    const _origLoadItems = loadItems;
+    loadItems = async function(append = false) {
+      // Use FTS endpoint when: there's a search query AND no domain filter
+      if (currentSearch && currentDomain === 'All') {
+        const params = new URLSearchParams();
+        params.set('q', currentSearch);
+        params.set('sort', currentSort);
+        params.set('limit', PAGE_SIZE);
+        params.set('offset', currentOffset);
+
+        try {
+          const resp = await fetch(`/api/search?${params}`);
+          if (resp.ok) {
+            const data = await resp.json();
+            const items = data.items || [];
+            totalItems = data.total || items.length;
+
+            const grid = document.getElementById('items-grid');
+            const empty = document.getElementById('empty-state');
+            const countEl = document.getElementById('item-count');
+            const loadMoreContainer = document.getElementById('load-more-container');
+            const shownCountEl = document.getElementById('shown-count');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+
+            if (!append && items.length === 0) {
+              grid.innerHTML = '';
+              empty.classList.remove('hidden');
+              loadMoreContainer.classList.add('hidden');
+              countEl.textContent = t().itemCount(0);
+              return;
+            }
+            empty.classList.add('hidden');
+            countEl.textContent = t().itemCount(totalItems);
+
+            const newHtml = items.map(renderCard).join('');
+            if (append) { grid.insertAdjacentHTML('beforeend', newHtml); }
+            else { grid.innerHTML = newHtml; }
+
+            requestAnimationFrame(() => {
+              const cards = grid.querySelectorAll('.card-stagger');
+              const startIdx = append ? cards.length - items.length : 0;
+              for (let i = startIdx; i < cards.length; i++) {
+                cards[i].style.animationDelay = Math.min((i - startIdx) * 40, 600) + 'ms';
+              }
+            });
+
+            const shownSoFar = currentOffset + items.length;
+            if (shownSoFar < totalItems) {
+              loadMoreContainer.classList.remove('hidden');
+              loadMoreBtn.classList.remove('hidden');
+              shownCountEl.textContent = t().shownCount(shownSoFar, totalItems);
+            } else {
+              loadMoreContainer.classList.remove('hidden');
+              shownCountEl.textContent = t().shownCount(shownSoFar, totalItems);
+              loadMoreBtn.classList.add('hidden');
+            }
+
+            if (translateMode && items.length > 0) await translateVisibleCards();
+            return;
+          }
+        } catch (e) {}
+        // Fallback to original /api/items if FTS fails
+      }
+      return _origLoadItems(append);
+    };
+
+    // ========== Preference-aware wrappers ==========
+    const _origSetLang = setLang;
+    setLang = function(l) {
+      _origSetLang(l);
+      savePreference('language', l);
+    };
+
+    // Save sort preference on change
+    document.getElementById('sort-select').addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      savePreference('sort', currentSort);
+      resetAndLoadItems();
+    });
+
+    // Save view preference on switch
+    const _origSwitchView = switchView;
+    switchView = function(view) {
+      _origSwitchView(view);
+      savePreference('view', view);
+    };
+
     // ========== Init ==========
-    applyLang();
-    loadSchedulerStatus();
-    // Default to AI search view - feed data loads lazily on tab switch
+    (async function init() {
+      // Load preferences first, then apply
+      await loadPreferences();
+      applyLang();
+      switchView(currentView);
+      loadSchedulerStatus();
+      loadFeedHealth();
+      checkSystemHealth();
+      setInterval(checkSystemHealth, 60000);
+      connectWebSocket();
+    })();
   </script>
 </body>
 </html>
