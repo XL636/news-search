@@ -55,7 +55,7 @@
 | 43 | AI 搜索引用内容匹配修复 | 2026-02-19 | tokenize + computeMatchScore + filterCitedSources 完全重写：索引匹配→内容匹配 |
 | 44 | Dashboard Premium UI 全面升级 | 2026-02-19 | CSS 设计令牌 + JetBrains Mono + 噪点纹理 + 光球漂移 + 结构化骨架屏 + stagger 动画 + hero 浮动 + 搜索框光晕 + 引用升级 + 侧边栏指示条等 Vercel/Linear 级视觉 |
 | 45 | Dashboard 背景微调提亮 | 2026-02-19 | bg-base #0f0e0c→#1a1816 + 五层背景变量提亮 + orb 透明度 .10→.15 + Tailwind surface 色值同步 |
-| 49 | Dashboard UI/UX Pro Max 优化 | 2026-02-20 | prefers-reduced-motion + focus-visible + aria-labels + 键盘导航 + z-index修正 + emoji→SVG + 动画减弱 + 卡片上浮 + 搜索框微交互 + 排版微调 |
+| 49 | Dashboard UI/UX Pro Max 优化 | 2026-02-20 | Round 1: prefers-reduced-motion + focus-visible + aria-labels + 键盘导航 + z-index修正 + emoji→SVG + 动画减弱 + 卡片上浮 + 搜索框微交互 + 排版微调; Round 2 (Skill Audit): aria-live + skip-nav + form labels + aria-hidden + role landmarks + 触屏按钮可见 |
 
 ### 进行中 🔄
 

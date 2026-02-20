@@ -93,9 +93,9 @@
     .card-hot { border-left: 3px solid #ef4444; }
     .card-hot::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(239,68,68,.10) 0%, rgba(239,68,68,.04) 40%, transparent 70%); pointer-events: none; }
 
-    /* AI Analyze btn: default hidden, fade-in on hover */
-    .card .btn-ai-analyze { opacity: 0; transition: opacity var(--duration-normal) var(--ease-out), background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast); }
-    .card:hover .btn-ai-analyze { opacity: 1; }
+    /* AI Analyze btn: semi-visible by default, full on hover (touch-friendly) */
+    .card .btn-ai-analyze { opacity: .45; transition: opacity var(--duration-normal) var(--ease-out), background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast); }
+    .card:hover .btn-ai-analyze, .card .btn-ai-analyze:focus-visible { opacity: 1; }
 
     /* === Chips === */
     .chip { transition: all var(--duration-normal) var(--ease-out); border-radius: var(--radius-sm); }
@@ -310,12 +310,15 @@
   </style>
 </head>
 <body class="min-h-screen relative overflow-x-hidden">
+  <!-- Skip Navigation -->
+  <a href="#view-ai-search" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:px-4 focus:py-2 focus:bg-amber-600 focus:text-white focus:rounded-lg focus:text-sm focus:font-medium">Skip to content</a>
+
   <!-- Ambient Background Orbs -->
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
+  <div class="orb orb-1" aria-hidden="true"></div>
+  <div class="orb orb-2" aria-hidden="true"></div>
 
   <!-- Toast Container -->
-  <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
+  <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2" role="status" aria-live="polite"></div>
 
   <!-- Header -->
   <header class="glass sticky top-0 z-50" style="border-bottom: 1px solid transparent; background-image: linear-gradient(var(--bg-raised), var(--bg-raised)), linear-gradient(90deg, transparent, rgba(217,119,6,.10), transparent); background-origin: border-box; background-clip: padding-box, border-box;">
@@ -341,14 +344,14 @@
       <div class="flex items-center gap-2">
         <!-- Refresh (feed only) -->
         <button id="refresh-btn" onclick="doRefresh()" aria-label="Refresh data" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
-          <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg id="refresh-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
           <span id="refresh-text" class="hidden sm:inline"></span>
         </button>
         <!-- Translate -->
         <button id="translate-btn" onclick="toggleTranstone()" aria-label="Translate" class="btn-ghost flex items-center gap-1.5 px-3 py-2 text-xs font-medium">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
           </svg>
           <span id="translate-text" class="hidden sm:inline"></span>
@@ -367,7 +370,7 @@
     <div class="max-w-[860px] mx-auto px-4 lg:px-6 py-8 relative z-10">
       <!-- Hero -->
       <div id="ai-hero" class="text-center mb-8 fade-in">
-        <div class="ai-hero-icon mx-auto mb-5">
+        <div class="ai-hero-icon mx-auto mb-5" aria-hidden="true">
           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
           </svg>
@@ -377,11 +380,12 @@
       </div>
 
       <!-- Search Input -->
-      <div class="ai-search-box flex items-center gap-3 p-2 pl-5 mb-5">
-        <svg class="w-5 h-5 text-stone-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="ai-search-box flex items-center gap-3 p-2 pl-5 mb-5" role="search">
+        <svg class="w-5 h-5 text-stone-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
         <input id="ai-search-input" type="text" class="ai-search-input flex-1 py-2"
+               aria-label="AI search query"
                onkeydown="if(event.key==='Enter')doAISearch()">
         <button id="ai-latest-btn" onclick="doLatestSearch()" class="ai-latest-btn">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -411,7 +415,7 @@
         </div>
 
         <!-- Error -->
-        <div id="ai-error" class="hidden text-center py-12">
+        <div id="ai-error" class="hidden text-center py-12" role="alert">
           <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-900/30 flex items-center justify-center">
             <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
@@ -433,7 +437,7 @@
             </div>
             <p id="ai-key-desc" class="text-xs text-stone-400 mb-4"></p>
             <div class="flex gap-2">
-              <input id="ai-key-input" type="password"
+              <input id="ai-key-input" type="password" aria-label="API Key"
                      class="flex-1 px-4 py-2.5 bg-stone-900/50 border border-white/[.06] rounded-xl text-sm text-stone-200 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
                      onkeydown="if(event.key==='Enter')saveApiKey()">
               <button onclick="saveApiKey()" class="ai-search-btn" id="ai-key-save-btn"></button>
@@ -443,7 +447,7 @@
         </div>
 
         <!-- AI Answer -->
-        <div id="ai-answer-panel" class="ai-answer-panel p-6 mb-6 hidden">
+        <div id="ai-answer-panel" class="ai-answer-panel p-6 mb-6 hidden" aria-live="polite">
           <div class="flex items-center gap-2.5 mb-4">
             <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
               <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -507,7 +511,7 @@
         <!-- Scheduler Status -->
         <div class="mt-auto pt-4 px-3" id="scheduler-section">
           <div class="sidebar-title mb-1.5" id="scheduler-label"></div>
-          <div id="scheduler-status" class="text-xs text-stone-500">
+          <div id="scheduler-status" class="text-xs text-stone-500" role="status">
             <!-- filled by JS -->
           </div>
         </div>
@@ -523,14 +527,14 @@
         <!-- Search + Sort Bar -->
         <div class="glass-light rounded-2xl p-3 mb-5 flex flex-col sm:flex-row gap-3">
           <div class="relative flex-1">
-            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
-            <input id="search-input" type="text"
+            <input id="search-input" type="text" aria-label="Search items"
                    class="w-full pl-10 pr-4 py-2.5 bg-stone-900/50 border border-white/[.06] rounded-xl text-sm text-stone-200 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all">
           </div>
-          <select id="sort-select"
-                  class="bg-stone-900/50 border border-white/[.06] rounded-xl px-4 py-2.5 text-sm text-stone-300 focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer min-w-[160px]">
+          <select id="sort-select" aria-label="Sort order"
+                  class="bg-stone-900/50 border border-white/[.06] rounded-xl px-4 py-2.5 text-sm text-stone-300 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 appearance-none cursor-pointer min-w-[160px]">
           </select>
         </div>
 
@@ -611,7 +615,7 @@
             </div>
             <p id="analyze-key-desc" class="text-xs text-stone-400 mb-4"></p>
             <div class="flex gap-2">
-              <input id="analyze-key-input" type="password"
+              <input id="analyze-key-input" type="password" aria-label="API Key"
                      class="flex-1 px-4 py-2.5 bg-stone-900/50 border border-white/[.06] rounded-xl text-sm text-stone-200 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
                      onkeydown="if(event.key==='Enter')saveApiKeyFromPanel()">
               <button onclick="saveApiKeyFromPanel()" class="ai-search-btn" id="analyze-key-save-btn"></button>
@@ -876,6 +880,9 @@
       // Aria labels (i18n-aware)
       document.getElementById('refresh-btn').setAttribute('aria-label', lang === 'zh' ? '刷新数据' : 'Refresh data');
       document.getElementById('translate-btn').setAttribute('aria-label', lang === 'zh' ? '翻译' : 'Translate');
+      document.getElementById('ai-search-input').setAttribute('aria-label', lang === 'zh' ? 'AI 搜索' : 'AI search query');
+      document.getElementById('search-input').setAttribute('aria-label', lang === 'zh' ? '搜索条目' : 'Search items');
+      document.getElementById('sort-select').setAttribute('aria-label', lang === 'zh' ? '排序方式' : 'Sort order');
 
       // Render suggestions
       const sugContainer = document.getElementById('ai-suggestions');

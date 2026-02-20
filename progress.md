@@ -223,6 +223,15 @@ UI Polish:
   卡片交互: hover translateY(-2px) 上浮 + 热门卡片柔和光晕
   搜索框: focus-within scale(1.01) 微放大
   排版: card-title letter-spacing -0.01em，kpi-value letter-spacing -0.02em
+
+Round 2（UI/UX Pro Max Skill 审计修复）:
+  aria-live: AI 回答面板 polite + Toast 容器 status + 错误区 alert
+  skip-nav: 键盘用户 "Skip to content" 链接（sr-only + focus 可见）
+  form labels: 所有 input/select 添加 i18n aria-label（5 个表单控件）
+  aria-hidden: 装饰元素（光球/hero 图标/搜索图标/header SVG）标记隐藏
+  role landmarks: role="search" 搜索框 + role="status" 调度状态
+  触屏优化: AI 解读按钮 opacity 0→.45（触屏可见）
+  outline 修复: select focus 添加 ring 替代 outline-none
 ```
 
 ### Dashboard Premium UI 全面升级（2026-02-19）

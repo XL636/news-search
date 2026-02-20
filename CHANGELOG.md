@@ -12,7 +12,17 @@
 - **Accessibility: aria-labels** — icon-only 按钮（刷新、翻译、关闭面板、搜索）添加 i18n-aware `aria-label`
 - **Accessibility: 键盘导航** — 侧边栏域名项添加 `tabindex="0"`、`role="button"` 及 Enter/Space 键盘处理
 
+### Added (Round 2 — UI/UX Pro Max Skill Audit)
+- **aria-live 动态区域** — AI 回答面板 `aria-live="polite"` + Toast 容器 `role="status" aria-live="polite"` + 错误区 `role="alert"`
+- **Skip Navigation 链接** — 键盘用户可跳过导航直达内容（sr-only + focus 可见）
+- **表单 aria-label** — 所有输入框添加 i18n aria-label（AI 搜索/信息流搜索/排序/API Key x2）
+- **aria-hidden 装饰元素** — 光球、hero 图标、搜索图标、header 按钮 SVG 添加 `aria-hidden="true"`
+- **role="search"** — AI 搜索框添加 landmark role
+- **role="status"** — 调度状态区添加语义角色
+
 ### Changed
+- **AI 解读按钮触屏可见** — hover-only `opacity:0` → 默认 `opacity:.45`（触屏设备可见 + hover 全显）
+- **select focus 样式** — 排序下拉添加 `focus:ring-1 focus:ring-amber-500/30` 替代 outline-none
 - **z-index 修正** — `body::before` 噪点纹理从 `z-index: 9999` 降为 `z-index: 1`（已有 `pointer-events: none`）
 - **Emoji → SVG** — 网络来源分隔线中的 🌐 emoji 替换为内联 SVG globe 图标
 - **装饰动画减弱** — orb 透明度 `.15` → `.12`；hero 浮动动画 `6s` → `8s`（更柔和）
