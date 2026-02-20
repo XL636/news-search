@@ -2223,7 +2223,11 @@
     function doExport(format) {
       document.getElementById('export-dropdown').classList.remove('open');
       showToast(t().exportStarted, 'info');
-      window.location = '/api/export?format=' + format;
+      const params = new URLSearchParams({ format });
+      if (currentDomain !== 'All') params.set('domain', currentDomain);
+      if (currentSearch) params.set('search', currentSearch);
+      params.set('sort', currentSort);
+      window.location = '/api/export?' + params.toString();
     }
     // Close dropdown on outside click
     document.addEventListener('click', (e) => {

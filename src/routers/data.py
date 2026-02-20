@@ -267,10 +267,20 @@ def save_preferences(prefs: UserPreferences):
 # ========== Data Export ==========
 
 @router.get("/export")
-async def api_export(format: str = Query("json", pattern="^(json|csv)$")):
-    """Export classified items as JSON or CSV."""
+async def api_export(
+    format: str = Query("json", pattern="^(json|csv)$"),
+    domain: str | None = Query(None),
+    search: str | None = Query(None, max_length=200),
+    sort: str = Query("heat"),
+):
+    """Export classified items as JSON or CSV, respecting current filters."""
     async with aget_db() as conn:
-        items = await aget_export_items(conn)
+        if domain or search:
+            items, _ = await aget_classified_items(
+                conn, domain=domain, search=search, sort=sort, limit=5000, offset=0,
+            )
+        else:
+            items = await aget_export_items(conn)
 
     if format == "csv":
         output = io.StringIO()
