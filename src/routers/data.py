@@ -4,15 +4,19 @@ import asyncio
 import csv
 import io
 import json
+import re as _re
 from pathlib import Path
 
 from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+import httpx
+
 from src.cache import invalidate, items_cache, stats_cache, trends_cache
+from src.config import HTTP_USER_AGENT
 from src.pipeline import cmd_collect
 from src.storage.store import (
     aget_classified_items,
@@ -309,3 +313,36 @@ async def api_feed_health():
     async with aget_db() as conn:
         health = await aget_feed_health(conn)
     return {"feeds": health}
+
+
+# ========== Fetch Article Content ==========
+
+class FetchContentRequest(BaseModel):
+    url: str = Field(..., max_length=2000)
+
+
+@router.post("/fetch-content")
+@limiter.limit("10/minute")
+async def api_fetch_content(request: Request, req: FetchContentRequest):
+    """Fetch readable text from article URL for export."""
+    url = req.url.strip()
+    if not url.startswith(("http://", "https://")):
+        return JSONResponse({"error": "Invalid URL"}, status_code=400)
+    try:
+        async with httpx.AsyncClient(
+            timeout=15, follow_redirects=True,
+            headers={"User-Agent": HTTP_USER_AGENT},
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            html = resp.text
+    except Exception:
+        return JSONResponse({"error": "Fetch failed"}, status_code=502)
+
+    # HTML → plain text (strip script/style tags, then all tags)
+    text = _re.sub(r"<(script|style)[^>]*>.*?</\1>", "", html, flags=_re.DOTALL | _re.IGNORECASE)
+    text = _re.sub(r"<[^>]+>", " ", text)
+    text = _re.sub(r"\s+", " ", text).strip()
+    if len(text) > 8000:
+        text = text[:8000] + "..."
+    return {"content": text, "length": len(text)}

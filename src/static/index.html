@@ -1435,9 +1435,7 @@
             document.getElementById('ai-answer-panel').classList.remove('hidden');
             renderStreamingMarkdown(fullText);
           },
-          onDone: () => {
-            renderFinalMarkdown(fullText);
-          },
+          onDone: () => {},
           onError: (msg) => {
             showAIError(msg);
           },
@@ -1518,114 +1516,49 @@
       });
     }
 
-    function tokenize(text) {
-      if (!text) return [];
-      const tokens = [];
-      const eng = text.match(/[a-zA-Z0-9._/-]{2,}/g);
-      if (eng) eng.forEach(w => tokens.push(w.toLowerCase()));
-      const cn = text.match(/[\u4e00-\u9fff]/g);
-      if (cn) {
-        cn.forEach(c => tokens.push(c));
-        for (let i = 0; i < cn.length - 1; i++) tokens.push(cn[i] + cn[i + 1]);
-      }
-      return [...new Set(tokens)];
-    }
-
-    function computeMatchScore(contextTokens, source) {
-      const titleTokens = new Set(tokenize(source.title || ''));
-      const descTokens = new Set(tokenize(source.description || ''));
-      let score = 0;
-      for (const t of contextTokens) {
-        if (titleTokens.has(t)) score += 3;
-        if (descTokens.has(t)) score += 1;
-      }
-      return score;
-    }
-
     function filterCitedSources(fullText) {
-      // Extract each [N] citation with ~80 chars of preceding context
-      const citationPattern = /(.{0,80})\[(\d+)\]/g;
-      const citations = []; // { num, context }
+      // Extract all [N] citation numbers from the AI response
+      const citedNums = new Set();
       let m;
-      while ((m = citationPattern.exec(fullText)) !== null) {
-        citations.push({ num: parseInt(m[2], 10), context: m[1] });
-      }
+      const pat = /\[(\d+)\]/g;
+      while ((m = pat.exec(fullText)) !== null) citedNums.add(parseInt(m[1], 10));
 
-      if (citations.length === 0) {
-        // No citations — show only web sources
-        aiSources = aiSources.filter(s => s._isWebSource);
+      const localSources = aiSources.filter(s => !s._isWebSource);
+      const webSources = aiSources.filter(s => s._isWebSource);
+
+      if (citedNums.size === 0) {
+        aiSources = webSources;
         renderAISources(aiSources);
         return;
       }
 
-      // Content-match each citation to the best source
-      const usedSourceIndices = new Set();
-      const citationToSource = {}; // citNum → source index in aiSources
-
-      // Sort citations by number for deterministic assignment
-      const uniqueCitations = [];
-      const seenNums = new Set();
-      for (const c of citations) {
-        if (!seenNums.has(c.num)) {
-          seenNums.add(c.num);
-          uniqueCitations.push(c);
+      // Direct index: [N] → localSources[N-1] (guaranteed by backend build_ai_prompt)
+      const citedInOrder = [...citedNums].sort((a, b) => a - b);
+      const newLocal = [];
+      const remapTable = {};
+      for (const n of citedInOrder) {
+        const src = localSources[n - 1];
+        if (src) {
+          newLocal.push(src);
+          remapTable[n] = newLocal.length; // new 1-based index
         }
       }
 
-      for (const cit of uniqueCitations) {
-        const contextTokens = tokenize(cit.context);
-        if (contextTokens.length === 0) continue;
-
-        let bestIdx = -1;
-        let bestScore = 0;
-        for (let i = 0; i < aiSources.length; i++) {
-          if (usedSourceIndices.has(i)) continue;
-          const score = computeMatchScore(contextTokens, aiSources[i]);
-          if (score > bestScore) {
-            bestScore = score;
-            bestIdx = i;
-          }
-        }
-
-        if (bestIdx >= 0 && bestScore >= 2) {
-          citationToSource[cit.num] = bestIdx;
-          usedSourceIndices.add(bestIdx);
-        }
-      }
-
-      // Build new source list: matched sources (ordered by citation num) + uncited web sources
-      const matchedNums = Object.keys(citationToSource).map(Number).sort((a, b) => a - b);
-      const newSources = [];
-      const oldCitToNew = {}; // old citation num → new 1-based index
-
-      for (const num of matchedNums) {
-        newSources.push(aiSources[citationToSource[num]]);
-        oldCitToNew[num] = newSources.length; // 1-based
-      }
-
-      // Append uncited web sources
-      for (let i = 0; i < aiSources.length; i++) {
-        if (!usedSourceIndices.has(i) && aiSources[i]._isWebSource) {
-          newSources.push(aiSources[i]);
-        }
-      }
-
-      aiSources = newSources;
+      aiSources = [...newLocal, ...webSources];
       renderAISources(aiSources);
 
-      // Remap citation badges in rendered HTML
+      // Update citation badge numbers in rendered HTML
       const content = document.getElementById('ai-answer-content');
       content.querySelectorAll('.citation').forEach(el => {
         const oldNum = parseInt(el.textContent, 10);
-        const newNum = oldCitToNew[oldNum];
-        if (newNum) {
+        const newNum = remapTable[oldNum];
+        if (newNum !== undefined) {
           el.textContent = newNum;
           el.setAttribute('onclick', `scrollToSource(${newNum})`);
           const src = aiSources[newNum - 1];
           if (src) el.setAttribute('title', src.title.replace(/"/g, '&quot;').substring(0, 60));
         } else {
-          // No matching source found — remove the citation badge
-          el.remove();
+          el.remove(); // N exceeds local sources range
         }
       });
     }
@@ -1999,9 +1932,7 @@
             document.getElementById('ai-answer-panel').classList.remove('hidden');
             renderStreamingMarkdown(fullText);
           },
-          onDone: () => {
-            renderFinalMarkdown(fullText);
-          },
+          onDone: () => {},
           onError: (msg) => {
             showAIError(msg);
           },
@@ -2285,10 +2216,32 @@
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    function exportSingleArticle(itemData, btnEl) {
+    async function exportSingleArticle(itemData, btnEl) {
       const tags = (itemData.tags || []).join(', ');
       const sources = (itemData.sources || []).join(', ');
-      const desc = itemData.description || '';
+      let desc = itemData.description || '';
+
+      // Try to fetch full article content from the original URL
+      if (itemData.url) {
+        if (btnEl) {
+          btnEl.textContent = lang === 'zh' ? '抓取中...' : 'Fetching...';
+          btnEl.disabled = true;
+        }
+        try {
+          const resp = await fetch('/api/fetch-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: itemData.url }),
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.content && data.content.length > desc.length) {
+              desc = data.content;
+            }
+          }
+        } catch (_) { /* fallback to original description */ }
+      }
+
       const md = [
         `# ${itemData.title || 'Untitled'}`,
         '',
@@ -2298,7 +2251,7 @@
         '',
         '---',
         '',
-        `## ${lang === 'zh' ? '描述' : 'Description'}`,
+        `## ${lang === 'zh' ? '内容' : 'Content'}`,
         '',
         desc,
         '',
@@ -2319,10 +2272,9 @@
       URL.revokeObjectURL(url);
 
       if (btnEl) {
-        const origText = btnEl.textContent;
         btnEl.textContent = t().exportArticleDone;
         btnEl.disabled = true;
-        setTimeout(() => { btnEl.textContent = origText; btnEl.disabled = false; }, 1500);
+        setTimeout(() => { btnEl.textContent = t().exportArticleBtn; btnEl.disabled = false; }, 1500);
       }
     }
 

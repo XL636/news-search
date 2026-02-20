@@ -4,6 +4,21 @@
 
 ---
 
+## [0.23.0] - 2026-02-20
+
+### Fixed
+- **导出内容不完整**: `exportSingleArticle()` 改为 async，导出前调用 `/api/fetch-content` 按需抓取文章原始网页全文，内容远超原来的 500 字符截断；失败时 fallback 到原有 description
+- **AI 搜索引用 [N] 与文章不匹配**: 重写 `filterCitedSources()`，删除 `tokenize` + `computeMatchScore` 模糊关键词匹配，改为 `localSources[N-1]` 直接索引映射（后端 `build_ai_prompt` 保证 `[N]` = `items[N-1]`）
+- **AI 搜索重复渲染**: 删除 `doAISearch` 和 `doLatestSearch` 的 `onDone` 回调中多余的 `renderFinalMarkdown(fullText)` 调用，只保留 SSE 循环结束后的调用
+
+### Added
+- 后端 `POST /api/fetch-content` 端点: 按需抓取文章原始网页内容，HTML→纯文本（去 script/style/标签），限 8000 字符，速率限制 10/min
+
+### Removed
+- `tokenize()` / `computeMatchScore()` 前端函数（被直接索引映射替代）
+
+---
+
 ## [0.22.1] - 2026-02-20
 
 ### Added
