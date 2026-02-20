@@ -4,6 +4,33 @@
 
 ---
 
+## [0.22.0] - 2026-02-20
+
+### Added
+- 单篇文章导出按钮: 每张卡片 footer 新增「导出」按钮，纯前端生成 Markdown 文件并触发浏览器下载
+- AI 对话讨论功能: AI 解读分析完成后，面板底部出现输入框，可继续追问讨论多轮
+- 后端 `POST /api/ai-chat` SSE 端点: 复用 `_stream_glm()` + `_ai_search_semaphore`，支持文章上下文 + 初始分析 + 对话历史
+- `build_chat_prompt()` 函数: 构建文章上下文 + 初始分析 + 对话历史的多轮消息
+- `AIChatRequest` / `AIChatMessage` Pydantic 模型
+- `exportSingleArticle()` 前端函数: 纯前端 Markdown 文件生成 + Blob 下载
+- `sendChatMessage()` 前端函数: 流式 SSE 对话 + 气泡渲染
+- Chat CSS: `.chat-bubble.user` / `.chat-bubble.assistant` / `.chat-send-btn` / `.chat-divider` / `#analyze-chat-area`
+- 6 个新增 i18n 键: `exportArticle` / `exportArticleDone` / `chatPlaceholder` / `chatSend` / `chatThinking`
+
+### Removed
+- Header 全局导出按钮 (`export-dropdown-wrap` + `toggleExportDropdown()` + `doExport()`)
+- `.export-dropdown-wrap` / `.export-dropdown` CSS 规则
+- `exportBtn` / `exportStarted` i18n 键
+
+### Changed
+- AI 解读面板从纯展示变为可交互对话面板（分析结果 + 对话气泡 + 固定底部输入框）
+- `openAnalyzePanel()` 新增 chat 状态重置
+- `closeAnalyzePanel()` 新增 chat abort + 状态清理
+- `streamAnalysis()` onDone 回调新增: 保存分析全文，显示对话输入框
+- `renderCard()` / `renderAISources()` footer 新增导出按钮
+
+---
+
 ## [0.21.0] - 2026-02-20
 
 ### Added

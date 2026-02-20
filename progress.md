@@ -89,6 +89,8 @@
 | RSS 源健康监控前端 | ✅ 完成 | 100% |
 | 系统状态指示 | ✅ 完成 | 100% |
 | 全文搜索 API (FTS5) | ✅ 完成 | 100% |
+| 单篇文章导出按钮 | ✅ 完成 | 100% |
+| AI 对话讨论功能 | ✅ 完成 | 100% |
 
 ### 最近一次全流程运行（2026-02-17）
 
@@ -531,6 +533,27 @@ RSS 源健康监控前端:
   前端信息流搜索优先使用 FTS，fallback 到 LIKE
   PAGE_SIZE 从 const 改为 let，支持偏好动态设置
   15 个新增 i18n 键（中英文）
+```
+
+### 单篇导出 + AI 对话讨论 (v0.22.0) — 2026-02-20
+
+```
+单篇文章导出:
+  删除 Header 全局导出按钮 (export-dropdown-wrap + toggleExportDropdown + doExport)
+  每张卡片 footer 新增「导出」按钮（renderCard + renderAISources）
+  纯前端 Markdown 生成: exportSingleArticle() → Blob → download
+  格式: 标题/领域/热度/Stars/来源/标签/URL/描述
+
+AI 对话讨论:
+  后端: POST /api/ai-chat SSE 端点
+    AIChatRequest (article + initial_analysis + messages)
+    build_chat_prompt(): system → 文章上下文 → 初始分析 → 对话历史
+    复用 _stream_glm() + _ai_search_semaphore + limiter 10/min
+  前端: 面板底部固定输入框 + 对话气泡
+    streamAnalysis() onDone → 保存分析全文 → 显示输入框
+    sendChatMessage() → POST /api/ai-chat → SSE 流式渲染
+    .chat-bubble.user (右对齐 amber) / .chat-bubble.assistant (左对齐 glass)
+    关闭面板 / 重新打开 → 对话重置
 ```
 
 ### 当前状态

@@ -303,6 +303,50 @@ def build_analysis_prompt(item_data: dict) -> list[dict]:
     ]
 
 
+def build_chat_prompt(article_data: dict, initial_analysis: str, messages: list[dict]) -> list[dict]:
+    """Build messages for follow-up chat about an article."""
+    system = (
+        "你正在与用户讨论一篇科技文章/开源项目。\n"
+        "你之前已经对这篇文章进行了深度分析，现在用户想就此继续提问讨论。\n"
+        "规则：\n"
+        "1. 中文回答，技术术语可保留英文\n"
+        "2. 用 Markdown 格式\n"
+        "3. 回答要简洁、有深度\n"
+        "4. 你具备联网搜索能力，可联网补充最新信息\n"
+        "5. 不要编造数据中没有的信息\n"
+        "6. 控制在 400 字以内"
+    )
+
+    tags = ", ".join(article_data.get("tags", [])[:8])
+    sources = ", ".join(article_data.get("sources", []))
+    desc = (article_data.get("description") or "")[:500]
+
+    article_context = (
+        f"文章信息：\n"
+        f"标题：{article_data.get('title', '')}\n"
+        f"领域：{article_data.get('domain', '')}\n"
+        f"热度：{article_data.get('heat_index', 0)}\n"
+        f"Stars：{article_data.get('stars', 0)} | 评论：{article_data.get('comments_count', 0)}\n"
+        f"来源：{sources}\n"
+        f"标签：{tags}\n"
+        f"描述：{desc}\n"
+        f"URL：{article_data.get('url', '')}"
+    )
+
+    result = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": article_context},
+    ]
+
+    if initial_analysis:
+        result.append({"role": "assistant", "content": initial_analysis})
+
+    for msg in messages[-20:]:  # Cap at 20 turns
+        result.append({"role": msg["role"], "content": msg["content"]})
+
+    return result
+
+
 async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = False):
     """Shared async generator: call GLM API and yield SSE chunks."""
     payload = {
@@ -440,6 +484,17 @@ class AIAnalyzeRequest(BaseModel):
     sources: list[str] = []
 
 
+class AIChatMessage(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant)$")
+    content: str = Field(..., max_length=5000)
+
+
+class AIChatRequest(BaseModel):
+    article: AIAnalyzeRequest
+    initial_analysis: str = ""
+    messages: list[AIChatMessage]
+
+
 class AIConfigRequest(BaseModel):
     api_key: str
 
@@ -575,6 +630,35 @@ async def api_ai_latest(request: Request):
                     except Exception:
                         logger.exception("Failed to process web_sources")
                     continue
+                yield chunk
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@router.post("/ai-chat")
+@limiter.limit("10/minute")
+async def api_ai_chat(request: Request, req: AIChatRequest):
+    """Article follow-up chat with streaming SSE response."""
+    if not _ai_search_semaphore._value:
+        return StreamingResponse(
+            iter(["event: error\ndata: {\"error\": \"服务繁忙，请稍后再试\"}\n\n"]),
+            media_type="text/event-stream",
+            status_code=429,
+        )
+
+    async def generate():
+        async with _ai_search_semaphore:
+            api_key = _runtime_api_key
+            if not api_key:
+                yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
+                return
+
+            messages = build_chat_prompt(
+                req.article.model_dump(),
+                req.initial_analysis,
+                [m.model_dump() for m in req.messages],
+            )
+            async for chunk in _stream_glm(api_key, messages, enable_search=True):
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
