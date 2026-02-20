@@ -2,7 +2,9 @@
 
 import hashlib
 import json
+import re
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -19,6 +21,16 @@ def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
+
+
+@contextmanager
+def get_db(db_path: Path | None = None):
+    """Context manager for database connections. Auto-closes on exit."""
+    conn = get_connection(db_path)
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 def init_db(conn: sqlite3.Connection) -> None:
@@ -115,7 +127,58 @@ def init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_snapshot_date ON heat_snapshots(snapshot_date);
         CREATE INDEX IF NOT EXISTS idx_snapshot_url_date ON heat_snapshots(item_url, snapshot_date);
     """)
+
+    # FTS5 virtual table and sync triggers (must be outside executescript)
+    try:
+        conn.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS classified_items_fts USING fts5(
+                title, description, tags,
+                content='classified_items',
+                content_rowid='id'
+            )
+        """)
+    except Exception:
+        pass
+
+    try:
+        conn.execute("""
+            CREATE TRIGGER IF NOT EXISTS fts_ai AFTER INSERT ON classified_items BEGIN
+                INSERT INTO classified_items_fts(rowid, title, description, tags)
+                VALUES (new.id, new.title, new.description, new.tags);
+            END
+        """)
+    except Exception:
+        pass
+
+    try:
+        conn.execute("""
+            CREATE TRIGGER IF NOT EXISTS fts_ad AFTER DELETE ON classified_items BEGIN
+                INSERT INTO classified_items_fts(classified_items_fts, rowid, title, description, tags)
+                VALUES ('delete', old.id, old.title, old.description, old.tags);
+            END
+        """)
+    except Exception:
+        pass
+
+    try:
+        conn.execute("""
+            CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON classified_items BEGIN
+                INSERT INTO classified_items_fts(classified_items_fts, rowid, title, description, tags)
+                VALUES ('delete', old.id, old.title, old.description, old.tags);
+                INSERT INTO classified_items_fts(rowid, title, description, tags)
+                VALUES (new.id, new.title, new.description, new.tags);
+            END
+        """)
+    except Exception:
+        pass
+
     conn.commit()
+
+    # Populate FTS index from existing data
+    try:
+        rebuild_fts_index(conn)
+    except Exception:
+        pass  # FTS table may not exist yet on first run
 
 
 def _serialize_dt(dt: datetime | None) -> str | None:
@@ -530,3 +593,82 @@ def get_item_trend(conn: sqlite3.Connection, item_url: str, days: int = 7) -> li
         (item_url, days),
     ).fetchall()
     return [{"heat_index": r["heat_index"], "date": r["snapshot_date"]} for r in rows]
+
+
+# --- Data TTL Cleanup ---
+
+def cleanup_old_data(conn: sqlite3.Connection, days: int = 30) -> dict:
+    """Delete data older than N days. Returns counts of deleted rows."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+    counts = {}
+    for table, col in [
+        ("raw_items", "collected_at"),
+        ("cleaned_items", "cleaned_at"),
+        ("classified_items", "classified_at"),
+    ]:
+        cursor = conn.execute(f"DELETE FROM {table} WHERE {col} < ?", (cutoff,))
+        counts[table] = cursor.rowcount
+
+    # Heat snapshots use date format
+    cursor = conn.execute("DELETE FROM heat_snapshots WHERE snapshot_date < ?", (cutoff_date,))
+    counts["heat_snapshots"] = cursor.rowcount
+
+    # Translation cache
+    cursor = conn.execute("DELETE FROM translations WHERE created_at < ?", (cutoff,))
+    counts["translations"] = cursor.rowcount
+
+    conn.commit()
+    return counts
+
+
+# --- FTS5 Full-Text Search ---
+
+def rebuild_fts_index(conn: sqlite3.Connection) -> int:
+    """Rebuild FTS5 index from classified_items. Call after bulk imports."""
+    conn.execute("DELETE FROM classified_items_fts")
+    cursor = conn.execute(
+        "INSERT INTO classified_items_fts(rowid, title, description, tags) "
+        "SELECT id, title, description, tags FROM classified_items"
+    )
+    conn.commit()
+    return cursor.rowcount
+
+
+def search_fts(conn: sqlite3.Connection, query: str, limit: int = 20, offset: int = 0) -> list[dict]:
+    """Full-text search using FTS5. Returns classified items matching query."""
+    tokens = re.findall(r'[a-zA-Z0-9]+|[\u4e00-\u9fff]+', query)
+    if not tokens:
+        return []
+
+    fts_query = " OR ".join(f'"{t}"' for t in tokens)
+
+    rows = conn.execute(
+        """SELECT c.* FROM classified_items_fts f
+           JOIN classified_items c ON f.rowid = c.id
+           WHERE classified_items_fts MATCH ?
+           ORDER BY rank
+           LIMIT ? OFFSET ?""",
+        (fts_query, limit, offset),
+    ).fetchall()
+
+    items = []
+    for r in rows:
+        items.append({
+            "id": r["id"],
+            "title": r["title"],
+            "url": r["url"],
+            "description": r["description"] or "",
+            "domain": r["domain"],
+            "tags": json.loads(r["tags"]) if r["tags"] else [],
+            "heat_index": r["heat_index"],
+            "heat_reason": r["heat_reason"] or "",
+            "stars": r["stars"],
+            "comments_count": r["comments_count"],
+            "sources": json.loads(r["sources"]) if r["sources"] else [],
+            "published_at": r["published_at"],
+            "author": r["author"] or "",
+            "language": r["language"] or "",
+        })
+    return items

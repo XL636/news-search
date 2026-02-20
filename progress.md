@@ -63,6 +63,17 @@
 | 结构化日志 (JSON Logging) | ✅ 完成 | 100% |
 | 单元测试框架 (pytest) | ✅ 完成 | 100% |
 | Pre-commit Hooks (ruff) | ✅ 完成 | 100% |
+| DB 上下文管理器 (get_db) | ✅ 完成 | 100% |
+| 路由拆分 (APIRouter) | ✅ 完成 | 100% |
+| 统一错误响应 (ErrorResponse) | ✅ 完成 | 100% |
+| Pydantic Settings 配置 | ✅ 完成 | 100% |
+| 数据过期清理 (TTL) | ✅ 完成 | 100% |
+| 健康检查端点 (/api/health) | ✅ 完成 | 100% |
+| WebSocket 实时推送 (/api/ws) | ✅ 完成 | 100% |
+| 用户偏好持久化 (/api/preferences) | ✅ 完成 | 100% |
+| 数据导出 (/api/export) | ✅ 完成 | 100% |
+| RSS 源健康监控 (/api/feed-health) | ✅ 完成 | 100% |
+| 全文搜索 FTS5 | ✅ 完成 | 100% |
 | ArXiv 论文采集器 | ✅ 完成 | 100% |
 | 热度趋势追踪系统 | ✅ 完成 | 100% |
 | 自动调度器 (APScheduler) | ✅ 完成 | 100% |
@@ -371,10 +382,10 @@ AI 搜索：hero 浮动+呼吸 + 搜索框三层光晕 + chips 上浮 + wave 弹
 ## 下一步行动
 
 1. ~~修复 Skill 注册问题~~ (P2, 待排查)
-2. **Phase 1: Tier 1 快速修复** — datetime/CORS/CSP/缓存/校验/OpenAPI/LIMIT
-3. Phase 2: 代码质量 — 测试/Lint/路由拆分/配置管理
-4. Phase 3-4: 功能增强 — 健康检查/导出/FTS5/WebSocket
-5. Phase 5-6: 架构演进 — aiosqlite/Redis/Docker/CI/CD
+2. ~~Phase 1: Tier 1 快速修复~~ ✅ 已完成
+3. ~~Phase 2: Tier 2 代码质量~~ ✅ 已完成
+4. ~~Phase 3-4: Tier 3 功能增强~~ ✅ 已完成
+5. **Phase 5-6: Tier 4 架构演进** — aiosqlite/Redis/Docker/CI/CD/OpenTelemetry/速率限制
 
 ---
 
@@ -391,7 +402,39 @@ AI 搜索：hero 浮动+呼吸 + 搜索框三层光晕 + chips 上浮 + wave 弹
 | Phase 5 | Tier 4 架构演进 (前半) | 3 | P3 | 异步 DB、缓存层、容器化 |
 | Phase 6 | Tier 4 架构演进 (后半) | 3 | P3 | CI/CD、性能监控、速率限制 |
 
+### Tier 2 代码质量改造（2026-02-20）
+
+```
+路由拆分：server.py 809→114 行
+  src/routers/__init__.py — 空初始化
+  src/routers/ai.py (514 行) — AI 搜索/分析/最新/配置端点
+  src/routers/data.py (343 行) — 数据/统计/采集/趋势/健康/WS/偏好/导出/RSS
+  src/routers/translate.py (54 行) — 翻译端点
+  src/routers/errors.py (25 行) — ErrorResponse + exception handlers
+
+统一错误响应：ErrorResponse Pydantic model + 全局 exception handlers
+Pydantic Settings：src/settings.py — BaseSettings + env_prefix
+DB 上下文管理器：store.py get_db() @contextmanager 自动关闭
+结构化日志：src/logging_config.py — JSONFormatter + setup_logging()
+单元测试：pytest 14 tests (store/schemas/config) 全部通过
+Pre-commit：ruff lint + format + .pre-commit-config.yaml
+```
+
+### Tier 3 功能增强（2026-02-20）
+
+```
+数据过期清理：cleanup_old_data(conn, days=30) — 5 表定期清理
+健康检查：GET /api/health — DB连接/调度器/采集器状态
+WebSocket：GET /api/ws — ConnectionManager + JSON broadcast 实时推送
+用户偏好：GET/POST /api/preferences — settings.json 后端持久化
+数据导出：GET /api/export?format=json|csv — 一键下载 classified_items
+RSS 健康：GET /api/feed-health — 各 RSS 源成功率/延迟监控
+全文搜索：classified_items_fts FTS5 虚拟表 + 3 sync triggers + search_fts()
+  init_db() 自动创建 FTS 表/触发器 + rebuild_fts_index()
+```
+
 ### 当前状态
 - **Phase 1**: ✅ 已完成（Tier 1 快速修复 7 项 — 2026-02-20）
-- **Phase 2**: 🔄 进行中（Tier 2 代码质量 — 3/7 完成：日志/测试/Hooks）
-- **Phase 3-6**: 📋 待办
+- **Phase 2**: ✅ 已完成（Tier 2 代码质量 7 项 — 2026-02-20）
+- **Phase 3-4**: ✅ 已完成（Tier 3 功能增强 7 项 — 2026-02-20）
+- **Phase 5-6**: 📋 待办（Tier 4 架构演进 — aiosqlite/Redis/Docker/CI/CD）

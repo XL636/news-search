@@ -64,9 +64,20 @@
 | 55 | OpenAPI 文档元数据 | 2026-02-20 | title=InsightRadar, version=0.18.0, /docs 可用 |
 | 56 | Content-Security-Policy 头 | 2026-02-20 | CSPMiddleware + cdn.jsdelivr.net 白名单 |
 | 57 | `get_classified_items()` 加 LIMIT | 2026-02-20 | limit=1000, offset=0 分页参数 |
+| 58 | 数据库连接上下文管理器 | 2026-02-20 | store.py `get_db()` context manager 自动关闭 |
+| 59 | 路由拆分 (APIRouter) | 2026-02-20 | server.py 809→114 行，拆分为 routers/ai.py + data.py + translate.py + errors.py |
+| 60 | 统一错误响应格式 | 2026-02-20 | ErrorResponse model + validation/general exception handlers |
+| 61 | Pydantic Settings 配置管理 | 2026-02-20 | src/settings.py — pydantic-settings BaseSettings |
 | 62 | 结构化日志 (JSON) | 2026-02-20 | src/logging_config.py — JSONFormatter + setup_logging() |
 | 63 | 单元测试框架 | 2026-02-20 | pytest + 14 个测试（store/schemas/config）全部通过 |
 | 64 | pre-commit hooks | 2026-02-20 | ruff lint + format + .pre-commit-config.yaml |
+| 65 | 数据过期清理 (TTL) | 2026-02-20 | cleanup_old_data(conn, days=30) — 5 表清理 |
+| 66 | 健康检查端点 | 2026-02-20 | GET /api/health — DB/scheduler/collectors 状态 |
+| 67 | WebSocket 实时推送 | 2026-02-20 | GET /api/ws — ConnectionManager + JSON broadcast |
+| 68 | 用户偏好后端持久化 | 2026-02-20 | GET/POST /api/preferences — settings.json 持久化 |
+| 69 | 数据导出功能 | 2026-02-20 | GET /api/export?format=json\|csv — 一键下载 |
+| 70 | RSS 源健康监控 | 2026-02-20 | GET /api/feed-health — 各 RSS 源成功率/延迟 |
+| 71 | 全文搜索 (FTS5) | 2026-02-20 | classified_items_fts 虚拟表 + 3 sync triggers + search_fts() |
 
 ### 进行中 🔄
 
@@ -75,7 +86,8 @@
 | — | 暂无 | — | — |
 
 > **已完成**: #51-#57 Tier 1 快速修复 7 项 — 2026-02-20
-> **已完成**: #62-#64 Tier 2 代码质量 3 项 — 2026-02-20
+> **已完成**: #58-#64 Tier 2 代码质量 7 项 — 2026-02-20
+> **已完成**: #65-#71 Tier 3 功能增强 7 项 — 2026-02-20
 
 ### 待办 📋
 
@@ -84,24 +96,8 @@
 | 16 | 修复 Skill 注册问题 | P2 | YAML frontmatter 格式正确但 Claude Code 未加载 |
 
 | | **~~Tier 1 — 快速修复~~** ✅ 已完成 | | |
-
-| | **Tier 2 — 代码质量 (Code Quality)** | | |
-| 58 | 数据库连接上下文管理器 | P2 | store.py 封装 `with get_connection() as conn` 自动关闭 |
-| 59 | 路由拆分 (APIRouter) | P2 | server.py 按功能拆分为 ai_router, data_router 等 |
-| 60 | 统一错误响应格式 | P2 | ErrorResponse model + exception handlers |
-| 61 | Pydantic Settings 配置管理 | P2 | 替代手动 env/json 读取 |
-| ~~62~~ | ~~结构化日志 (JSON)~~ | ~~P2~~ | ✅ 已完成 — src/logging_config.py |
-| ~~63~~ | ~~单元测试框架~~ | ~~P2~~ | ✅ 已完成 — pytest + 14 tests |
-| ~~64~~ | ~~pre-commit hooks~~ | ~~P2~~ | ✅ 已完成 — ruff + .pre-commit-config.yaml |
-
-| | **Tier 3 — 功能增强 (Features)** | | |
-| 65 | 数据过期清理 (TTL) | P2 | 定期清理超过 N 天的旧数据 |
-| 66 | 健康检查端点 | P2 | GET /api/health 返回各采集器状态 |
-| 67 | WebSocket 实时推送 | P2 | 替代 SSE 轮询，实时数据更新 |
-| 68 | 用户偏好后端持久化 | P2 | localStorage → 后端 settings API |
-| 69 | 数据导出功能 | P2 | CSV/JSON 一键下载 classified_items |
-| 70 | RSS 源健康监控 | P2 | 记录每个 RSS 源的成功率和延迟 |
-| 71 | 全文搜索 (FTS5) | P2 | SQLite FTS5 虚拟表加速搜索 |
+| | **~~Tier 2 — 代码质量~~** ✅ 已完成 | | |
+| | **~~Tier 3 — 功能增强~~** ✅ 已完成 | | |
 
 | | **Tier 4 — 架构演进 (Architecture)** | | |
 | 72 | 异步数据库 (aiosqlite) | P3 | 替代同步 sqlite3，消除阻塞 |

@@ -7,6 +7,24 @@
 ## [0.19.0] - 2026-02-20
 
 ### Added
+- **Route Splitting (APIRouter)** — `server.py` 从 809 行瘦身至 114 行，拆分为 4 个路由模块
+  - `src/routers/ai.py` (514 行)：AI 搜索/分析/最新热点/API Key 配置
+  - `src/routers/data.py` (343 行)：数据查询/统计/采集/趋势/健康检查/WS/偏好/导出/RSS
+  - `src/routers/translate.py` (54 行)：Google Translate 代理
+  - `src/routers/errors.py` (25 行)：ErrorResponse model + 全局 exception handlers
+- **Unified Error Response** — `ErrorResponse` Pydantic model + `validation_exception_handler` + `general_exception_handler`
+- **Pydantic Settings** — `src/settings.py` 使用 `pydantic-settings` BaseSettings 管理配置，env_prefix="INSIGHTRADAR_"
+- **DB Context Manager** — `store.py` 新增 `get_db()` contextmanager，自动关闭连接
+- **Data TTL Cleanup** — `cleanup_old_data(conn, days=30)` 清理 5 张表过期数据
+- **Health Check Endpoint** — `GET /api/health` 返回 DB 连接/调度器状态/采集器信息
+- **WebSocket Real-time Push** — `GET /api/ws` + `ConnectionManager` 类，JSON broadcast 实时推送
+- **User Preferences API** — `GET/POST /api/preferences` 用户偏好持久化到 settings.json
+- **Data Export** — `GET /api/export?format=json|csv` 一键下载 classified_items
+- **RSS Feed Health** — `GET /api/feed-health` 各 RSS 源成功率和延迟监控
+- **Full-Text Search (FTS5)** — `classified_items_fts` 虚拟表 + 3 个同步触发器 (INSERT/DELETE/UPDATE)
+  - `search_fts(conn, query, limit, offset)` 全文搜索函数
+  - `rebuild_fts_index(conn)` 索引重建
+  - `init_db()` 自动创建 FTS 表/触发器
 - **Structured JSON Logging** `src/logging_config.py` — `JSONFormatter` 格式化为 JSON lines + `setup_logging()` 配置函数（支持 JSON/human-readable 双模式）
   - 支持 `request_id` 追踪、异常堆栈、日志级别配置
   - 自动降噪：httpx/httpcore WARNING、apscheduler INFO
@@ -19,7 +37,7 @@
 - **Pre-commit Hooks** — ruff lint + format 自动检查
   - `ruff.toml`：target-version py312, line-length 120, select E/F/W/I/UP/B/SIM
   - `.pre-commit-config.yaml`：ruff-pre-commit v0.4.4（lint --fix + format）
-- `requirements.txt` 新增：`pytest>=8.0`、`pytest-asyncio>=0.23`、`ruff>=0.4`
+- `requirements.txt` 新增：`pytest>=8.0`、`pytest-asyncio>=0.23`、`ruff>=0.4`、`pydantic-settings>=2.0`
 
 ---
 
