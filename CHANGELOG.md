@@ -4,6 +4,37 @@
 
 ---
 
+## [0.24.0] - 2026-02-25
+
+### Added
+- **图片搜文章功能**: 上传图片 → GLM-4.6V-Flash 提取关键词 → 搜索本地库 → GLM-4-Plus 流式分析推荐
+  - 后端 `POST /api/ai-image-search` SSE 端点：两阶段调用（VL 关键词提取 + 文本分析），速率限制 5/min
+  - 后端 `_call_glm_sync()` 非流式 GLM 调用辅助函数
+  - 后端 `build_image_extract_prompt()` / `build_image_search_prompt()` prompt 构建函数
+  - 后端 `AIImageSearchRequest` Pydantic 模型
+  - 前端图片按钮 + 隐藏文件选择器 + 图片预览条（缩略图 + 文件名 + 大小 + 删除按钮）
+  - 前端 `doImageSearch()` / `triggerImageUpload()` / `handleImageUpload()` / `clearImageUpload()` 函数
+  - 前端 `compressImage()` 画布压缩：>2MB 自动缩放至 1200px + JPEG 0.8 质量
+  - 前端 `_processSSE()` 扩展 `onImageAnalysis` 回调处理 `image_analysis` 事件
+  - 前端关键词标签（`.ai-keyword-tag` 琥珀药丸）展示 VL 提取结果
+  - i18n 新增 6 个中英文键（aiImageBtn / aiImageSearching / aiImageTooLarge / aiImageInvalid / aiImageQuery / aiImageKeywords）
+- **Docker HEALTHCHECK**: 每 30s 检查 `/api/health`，10s 启动宽限期
+- **Docker 非 root 用户**: `appuser` 用户运行容器，提升安全性
+
+### Fixed
+- **WebSocket 连接泄漏（Bug #2.1）**: `broadcast()` 发送失败的连接现已在循环结束后批量断开
+- **收集端点竞态条件（Bug #2.4）**: `_collect_lock` 改用 `asyncio.wait_for` 非阻塞获取，返回 HTTP 409
+- **数据库连接泄漏（Bug #2.3）**: `search_items_for_ai()` / `_process_web_sources()` / `get_top_items()` 改用 `with get_db() as conn:` 上下文管理器
+
+### Changed
+- **CORS 配置收紧（Security #3.1）**: `allow_origins` 从 `["*"]` 改为从环境变量 `ALLOWED_ORIGINS` 读取，默认 `http://localhost:8000`
+- **错误响应信息隐藏（Security #3.2）**: 生产环境（非 DEBUG）不再返回异常详细信息，仅记录到日志
+- **CSP img-src 增加 blob:**: 支持前端图片预览 Canvas 压缩
+- **itemDataCache LRU 上限**: 最多 200 条缓存，超出清除最早的 50 条
+- **docker-compose.yml**: 新增 `ALLOWED_ORIGINS` 环境变量
+
+---
+
 ## [0.23.1] - 2026-02-25
 
 ### Fixed

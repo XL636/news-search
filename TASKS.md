@@ -98,6 +98,15 @@
 | 88 | AI 搜索引用编号不匹配修复 | 2026-02-20 | filterCitedSources 重写：模糊匹配→直接索引 localSources[N-1]，删除 tokenize/computeMatchScore |
 | 89 | AI 搜索重复渲染修复 | 2026-02-20 | 删除 doAISearch/doLatestSearch onDone 中多余 renderFinalMarkdown 调用 |
 | 90 | WebSocket 404 + favicon 404 修复 | 2026-02-25 | uvicorn→uvicorn[standard] 补 websockets 依赖 + /favicon.ico 返回 204 |
+| 91 | 图片搜文章功能 | 2026-02-25 | GLM-4.6V-Flash 关键词提取 + 本地搜索 + GLM-4-Plus 流式分析，前端图片上传/压缩/预览 |
+| 92 | WebSocket 连接泄漏修复 | 2026-02-25 | broadcast() 失败连接批量断开 |
+| 93 | 收集端点竞态条件修复 | 2026-02-25 | asyncio.wait_for 非阻塞获取锁 + HTTP 409 |
+| 94 | DB 连接上下文管理器修复 | 2026-02-25 | search_items_for_ai / _process_web_sources / get_top_items 改用 with get_db() |
+| 95 | CORS 配置收紧 | 2026-02-25 | ALLOWED_ORIGINS 环境变量，默认 localhost:8000 |
+| 96 | 错误响应信息隐藏 | 2026-02-25 | 生产环境隐藏详细 traceback |
+| 97 | Docker 安全加固 | 2026-02-25 | HEALTHCHECK + 非 root appuser 用户 |
+| 98 | itemDataCache LRU 上限 | 2026-02-25 | 最多 200 条缓存，超出清除最早 50 条 |
+| 99 | CSP img-src blob: | 2026-02-25 | 支持前端图片预览 Canvas 压缩 |
 
 ### 进行中 🔄
 

@@ -1,5 +1,6 @@
 services:
   web:
+    container_name: insight-radar
     build: .
     ports:
       - "8000:8000"
@@ -7,4 +8,5 @@ services:
       - ./data:/app/data
     environment:
       - ZHIPUAI_API_KEY=${ZHIPUAI_API_KEY:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8000}
     restart: unless-stopped

@@ -1,6 +1,7 @@
 """AI search and analysis routes for InsightRadar."""
 
 import asyncio
+import base64 as _b64
 import json
 import logging
 import re
@@ -12,8 +13,14 @@ from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from src.config import AI_SEARCH_MAX_ITEMS, ZHIPUAI_BASE_URL, ZHIPUAI_MODEL
-from src.storage.store import aget_db, get_connection, insert_web_search_item
+from src.config import (
+    AI_SEARCH_MAX_ITEMS,
+    IMAGE_MAX_SIZE_BYTES,
+    ZHIPUAI_BASE_URL,
+    ZHIPUAI_MODEL,
+    ZHIPUAI_VL_MODEL,
+)
+from src.storage.store import aget_db, get_db, insert_web_search_item
 
 router = APIRouter(prefix="/api", tags=["ai"])
 
@@ -108,51 +115,49 @@ def _row_to_item(r) -> dict:
 
 def search_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[dict]:
     """Search classified_items with smart tokenization + domain mapping + fallback."""
-    conn = get_connection()
+    with get_db() as conn:
+        tokens = re.findall(r'[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+', query)
 
-    tokens = re.findall(r'[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+', query)
+        expanded = []
+        for tok in tokens:
+            expanded.append(tok)
+            if re.match(r'[\u4e00-\u9fff]', tok) and len(tok) > 2:
+                for i in range(len(tok) - 1):
+                    expanded.append(tok[i:i+2])
 
-    expanded = []
-    for tok in tokens:
-        expanded.append(tok)
-        if re.match(r'[\u4e00-\u9fff]', tok) and len(tok) > 2:
-            for i in range(len(tok) - 1):
-                expanded.append(tok[i:i+2])
+        conditions = []
+        params: list = []
+        for tok in set(expanded):
+            conditions.append("(title LIKE ? OR description LIKE ? OR tags LIKE ? OR domain LIKE ?)")
+            t = f"%{tok}%"
+            params.extend([t, t, t, t])
 
-    conditions = []
-    params: list = []
-    for tok in set(expanded):
-        conditions.append("(title LIKE ? OR description LIKE ? OR tags LIKE ? OR domain LIKE ?)")
-        t = f"%{tok}%"
-        params.extend([t, t, t, t])
+        matched_domains = set()
+        for tok in tokens:
+            domain = QUERY_DOMAIN_MAP.get(tok.lower())
+            if domain:
+                matched_domains.add(domain)
+        for d in matched_domains:
+            conditions.append("domain = ?")
+            params.append(d)
 
-    matched_domains = set()
-    for tok in tokens:
-        domain = QUERY_DOMAIN_MAP.get(tok.lower())
-        if domain:
-            matched_domains.add(domain)
-    for d in matched_domains:
-        conditions.append("domain = ?")
-        params.append(d)
+        where = " OR ".join(conditions) if conditions else "1=1"
+        sql = f"SELECT * FROM classified_items WHERE {where} ORDER BY heat_index DESC LIMIT ?"
+        params.append(limit)
+        rows = conn.execute(sql, params).fetchall()
 
-    where = " OR ".join(conditions) if conditions else "1=1"
-    sql = f"SELECT * FROM classified_items WHERE {where} ORDER BY heat_index DESC LIMIT ?"
-    params.append(limit)
-    rows = conn.execute(sql, params).fetchall()
+        items = [_row_to_item(r) for r in rows]
 
-    items = [_row_to_item(r) for r in rows]
+        if 1 <= len(items) < 5:
+            existing_ids = {item["id"] for item in items}
+            need = limit - len(items)
+            placeholders = ",".join("?" * len(existing_ids))
+            extra = conn.execute(
+                f"SELECT * FROM classified_items WHERE id NOT IN ({placeholders}) ORDER BY heat_index DESC LIMIT ?",
+                [*existing_ids, need],
+            ).fetchall()
+            items.extend(_row_to_item(r) for r in extra)
 
-    if 1 <= len(items) < 5:
-        existing_ids = {item["id"] for item in items}
-        need = limit - len(items)
-        placeholders = ",".join("?" * len(existing_ids))
-        extra = conn.execute(
-            f"SELECT * FROM classified_items WHERE id NOT IN ({placeholders}) ORDER BY heat_index DESC LIMIT ?",
-            [*existing_ids, need],
-        ).fetchall()
-        items.extend(_row_to_item(r) for r in extra)
-
-    conn.close()
     return items
 
 
@@ -347,14 +352,83 @@ def build_chat_prompt(article_data: dict, initial_analysis: str, messages: list[
     return result
 
 
-async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = False):
+def build_image_extract_prompt(image_base64: str) -> list[dict]:
+    """Build multimodal prompt for image keyword extraction using VL model."""
+    return [
+        {"role": "user", "content": [
+            {"type": "image_url", "image_url": {"url": image_base64}},
+            {"type": "text", "text": (
+                "分析这张图片，提取与科技/开源/编程相关的关键词。\n"
+                "返回 JSON 格式：{\"keywords\": [\"关键词1\", \"关键词2\", ...], \"summary\": \"一句话描述图片内容\"}\n"
+                "规则：\n"
+                "1. keywords 提取 3-8 个关键词，优先英文技术术语\n"
+                "2. summary 用中文简述图片主要内容，20字以内\n"
+                "3. 只返回 JSON，不要其他文字"
+            )},
+        ]},
+    ]
+
+
+def build_image_search_prompt(summary: str, keywords: list[str], items: list[dict]) -> list[dict]:
+    """Build prompt for image-based article search analysis."""
+    system = (
+        "你是 InsightRadar AI 搜索助手，用户上传了一张图片，你需要根据图片内容找到相关的科技新闻和开源项目。\n"
+        "规则：\n"
+        "1. 用 [N] 引用来源（N 从 1 开始），关键观点必须有引用\n"
+        "2. 中文回答，技术术语可保留英文\n"
+        "3. 用 Markdown 格式，### 做小标题分组\n"
+        "4. 数据中没有的信息不要编造\n"
+        "5. 控制在 500 字以内\n"
+        "6. 你具备联网搜索能力，可以搜索最新信息补充回答\n"
+        "7. 联网搜索获取的信息不要使用 [N] 编号引用"
+    )
+
+    kw_str = ", ".join(keywords)
+    if not items:
+        user_msg = (
+            f"图片描述：{summary}\n关键词：{kw_str}\n\n"
+            f"本地数据库中没有相关数据。请使用联网搜索获取最新信息并回答。"
+        )
+    else:
+        source_lines = []
+        for i, item in enumerate(items, 1):
+            desc = item["description"][:200] if item["description"] else ""
+            sources = ", ".join(item["sources"]) if item["sources"] else ""
+            tags = ", ".join(item["tags"][:5]) if item["tags"] else ""
+            source_lines.append(
+                f"[{i}] {item['title']}\n"
+                f"  领域: {item['domain']} | 热度: {item['heat_index']} | Stars: {item['stars']}\n"
+                f"  来源: {sources} | 标签: {tags}\n"
+                f"  描述: {desc}\n"
+                f"  URL: {item['url']}"
+            )
+        user_msg = (
+            f"图片描述：{summary}\n关键词：{kw_str}\n\n"
+            f"相关数据（共 {len(items)} 条）：\n\n"
+            + "\n\n".join(source_lines)
+            + "\n\n请根据图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。"
+        )
+
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_msg},
+    ]
+
+
+async def _stream_glm(
+    api_key: str,
+    messages: list[dict],
+    enable_search: bool = False,
+    model: str | None = None,
+    max_tokens: int = 1024,
+):
     """Shared async generator: call GLM API and yield SSE chunks."""
     payload = {
-        "model": ZHIPUAI_MODEL,
+        "model": model or ZHIPUAI_MODEL,
         "messages": messages,
         "stream": True,
         "temperature": 0.7,
-        "max_tokens": 1024,
+        "max_tokens": max_tokens,
     }
     if enable_search:
         payload["tools"] = [{
@@ -419,49 +493,76 @@ async def _stream_glm(api_key: str, messages: list[dict], enable_search: bool = 
     yield "event: done\ndata: {}\n\n"
 
 
+async def _call_glm_sync(api_key: str, messages: list[dict], model: str, max_tokens: int = 256) -> dict:
+    """Non-streaming GLM API call for quick tasks like keyword extraction."""
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "temperature": 0.3,
+        "max_tokens": max_tokens,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(ZHIPUAI_BASE_URL, json=payload, headers=headers)
+            if resp.status_code != 200:
+                logger.error("GLM sync API error %s: %s", resp.status_code, resp.text[:500])
+                return {"error": f"AI 服务返回错误 ({resp.status_code})"}
+            data = resp.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            return {"content": content}
+    except httpx.TimeoutException:
+        return {"error": "AI 服务请求超时"}
+    except Exception as e:
+        logger.exception("GLM sync call error")
+        return {"error": f"AI 服务异常: {str(e)[:100]}"}
+
+
 def _process_web_sources(raw_ws: list[dict]) -> list[dict]:
     """Classify web search results, store in DB, and return formatted items."""
-    conn = get_connection()
-    formatted = []
-    for ws in raw_ws:
-        title = ws.get("title", "").strip()
-        link = ws.get("link", "").strip()
-        content = ws.get("content", "").strip()
-        media = ws.get("media", "").strip()
-        refer = ws.get("refer", "")
-        if not title:
-            continue
+    with get_db() as conn:
+        formatted = []
+        for ws in raw_ws:
+            title = ws.get("title", "").strip()
+            link = ws.get("link", "").strip()
+            content = ws.get("content", "").strip()
+            media = ws.get("media", "").strip()
+            refer = ws.get("refer", "")
+            if not title:
+                continue
 
-        domain = classify_web_result_domain(title, link or "", content)
-        if link:
-            insert_web_search_item(
-                conn, title=title, url=link, content=content, media=media, domain=domain,
-            )
-        formatted.append({
-            "title": title,
-            "url": link or "",
-            "description": content[:200] if content else "",
-            "domain": domain,
-            "tags": [],
-            "heat_index": 30,
-            "heat_reason": "网络搜索结果",
-            "stars": 0,
-            "comments_count": 0,
-            "sources": ["web_search"],
-            "published_at": None,
-            "refer": refer,
-        })
-    conn.close()
+            domain = classify_web_result_domain(title, link or "", content)
+            if link:
+                insert_web_search_item(
+                    conn, title=title, url=link, content=content, media=media, domain=domain,
+                )
+            formatted.append({
+                "title": title,
+                "url": link or "",
+                "description": content[:200] if content else "",
+                "domain": domain,
+                "tags": [],
+                "heat_index": 30,
+                "heat_reason": "网络搜索结果",
+                "stars": 0,
+                "comments_count": 0,
+                "sources": ["web_search"],
+                "published_at": None,
+                "refer": refer,
+            })
     return formatted
 
 
 def get_top_items(limit: int = 20) -> list[dict]:
     """Get top items by heat_index for trending summary."""
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]
-    ).fetchall()
-    conn.close()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]
+        ).fetchall()
     return [_row_to_item(r) for r in rows]
 
 
@@ -497,6 +598,10 @@ class AIChatRequest(BaseModel):
 
 class AIConfigRequest(BaseModel):
     api_key: str
+
+
+class AIImageSearchRequest(BaseModel):
+    image: str = Field(..., description="Base64 data URI of the image")
 
 
 # ========== Endpoints ==========
@@ -659,6 +764,105 @@ async def api_ai_chat(request: Request, req: AIChatRequest):
                 [m.model_dump() for m in req.messages],
             )
             async for chunk in _stream_glm(api_key, messages, enable_search=True):
+                yield chunk
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@router.post("/ai-image-search")
+@limiter.limit("5/minute")
+async def api_ai_image_search(request: Request, req: AIImageSearchRequest):
+    """Image-based article search with streaming SSE response."""
+    if not _ai_search_semaphore._value:
+        return StreamingResponse(
+            iter(['event: error\ndata: {"error": "服务繁忙，请稍后再试"}\n\n']),
+            media_type="text/event-stream",
+            status_code=429,
+        )
+
+    # Validate image size (base64 data URI)
+    image_data = req.image
+    # Remove data URI prefix for size check
+    raw_b64 = image_data.split(",", 1)[-1] if "," in image_data else image_data
+    try:
+        decoded_size = len(_b64.b64decode(raw_b64))
+    except Exception:
+        return StreamingResponse(
+            iter(['event: error\ndata: {"error": "无效的图片数据"}\n\n']),
+            media_type="text/event-stream",
+            status_code=400,
+        )
+    if decoded_size > IMAGE_MAX_SIZE_BYTES:
+        return StreamingResponse(
+            iter([f'event: error\ndata: {{"error": "图片过大（{decoded_size // 1024 // 1024}MB），请上传 4MB 以内的图片"}}\n\n']),
+            media_type="text/event-stream",
+            status_code=400,
+        )
+
+    async def generate():
+        async with _ai_search_semaphore:
+            api_key = _runtime_api_key
+            if not api_key:
+                yield 'event: error\ndata: {"error": "needsApiKey"}\n\n'
+                return
+
+            # Hint to frontend
+            yield f'data: {json.dumps({"text": ""}, ensure_ascii=False)}\n\n'
+
+            # Stage 1: Extract keywords from image using VL model
+            vl_messages = build_image_extract_prompt(image_data)
+            result = await _call_glm_sync(api_key, vl_messages, model=ZHIPUAI_VL_MODEL, max_tokens=256)
+
+            if "error" in result:
+                yield f'event: error\ndata: {json.dumps({"error": result["error"]}, ensure_ascii=False)}\n\n'
+                return
+
+            # Parse keywords from VL response
+            content = result.get("content", "")
+            keywords = []
+            summary = ""
+            try:
+                # Try to extract JSON from the response
+                json_match = re.search(r'\{[^}]+\}', content)
+                if json_match:
+                    parsed = json.loads(json_match.group())
+                    keywords = parsed.get("keywords", [])
+                    summary = parsed.get("summary", "")
+            except (json.JSONDecodeError, AttributeError):
+                pass
+
+            if not keywords:
+                # Fallback: use the raw content as a single keyword
+                keywords = [w.strip() for w in content.split(",") if w.strip()][:5]
+                summary = content[:50]
+
+            if not keywords:
+                yield 'event: error\ndata: {"error": "无法从图片中提取关键词"}\n\n'
+                return
+
+            # Send image analysis result to frontend
+            analysis_data = json.dumps({"keywords": keywords, "summary": summary}, ensure_ascii=False)
+            yield f"event: image_analysis\ndata: {analysis_data}\n\n"
+
+            # Stage 2: Search local DB with extracted keywords
+            search_query = " ".join(keywords[:5])
+            items = await asearch_items_for_ai(search_query)
+            sources_data = json.dumps(items, ensure_ascii=False)
+            yield f"event: sources\ndata: {sources_data}\n\n"
+
+            # Stage 3: Stream AI analysis using GLM-4-Plus
+            messages = build_image_search_prompt(summary, keywords, items)
+            async for chunk in _stream_glm(api_key, messages, enable_search=True):
+                if chunk.startswith("event: web_sources\n"):
+                    try:
+                        data_line = chunk.split("data: ", 1)[1].split("\n")[0]
+                        raw_ws = json.loads(data_line)
+                        formatted = _process_web_sources(raw_ws)
+                        if formatted:
+                            yield f"event: web_sources\ndata: {json.dumps(formatted, ensure_ascii=False)}\n\n"
+                    except Exception:
+                        logger.exception("Failed to process web_sources")
+                    continue
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")

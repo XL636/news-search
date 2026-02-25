@@ -94,6 +94,34 @@
 | Docker 本地部署验证 | ✅ 完成 | 100% |
 | 导出全文抓取 + AI 引用修复 | ✅ 完成 | 100% |
 | WebSocket + favicon 404 修复 | ✅ 完成 | 100% |
+| 图片搜文章功能 (GLM-4.6V-Flash) | ✅ 完成 | 100% |
+| Bug 修复 (WS泄漏/竞态/DB连接) | ✅ 完成 | 100% |
+| 安全加固 (CORS/错误隐藏/Docker) | ✅ 完成 | 100% |
+| 前端性能 (itemDataCache LRU) | ✅ 完成 | 100% |
+
+### 图片搜文章 + 全面优化 (v0.24.0) — 2026-02-25
+
+```
+新功能：图片搜文章
+  架构：图片 → GLM-4.6V-Flash 提取关键词(非流式) → 搜本地库 → GLM-4-Plus 分析推荐(流式 SSE)
+  后端：POST /api/ai-image-search + _call_glm_sync() + build_image_extract_prompt() + build_image_search_prompt()
+  前端：图片上传按钮 + 预览条 + Canvas 压缩(>2MB 缩放 1200px JPEG 0.8) + 关键词标签
+  SSE 新事件：image_analysis（关键词+摘要）
+
+Bug 修复：
+  WebSocket broadcast() 连接泄漏 → 失败连接批量断开
+  收集端点竞态条件 → asyncio.wait_for 非阻塞获取 + HTTP 409
+  DB 连接泄漏 → search_items_for_ai/get_top_items/process_web_sources 改用 with get_db()
+
+安全加固：
+  CORS: allow_origins ["*"] → ALLOWED_ORIGINS 环境变量，默认 localhost:8000
+  错误响应: 生产环境隐藏详细 traceback，仅记录日志
+  Docker: HEALTHCHECK 30s + 非 root appuser 用户
+  CSP: img-src 增加 blob: 支持
+
+性能优化：
+  itemDataCache LRU 上限 200 条，超出清除最早 50 条
+```
 
 ### 最近一次全流程运行（2026-02-17）
 

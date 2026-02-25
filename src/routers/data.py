@@ -54,11 +54,14 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
-        for connection in self.active_connections:
+        dead = []
+        for conn in self.active_connections:
             try:
-                await connection.send_json(message)
+                await conn.send_json(message)
             except Exception:
-                pass
+                dead.append(conn)
+        for c in dead:
+            self.disconnect(c)
 
 
 ws_manager = ConnectionManager()
@@ -92,8 +95,8 @@ async def api_items(
     domain: str | None = Query(None),
     search: str | None = Query(None, max_length=200),
     sort: str = Query("heat"),
-    limit: int = Query(20),
-    offset: int = Query(0),
+    limit: int = Query(20, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
     """Get classified items with optional filters and pagination."""
     cache_key = f"items:{domain}:{search}:{sort}:{limit}:{offset}"
@@ -139,21 +142,26 @@ async def api_stats(request: Request):
 @limiter.limit("5/minute")
 async def api_collect(request: Request):
     """Trigger data collection. Returns 409 if already running."""
-    if _collect_lock.locked():
-        return {"status": "busy", "message": "Collection already in progress"}
-
-    async with _collect_lock:
-        try:
-            result = await cmd_collect()
-            invalidate(stats_cache, items_cache, trends_cache)
-            await ws_manager.broadcast({"type": "collection_complete", "stats": result})
-            return {
-                "status": "ok",
-                "stats": result,
-                "message": "Collection complete. Run /insight-radar to process data.",
-            }
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+    try:
+        await asyncio.wait_for(_collect_lock.acquire(), timeout=0.1)
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            content={"status": "busy", "message": "Collection already in progress"},
+            status_code=409,
+        )
+    try:
+        result = await cmd_collect()
+        invalidate(stats_cache, items_cache, trends_cache)
+        await ws_manager.broadcast({"type": "collection_complete", "stats": result})
+        return {
+            "status": "ok",
+            "stats": result,
+            "message": "Collection complete. Run /insight-radar to process data.",
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        _collect_lock.release()
 
 
 @router.get("/trends")

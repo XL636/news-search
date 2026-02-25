@@ -1,6 +1,7 @@
 """FastAPI web dashboard for InsightRadar."""
 
 import json
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -77,7 +78,7 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 app = FastAPI(
     title="InsightRadar",
     description="全球创新与开源情报聚合系统 — AI-powered tech news aggregation and analysis",
-    version="0.20.0",
+    version="0.24.0",
     lifespan=lifespan,
 )
 
@@ -85,9 +86,11 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+_allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:8000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -102,7 +105,7 @@ class CSPMiddleware(BaseHTTPMiddleware):
             "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: https: https://fastapi.tiangolo.com; "
+            "img-src 'self' data: blob: https: https://fastapi.tiangolo.com; "
             "connect-src 'self' https://translate.googleapis.com https://open.bigmodel.cn ws: wss:"
         )
         return response
