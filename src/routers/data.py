@@ -1,19 +1,19 @@
 """Data API routes for InsightRadar."""
 
 import asyncio
+import contextlib
 import csv
 import io
 import json
 import re as _re
 from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-
-import httpx
 
 from src.cache import invalidate, items_cache, stats_cache, trends_cache
 from src.config import HTTP_USER_AGENT
@@ -42,6 +42,7 @@ SETTINGS_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "settin
 
 # ========== WebSocket Manager ==========
 
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -68,6 +69,7 @@ ws_manager = ConnectionManager()
 
 
 # ========== Endpoints ==========
+
 
 @router.get("/domains")
 @limiter.limit("120/minute")
@@ -104,7 +106,12 @@ async def api_items(
         return items_cache[cache_key]
     async with aget_db() as conn:
         items, total = await aget_classified_items(
-            conn, domain=domain, limit=limit, offset=offset, search=search, sort=sort,
+            conn,
+            domain=domain,
+            limit=limit,
+            offset=offset,
+            search=search,
+            sort=sort,
         )
     result = {"items": items, "total": total, "limit": limit, "offset": offset}
     items_cache[cache_key] = result
@@ -144,7 +151,7 @@ async def api_collect(request: Request):
     """Trigger data collection. Returns 409 if already running."""
     try:
         await asyncio.wait_for(_collect_lock.acquire(), timeout=0.1)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return JSONResponse(
             content={"status": "busy", "message": "Collection already in progress"},
             status_code=409,
@@ -195,10 +202,12 @@ def api_snapshot(request: Request):
 def api_scheduler_status():
     """Get scheduler status and next run times."""
     from src.scheduler import get_scheduler_status
+
     return JSONResponse(content=get_scheduler_status(), headers={"Cache-Control": "public, max-age=10"})
 
 
 # ========== Health Check ==========
+
 
 @router.get("/health")
 async def api_health():
@@ -217,6 +226,7 @@ async def api_health():
     # Scheduler check
     try:
         from src.scheduler import get_scheduler_status
+
         sched = get_scheduler_status()
         status["checks"]["scheduler"] = {"status": "ok" if sched.get("running") else "stopped"}
     except Exception:
@@ -226,6 +236,7 @@ async def api_health():
 
 
 # ========== WebSocket ==========
+
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -239,6 +250,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # ========== User Preferences ==========
+
 
 class UserPreferences(BaseModel):
     language: str = "zh"
@@ -266,10 +278,8 @@ def save_preferences(prefs: UserPreferences):
     """Save user preferences."""
     data = {}
     if SETTINGS_FILE.exists():
-        try:
+        with contextlib.suppress(Exception):
             data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            pass
     data["preferences"] = prefs.model_dump()
     SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
     SETTINGS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -277,6 +287,7 @@ def save_preferences(prefs: UserPreferences):
 
 
 # ========== Data Export ==========
+
 
 @router.get("/export")
 async def api_export(
@@ -289,7 +300,12 @@ async def api_export(
     async with aget_db() as conn:
         if domain or search:
             items, _ = await aget_classified_items(
-                conn, domain=domain, search=search, sort=sort, limit=5000, offset=0,
+                conn,
+                domain=domain,
+                search=search,
+                sort=sort,
+                limit=5000,
+                offset=0,
             )
         else:
             items = await aget_export_items(conn)
@@ -315,6 +331,7 @@ async def api_export(
 
 # ========== Feed Health ==========
 
+
 @router.get("/feed-health")
 async def api_feed_health():
     """Get RSS feed health status from collect_meta."""
@@ -324,6 +341,7 @@ async def api_feed_health():
 
 
 # ========== Fetch Article Content ==========
+
 
 class FetchContentRequest(BaseModel):
     url: str = Field(..., max_length=2000)
@@ -338,7 +356,8 @@ async def api_fetch_content(request: Request, req: FetchContentRequest):
         return JSONResponse({"error": "Invalid URL"}, status_code=400)
     try:
         async with httpx.AsyncClient(
-            timeout=15, follow_redirects=True,
+            timeout=15,
+            follow_redirects=True,
             headers={"User-Agent": HTTP_USER_AGENT},
         ) as client:
             resp = await client.get(url)

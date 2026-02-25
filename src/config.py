@@ -58,9 +58,9 @@ ARXIV_MAX_ITEMS = 30
 
 # Heat index weights
 HEAT_WEIGHTS = {
-    "stars": 0.3,        # GitHub stars / HN points
-    "comments": 0.2,     # Discussion activity
-    "recency": 0.2,      # How recent
+    "stars": 0.3,  # GitHub stars / HN points
+    "comments": 0.2,  # Discussion activity
+    "recency": 0.2,  # How recent
     "cross_platform": 0.3,  # Appears on multiple sources
 }
 

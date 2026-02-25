@@ -1,7 +1,6 @@
 """Application settings using pydantic-settings."""
 
 from pydantic_settings import BaseSettings
-from pydantic import Field
 
 
 class Settings(BaseSettings):

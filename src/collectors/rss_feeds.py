@@ -9,8 +9,8 @@ import feedparser
 import httpx
 from dateutil import parser as date_parser
 
-from src.config import HTTP_TIMEOUT, HTTP_USER_AGENT, RSS_FEEDS
 from src.collectors.base import BaseCollector
+from src.config import HTTP_TIMEOUT, HTTP_USER_AGENT, RSS_FEEDS
 from src.models.schemas import RawItem
 
 logger = logging.getLogger(__name__)
@@ -45,9 +45,7 @@ class RSSCollector(BaseCollector):
                 feed_url = feed_cfg["url"]
 
                 try:
-                    resp = await client.get(
-                        feed_url, headers={"User-Agent": HTTP_USER_AGENT}
-                    )
+                    resp = await client.get(feed_url, headers={"User-Agent": HTTP_USER_AGENT})
                     resp.raise_for_status()
                     feed_text = resp.text
                 except httpx.HTTPError as e:
@@ -71,6 +69,7 @@ class RSSCollector(BaseCollector):
                     # Strip HTML tags (basic)
                     if "<" in desc:
                         import re
+
                         desc = re.sub(r"<[^>]+>", "", desc).strip()
                     # Truncate long descriptions
                     if len(desc) > 500:
@@ -87,20 +86,22 @@ class RSSCollector(BaseCollector):
                         elif isinstance(tag, str):
                             tags.append(tag)
 
-                    items.append(RawItem(
-                        source="rss",
-                        source_id=self._make_source_id(feed_name, entry),
-                        title=f"[{feed_name}] {title}",
-                        url=link,
-                        description=desc,
-                        author=author,
-                        tags=tags,
-                        published_at=published,
-                        raw_json=json.dumps(
-                            {"feed": feed_name, "title": title, "link": link},
-                            default=str,
-                        ),
-                    ))
+                    items.append(
+                        RawItem(
+                            source="rss",
+                            source_id=self._make_source_id(feed_name, entry),
+                            title=f"[{feed_name}] {title}",
+                            url=link,
+                            description=desc,
+                            author=author,
+                            tags=tags,
+                            published_at=published,
+                            raw_json=json.dumps(
+                                {"feed": feed_name, "title": title, "link": link},
+                                default=str,
+                            ),
+                        )
+                    )
 
         logger.info("RSS: collected %d articles", len(items))
         return items

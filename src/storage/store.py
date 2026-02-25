@@ -4,8 +4,8 @@ import hashlib
 import json
 import re
 import sqlite3
-from contextlib import asynccontextmanager, contextmanager
-from datetime import datetime, timedelta, timezone
+from contextlib import asynccontextmanager, contextmanager, suppress
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import aiosqlite
@@ -131,7 +131,7 @@ def init_db(conn: sqlite3.Connection) -> None:
     """)
 
     # FTS5 virtual table and sync triggers (must be outside executescript)
-    try:
+    with suppress(Exception):
         conn.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS classified_items_fts USING fts5(
                 title, description, tags,
@@ -139,30 +139,24 @@ def init_db(conn: sqlite3.Connection) -> None:
                 content_rowid='id'
             )
         """)
-    except Exception:
-        pass
 
-    try:
+    with suppress(Exception):
         conn.execute("""
             CREATE TRIGGER IF NOT EXISTS fts_ai AFTER INSERT ON classified_items BEGIN
                 INSERT INTO classified_items_fts(rowid, title, description, tags)
                 VALUES (new.id, new.title, new.description, new.tags);
             END
         """)
-    except Exception:
-        pass
 
-    try:
+    with suppress(Exception):
         conn.execute("""
             CREATE TRIGGER IF NOT EXISTS fts_ad AFTER DELETE ON classified_items BEGIN
                 INSERT INTO classified_items_fts(classified_items_fts, rowid, title, description, tags)
                 VALUES ('delete', old.id, old.title, old.description, old.tags);
             END
         """)
-    except Exception:
-        pass
 
-    try:
+    with suppress(Exception):
         conn.execute("""
             CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON classified_items BEGIN
                 INSERT INTO classified_items_fts(classified_items_fts, rowid, title, description, tags)
@@ -171,16 +165,12 @@ def init_db(conn: sqlite3.Connection) -> None:
                 VALUES (new.id, new.title, new.description, new.tags);
             END
         """)
-    except Exception:
-        pass
 
     conn.commit()
 
     # Populate FTS index from existing data
-    try:
+    with suppress(Exception):
         rebuild_fts_index(conn)
-    except Exception:
-        pass  # FTS table may not exist yet on first run
 
 
 def _serialize_dt(dt: datetime | None) -> str | None:
@@ -194,6 +184,7 @@ def _parse_dt(s: str | None) -> datetime | None:
 
 
 # --- Raw Items ---
+
 
 def insert_raw_item(conn: sqlite3.Connection, item: RawItem) -> int | None:
     """Insert a raw item, skip if duplicate. Returns row id or None."""
@@ -240,7 +231,7 @@ def get_raw_items(
         params.append(source)
 
     if since_hours > 0:
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=since_hours)
         query += " AND collected_at >= ?"
         params.append(cutoff.isoformat())
 
@@ -249,26 +240,29 @@ def get_raw_items(
     rows = conn.execute(query, params).fetchall()
     items = []
     for row in rows:
-        items.append(RawItem(
-            id=row["id"],
-            source=row["source"],
-            source_id=row["source_id"],
-            title=row["title"],
-            url=row["url"],
-            description=row["description"],
-            author=row["author"],
-            stars=row["stars"],
-            comments_count=row["comments_count"],
-            language=row["language"],
-            tags=json.loads(row["tags"]) if row["tags"] else [],
-            published_at=_parse_dt(row["published_at"]),
-            collected_at=_parse_dt(row["collected_at"]),
-            raw_json=row["raw_json"],
-        ))
+        items.append(
+            RawItem(
+                id=row["id"],
+                source=row["source"],
+                source_id=row["source_id"],
+                title=row["title"],
+                url=row["url"],
+                description=row["description"],
+                author=row["author"],
+                stars=row["stars"],
+                comments_count=row["comments_count"],
+                language=row["language"],
+                tags=json.loads(row["tags"]) if row["tags"] else [],
+                published_at=_parse_dt(row["published_at"]),
+                collected_at=_parse_dt(row["collected_at"]),
+                raw_json=row["raw_json"],
+            )
+        )
     return items
 
 
 # --- Cleaned Items ---
+
 
 def insert_cleaned_item(conn: sqlite3.Connection, item: CleanedItem) -> int:
     """Insert a cleaned item. Returns row id."""
@@ -300,31 +294,32 @@ def insert_cleaned_item(conn: sqlite3.Connection, item: CleanedItem) -> int:
 
 def get_cleaned_items(conn: sqlite3.Connection) -> list[CleanedItem]:
     """Get all cleaned items from the latest cleaning session."""
-    rows = conn.execute(
-        "SELECT * FROM cleaned_items ORDER BY cleaned_at DESC"
-    ).fetchall()
+    rows = conn.execute("SELECT * FROM cleaned_items ORDER BY cleaned_at DESC").fetchall()
     items = []
     for row in rows:
-        items.append(CleanedItem(
-            id=row["id"],
-            title=row["title"],
-            url=row["url"],
-            description=row["description"],
-            author=row["author"],
-            sources=json.loads(row["sources"]) if row["sources"] else [],
-            source_ids=json.loads(row["source_ids"]) if row["source_ids"] else [],
-            stars=row["stars"],
-            comments_count=row["comments_count"],
-            language=row["language"],
-            tags=json.loads(row["tags"]) if row["tags"] else [],
-            published_at=_parse_dt(row["published_at"]),
-            cleaned_at=_parse_dt(row["cleaned_at"]),
-            merge_note=row["merge_note"],
-        ))
+        items.append(
+            CleanedItem(
+                id=row["id"],
+                title=row["title"],
+                url=row["url"],
+                description=row["description"],
+                author=row["author"],
+                sources=json.loads(row["sources"]) if row["sources"] else [],
+                source_ids=json.loads(row["source_ids"]) if row["source_ids"] else [],
+                stars=row["stars"],
+                comments_count=row["comments_count"],
+                language=row["language"],
+                tags=json.loads(row["tags"]) if row["tags"] else [],
+                published_at=_parse_dt(row["published_at"]),
+                cleaned_at=_parse_dt(row["cleaned_at"]),
+                merge_note=row["merge_note"],
+            )
+        )
     return items
 
 
 # --- Classified Items ---
+
 
 def insert_classified_item(conn: sqlite3.Connection, item: ClassifiedItem) -> int:
     """Insert a classified item. Returns row id."""
@@ -364,28 +359,31 @@ def get_classified_items(conn: sqlite3.Connection, limit: int = 1000, offset: in
     ).fetchall()
     items = []
     for row in rows:
-        items.append(ClassifiedItem(
-            id=row["id"],
-            cleaned_item_id=row["cleaned_item_id"],
-            title=row["title"],
-            url=row["url"],
-            description=row["description"],
-            author=row["author"],
-            sources=json.loads(row["sources"]) if row["sources"] else [],
-            domain=row["domain"],
-            tags=json.loads(row["tags"]) if row["tags"] else [],
-            heat_index=row["heat_index"],
-            heat_reason=row["heat_reason"],
-            stars=row["stars"],
-            comments_count=row["comments_count"],
-            language=row["language"],
-            published_at=_parse_dt(row["published_at"]),
-            classified_at=_parse_dt(row["classified_at"]),
-        ))
+        items.append(
+            ClassifiedItem(
+                id=row["id"],
+                cleaned_item_id=row["cleaned_item_id"],
+                title=row["title"],
+                url=row["url"],
+                description=row["description"],
+                author=row["author"],
+                sources=json.loads(row["sources"]) if row["sources"] else [],
+                domain=row["domain"],
+                tags=json.loads(row["tags"]) if row["tags"] else [],
+                heat_index=row["heat_index"],
+                heat_reason=row["heat_reason"],
+                stars=row["stars"],
+                comments_count=row["comments_count"],
+                language=row["language"],
+                published_at=_parse_dt(row["published_at"]),
+                classified_at=_parse_dt(row["classified_at"]),
+            )
+        )
     return items
 
 
 # --- Utility ---
+
 
 def get_stats(conn: sqlite3.Connection) -> dict:
     """Get database statistics."""
@@ -395,9 +393,7 @@ def get_stats(conn: sqlite3.Connection) -> dict:
         stats[table] = count
 
     # Source breakdown for raw_items
-    rows = conn.execute(
-        "SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source"
-    ).fetchall()
+    rows = conn.execute("SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source").fetchall()
     stats["sources"] = {row["source"]: row["cnt"] for row in rows}
 
     return stats
@@ -405,15 +401,13 @@ def get_stats(conn: sqlite3.Connection) -> dict:
 
 def get_last_collect_time(conn: sqlite3.Connection, source: str) -> str | None:
     """Get the last collection timestamp for a source."""
-    row = conn.execute(
-        "SELECT last_collected_at FROM collect_meta WHERE source = ?", (source,)
-    ).fetchone()
+    row = conn.execute("SELECT last_collected_at FROM collect_meta WHERE source = ?", (source,)).fetchone()
     return row["last_collected_at"] if row else None
 
 
 def set_last_collect_time(conn: sqlite3.Connection, source: str) -> None:
     """Record the current time as last collection time for a source."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     conn.execute(
         """INSERT INTO collect_meta (source, last_collected_at) VALUES (?, ?)
            ON CONFLICT(source) DO UPDATE SET last_collected_at = excluded.last_collected_at""",
@@ -431,6 +425,7 @@ def clear_processed(conn: sqlite3.Connection) -> None:
 
 # --- Web Search Items ---
 
+
 def insert_web_search_item(
     conn: sqlite3.Connection,
     *,
@@ -445,18 +440,14 @@ def insert_web_search_item(
     Returns classified_items row id, or None if URL already exists.
     """
     # Dedup: skip if URL already in classified_items or raw_items
-    existing = conn.execute(
-        "SELECT id FROM classified_items WHERE url = ?", (url,)
-    ).fetchone()
+    existing = conn.execute("SELECT id FROM classified_items WHERE url = ?", (url,)).fetchone()
     if existing:
         return None
-    existing = conn.execute(
-        "SELECT id FROM raw_items WHERE url = ?", (url,)
-    ).fetchone()
+    existing = conn.execute("SELECT id FROM raw_items WHERE url = ?", (url,)).fetchone()
     if existing:
         return None
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     source_id = hashlib.md5(url.encode("utf-8")).hexdigest()[:16]
 
     try:
@@ -469,7 +460,6 @@ def insert_web_search_item(
                VALUES (?, ?, ?, ?, ?, ?, 0, 0, '', '[]', ?, ?, '')""",
             ("web_search", source_id, title, url, content, media, now, now),
         )
-        raw_id = cur.lastrowid
 
         # 2. cleaned_items
         cur = conn.execute(
@@ -499,6 +489,7 @@ def insert_web_search_item(
 
 # --- Translations Cache ---
 
+
 def _text_hash(text: str) -> str:
     """MD5 hash of text for cache lookup."""
     return hashlib.md5(text.encode("utf-8")).hexdigest()
@@ -521,7 +512,7 @@ def save_translation(conn: sqlite3.Connection, text: str, translated: str, targe
         conn.execute(
             """INSERT INTO translations (source_text_hash, target_lang, source_text, translated_text, created_at)
                VALUES (?, ?, ?, ?, ?)""",
-            (h, target_lang, text[:500], translated, datetime.now(timezone.utc).isoformat()),
+            (h, target_lang, text[:500], translated, datetime.now(UTC).isoformat()),
         )
         conn.commit()
     except sqlite3.IntegrityError:
@@ -530,13 +521,12 @@ def save_translation(conn: sqlite3.Connection, text: str, translated: str, targe
 
 # --- Heat Snapshots (Trend Tracking) ---
 
+
 def take_daily_snapshot(conn: sqlite3.Connection) -> int:
     """Snapshot current classified_items heat_index into heat_snapshots.
     Returns count of items snapshotted."""
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    rows = conn.execute(
-        "SELECT url, title, domain, heat_index FROM classified_items"
-    ).fetchall()
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    rows = conn.execute("SELECT url, title, domain, heat_index FROM classified_items").fetchall()
     count = 0
     for r in rows:
         try:
@@ -563,7 +553,8 @@ def get_trending_items(conn: sqlite3.Connection, days: int = 3, limit: int = 20)
     latest_date = dates[0]["snapshot_date"]
     prev_date = dates[1]["snapshot_date"]
 
-    rows = conn.execute("""
+    rows = conn.execute(
+        """
         SELECT
             a.item_url, a.title, a.domain, a.heat_index as current_heat,
             b.heat_index as prev_heat,
@@ -573,17 +564,22 @@ def get_trending_items(conn: sqlite3.Connection, days: int = 3, limit: int = 20)
         WHERE a.snapshot_date = ? AND b.snapshot_date = ?
         ORDER BY ABS(a.heat_index - b.heat_index) DESC
         LIMIT ?
-    """, (latest_date, prev_date, limit)).fetchall()
+    """,
+        (latest_date, prev_date, limit),
+    ).fetchall()
 
-    return [{
-        "url": r["item_url"],
-        "title": r["title"],
-        "domain": r["domain"],
-        "heat_index": r["current_heat"],
-        "prev_heat": r["prev_heat"],
-        "delta": r["delta"],
-        "direction": "up" if r["delta"] > 0 else ("down" if r["delta"] < 0 else "stable"),
-    } for r in rows]
+    return [
+        {
+            "url": r["item_url"],
+            "title": r["title"],
+            "domain": r["domain"],
+            "heat_index": r["current_heat"],
+            "prev_heat": r["prev_heat"],
+            "delta": r["delta"],
+            "direction": "up" if r["delta"] > 0 else ("down" if r["delta"] < 0 else "stable"),
+        }
+        for r in rows
+    ]
 
 
 def get_item_trend(conn: sqlite3.Connection, item_url: str, days: int = 7) -> list[dict]:
@@ -599,10 +595,11 @@ def get_item_trend(conn: sqlite3.Connection, item_url: str, days: int = 7) -> li
 
 # --- Data TTL Cleanup ---
 
+
 def cleanup_old_data(conn: sqlite3.Connection, days: int = 30) -> dict:
     """Delete data older than N days. Returns counts of deleted rows."""
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+    cutoff_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
     counts = {}
     for table, col in [
@@ -627,6 +624,7 @@ def cleanup_old_data(conn: sqlite3.Connection, days: int = 30) -> dict:
 
 # --- FTS5 Full-Text Search ---
 
+
 def rebuild_fts_index(conn: sqlite3.Connection) -> int:
     """Rebuild FTS5 index from classified_items. Call after bulk imports."""
     conn.execute("DELETE FROM classified_items_fts")
@@ -640,7 +638,7 @@ def rebuild_fts_index(conn: sqlite3.Connection) -> int:
 
 def search_fts(conn: sqlite3.Connection, query: str, limit: int = 20, offset: int = 0) -> list[dict]:
     """Full-text search using FTS5. Returns classified items matching query."""
-    tokens = re.findall(r'[a-zA-Z0-9]+|[\u4e00-\u9fff]+', query)
+    tokens = re.findall(r"[a-zA-Z0-9]+|[\u4e00-\u9fff]+", query)
     if not tokens:
         return []
 
@@ -657,22 +655,24 @@ def search_fts(conn: sqlite3.Connection, query: str, limit: int = 20, offset: in
 
     items = []
     for r in rows:
-        items.append({
-            "id": r["id"],
-            "title": r["title"],
-            "url": r["url"],
-            "description": r["description"] or "",
-            "domain": r["domain"],
-            "tags": json.loads(r["tags"]) if r["tags"] else [],
-            "heat_index": r["heat_index"],
-            "heat_reason": r["heat_reason"] or "",
-            "stars": r["stars"],
-            "comments_count": r["comments_count"],
-            "sources": json.loads(r["sources"]) if r["sources"] else [],
-            "published_at": r["published_at"],
-            "author": r["author"] or "",
-            "language": r["language"] or "",
-        })
+        items.append(
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "url": r["url"],
+                "description": r["description"] or "",
+                "domain": r["domain"],
+                "tags": json.loads(r["tags"]) if r["tags"] else [],
+                "heat_index": r["heat_index"],
+                "heat_reason": r["heat_reason"] or "",
+                "stars": r["stars"],
+                "comments_count": r["comments_count"],
+                "sources": json.loads(r["sources"]) if r["sources"] else [],
+                "published_at": r["published_at"],
+                "author": r["author"] or "",
+                "language": r["language"] or "",
+            }
+        )
     return items
 
 
@@ -814,10 +814,8 @@ async def ainit_db(conn: aiosqlite.Connection) -> None:
                VALUES (new.id, new.title, new.description, new.tags);
            END""",
     ]:
-        try:
+        with suppress(Exception):
             await conn.execute(stmt)
-        except Exception:
-            pass
 
     await conn.commit()
 
@@ -844,9 +842,7 @@ async def aget_classified_items(
         params.extend([term, term, term])
 
     # Count total
-    async with conn.execute(
-        f"SELECT COUNT(*) FROM classified_items {base_where}", params
-    ) as cursor:
+    async with conn.execute(f"SELECT COUNT(*) FROM classified_items {base_where}", params) as cursor:
         row = await cursor.fetchone()
         total = row[0]
 
@@ -865,22 +861,24 @@ async def aget_classified_items(
 
     items = []
     for r in rows:
-        items.append({
-            "id": r["id"],
-            "title": r["title"],
-            "url": r["url"],
-            "description": r["description"],
-            "author": r["author"],
-            "sources": json.loads(r["sources"]) if r["sources"] else [],
-            "domain": r["domain"],
-            "tags": json.loads(r["tags"]) if r["tags"] else [],
-            "heat_index": r["heat_index"],
-            "heat_reason": r["heat_reason"],
-            "stars": r["stars"],
-            "comments_count": r["comments_count"],
-            "language": r["language"],
-            "published_at": r["published_at"],
-        })
+        items.append(
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "url": r["url"],
+                "description": r["description"],
+                "author": r["author"],
+                "sources": json.loads(r["sources"]) if r["sources"] else [],
+                "domain": r["domain"],
+                "tags": json.loads(r["tags"]) if r["tags"] else [],
+                "heat_index": r["heat_index"],
+                "heat_reason": r["heat_reason"],
+                "stars": r["stars"],
+                "comments_count": r["comments_count"],
+                "language": r["language"],
+                "published_at": r["published_at"],
+            }
+        )
     return items, total
 
 
@@ -892,9 +890,7 @@ async def aget_stats(conn: aiosqlite.Connection) -> dict:
             row = await cursor.fetchone()
             stats[table] = row[0]
 
-    async with conn.execute(
-        "SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source"
-    ) as cursor:
+    async with conn.execute("SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source") as cursor:
         rows = await cursor.fetchall()
         stats["sources"] = {r["source"]: r["cnt"] for r in rows}
 
@@ -910,11 +906,9 @@ async def aget_domains(conn: aiosqlite.Connection) -> list[dict]:
     return [{"domain": r["domain"], "count": r["count"]} for r in rows]
 
 
-async def asearch_fts(
-    conn: aiosqlite.Connection, query: str, limit: int = 20, offset: int = 0
-) -> list[dict]:
+async def asearch_fts(conn: aiosqlite.Connection, query: str, limit: int = 20, offset: int = 0) -> list[dict]:
     """Async full-text search using FTS5."""
-    tokens = re.findall(r'[a-zA-Z0-9]+|[\u4e00-\u9fff]+', query)
+    tokens = re.findall(r"[a-zA-Z0-9]+|[\u4e00-\u9fff]+", query)
     if not tokens:
         return []
 
@@ -932,28 +926,28 @@ async def asearch_fts(
 
     items = []
     for r in rows:
-        items.append({
-            "id": r["id"],
-            "title": r["title"],
-            "url": r["url"],
-            "description": r["description"] or "",
-            "domain": r["domain"],
-            "tags": json.loads(r["tags"]) if r["tags"] else [],
-            "heat_index": r["heat_index"],
-            "heat_reason": r["heat_reason"] or "",
-            "stars": r["stars"],
-            "comments_count": r["comments_count"],
-            "sources": json.loads(r["sources"]) if r["sources"] else [],
-            "published_at": r["published_at"],
-            "author": r["author"] or "",
-            "language": r["language"] or "",
-        })
+        items.append(
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "url": r["url"],
+                "description": r["description"] or "",
+                "domain": r["domain"],
+                "tags": json.loads(r["tags"]) if r["tags"] else [],
+                "heat_index": r["heat_index"],
+                "heat_reason": r["heat_reason"] or "",
+                "stars": r["stars"],
+                "comments_count": r["comments_count"],
+                "sources": json.loads(r["sources"]) if r["sources"] else [],
+                "published_at": r["published_at"],
+                "author": r["author"] or "",
+                "language": r["language"] or "",
+            }
+        )
     return items
 
 
-async def aget_trending_items(
-    conn: aiosqlite.Connection, days: int = 3, limit: int = 20
-) -> list[dict]:
+async def aget_trending_items(conn: aiosqlite.Connection, days: int = 3, limit: int = 20) -> list[dict]:
     """Async compare latest two snapshots, return items with biggest changes."""
     async with conn.execute(
         "SELECT DISTINCT snapshot_date FROM heat_snapshots ORDER BY snapshot_date DESC LIMIT 2"
@@ -980,20 +974,21 @@ async def aget_trending_items(
     ) as cursor:
         rows = await cursor.fetchall()
 
-    return [{
-        "url": r["item_url"],
-        "title": r["title"],
-        "domain": r["domain"],
-        "heat_index": r["current_heat"],
-        "prev_heat": r["prev_heat"],
-        "delta": r["delta"],
-        "direction": "up" if r["delta"] > 0 else ("down" if r["delta"] < 0 else "stable"),
-    } for r in rows]
+    return [
+        {
+            "url": r["item_url"],
+            "title": r["title"],
+            "domain": r["domain"],
+            "heat_index": r["current_heat"],
+            "prev_heat": r["prev_heat"],
+            "delta": r["delta"],
+            "direction": "up" if r["delta"] > 0 else ("down" if r["delta"] < 0 else "stable"),
+        }
+        for r in rows
+    ]
 
 
-async def aget_item_trend(
-    conn: aiosqlite.Connection, item_url: str, days: int = 7
-) -> list[dict]:
+async def aget_item_trend(conn: aiosqlite.Connection, item_url: str, days: int = 7) -> list[dict]:
     """Async heat_index history for a single item over the last N days."""
     async with conn.execute(
         """SELECT heat_index, snapshot_date FROM heat_snapshots
@@ -1007,12 +1002,10 @@ async def aget_item_trend(
 
 async def aget_feed_health(conn: aiosqlite.Connection) -> list[dict]:
     """Async get RSS feed health status from collect_meta."""
-    async with conn.execute(
-        "SELECT source, last_collected_at FROM collect_meta ORDER BY source"
-    ) as cursor:
+    async with conn.execute("SELECT source, last_collected_at FROM collect_meta ORDER BY source") as cursor:
         rows = await cursor.fetchall()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     health = []
     for r in rows:
         last = r["last_collected_at"]
@@ -1023,32 +1016,40 @@ async def aget_feed_health(conn: aiosqlite.Connection) -> list[dict]:
         except Exception:
             hours_ago = -1
             status = "unknown"
-        health.append({
-            "source": r["source"],
-            "last_collected": last,
-            "hours_ago": round(hours_ago, 1),
-            "status": status,
-        })
+        health.append(
+            {
+                "source": r["source"],
+                "last_collected": last,
+                "hours_ago": round(hours_ago, 1),
+                "status": status,
+            }
+        )
     return health
 
 
 async def aget_export_items(conn: aiosqlite.Connection, limit: int = 5000) -> list[dict]:
     """Async export classified items."""
-    async with conn.execute(
-        "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", (limit,)
-    ) as cursor:
+    async with conn.execute("SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", (limit,)) as cursor:
         rows = await cursor.fetchall()
 
     items = []
     for r in rows:
-        items.append({
-            "id": r["id"], "title": r["title"], "url": r["url"],
-            "description": r["description"] or "", "domain": r["domain"],
-            "tags": r["tags"] or "[]", "heat_index": r["heat_index"],
-            "stars": r["stars"], "comments_count": r["comments_count"],
-            "language": r["language"] or "", "published_at": r["published_at"] or "",
-            "sources": r["sources"] or "[]",
-        })
+        items.append(
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "url": r["url"],
+                "description": r["description"] or "",
+                "domain": r["domain"],
+                "tags": r["tags"] or "[]",
+                "heat_index": r["heat_index"],
+                "stars": r["stars"],
+                "comments_count": r["comments_count"],
+                "language": r["language"] or "",
+                "published_at": r["published_at"] or "",
+                "sources": r["sources"] or "[]",
+            }
+        )
     return items
 
 
@@ -1070,7 +1071,7 @@ async def asave_translation(conn: aiosqlite.Connection, text: str, translated: s
         await conn.execute(
             """INSERT INTO translations (source_text_hash, target_lang, source_text, translated_text, created_at)
                VALUES (?, ?, ?, ?, ?)""",
-            (h, target_lang, text[:500], translated, datetime.now(timezone.utc).isoformat()),
+            (h, target_lang, text[:500], translated, datetime.now(UTC).isoformat()),
         )
         await conn.commit()
     except Exception:

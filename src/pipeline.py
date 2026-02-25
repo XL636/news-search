@@ -11,11 +11,11 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.config import DATA_DIR, PROCESSED_DIR, RAW_DIR
 from src.collectors.arxiv import ArXivCollector
 from src.collectors.github_trending import GitHubCollector
 from src.collectors.hackernews import HackerNewsCollector
 from src.collectors.rss_feeds import RSSCollector
+from src.config import PROCESSED_DIR, RAW_DIR
 from src.storage.store import (
     get_connection,
     get_last_collect_time,
@@ -45,10 +45,7 @@ async def cmd_collect(sources: list[str] | None = None) -> dict:
     conn = get_connection()
     init_db(conn)
 
-    if sources:
-        active = {k: v for k, v in COLLECTORS.items() if k in sources}
-    else:
-        active = COLLECTORS
+    active = {k: v for k, v in COLLECTORS.items() if k in sources} if sources else COLLECTORS
 
     if not active:
         logger.error("No valid sources specified. Available: %s", list(COLLECTORS.keys()))
@@ -86,8 +83,7 @@ async def cmd_collect(sources: list[str] | None = None) -> dict:
             "duplicate": len(items) - new_count,
         }
         set_last_collect_time(conn, name)
-        logger.info("  %s: %d items (%d new, %d duplicate)",
-                     name, len(items), new_count, len(items) - new_count)
+        logger.info("  %s: %d items (%d new, %d duplicate)", name, len(items), new_count, len(items) - new_count)
 
     # Save raw data snapshot
     today = datetime.now().strftime("%Y-%m-%d")
@@ -103,8 +99,7 @@ async def cmd_collect(sources: list[str] | None = None) -> dict:
 
     conn.close()
 
-    logger.info("Collection complete: %d total, %d new, %d duplicate",
-                stats["total"], stats["new"], stats["duplicate"])
+    logger.info("Collection complete: %d total, %d new, %d duplicate", stats["total"], stats["new"], stats["duplicate"])
     logger.info("Raw data saved to %s", raw_path)
     return stats
 
@@ -151,9 +146,7 @@ def cmd_export(output_path: str | None = None) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="InsightRadar — Global Innovation Intelligence Pipeline"
-    )
+    parser = argparse.ArgumentParser(description="InsightRadar — Global Innovation Intelligence Pipeline")
     sub = parser.add_subparsers(dest="command", help="Available commands")
 
     # collect

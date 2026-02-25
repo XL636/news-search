@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from mcp.server.fastmcp import FastMCP
 
-from src.config import DB_PATH
 from src.pipeline import cmd_collect
 from src.storage.store import (
     get_connection,
@@ -59,9 +58,7 @@ def get_items(
         term = f"%{search}%"
         params.extend([term, term, term])
 
-    total = conn.execute(
-        f"SELECT COUNT(*) FROM classified_items {base_where}", params
-    ).fetchone()[0]
+    total = conn.execute(f"SELECT COUNT(*) FROM classified_items {base_where}", params).fetchone()[0]
 
     order_map = {
         "heat": "heat_index DESC",
@@ -79,22 +76,24 @@ def get_items(
 
     items = []
     for r in rows:
-        items.append({
-            "id": r["id"],
-            "title": r["title"],
-            "url": r["url"],
-            "description": r["description"],
-            "author": r["author"],
-            "sources": json.loads(r["sources"]) if r["sources"] else [],
-            "domain": r["domain"],
-            "tags": json.loads(r["tags"]) if r["tags"] else [],
-            "heat_index": r["heat_index"],
-            "heat_reason": r["heat_reason"],
-            "stars": r["stars"],
-            "comments_count": r["comments_count"],
-            "language": r["language"],
-            "published_at": r["published_at"],
-        })
+        items.append(
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "url": r["url"],
+                "description": r["description"],
+                "author": r["author"],
+                "sources": json.loads(r["sources"]) if r["sources"] else [],
+                "domain": r["domain"],
+                "tags": json.loads(r["tags"]) if r["tags"] else [],
+                "heat_index": r["heat_index"],
+                "heat_reason": r["heat_reason"],
+                "stars": r["stars"],
+                "comments_count": r["comments_count"],
+                "language": r["language"],
+                "published_at": r["published_at"],
+            }
+        )
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
@@ -117,9 +116,7 @@ def get_stats() -> dict:
     for table in ["raw_items", "cleaned_items", "classified_items"]:
         stats[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
 
-    rows = conn.execute(
-        "SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source"
-    ).fetchall()
+    rows = conn.execute("SELECT source, COUNT(*) as cnt FROM raw_items GROUP BY source").fetchall()
     stats["sources"] = {r["source"]: r["cnt"] for r in rows}
     conn.close()
     return stats

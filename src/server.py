@@ -2,13 +2,13 @@
 
 import json
 import os
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -44,10 +44,8 @@ def _save_api_key(key: str):
     ai.set_api_key(key)
     existing = {}
     if SETTINGS_FILE.exists():
-        try:
+        with suppress(json.JSONDecodeError, OSError):
             existing = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
     existing["qwen_api_key"] = key
     SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
     SETTINGS_FILE.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -64,13 +62,16 @@ async def lifespan(app: FastAPI):
     ai.set_api_key(loaded_key)
     # Start scheduler
     from src.scheduler import start_scheduler
+
     start_scheduler()
     # Initialize OpenTelemetry tracing
     from src.telemetry import setup_telemetry
+
     setup_telemetry(app)
     yield
     # Shutdown scheduler
     from src.scheduler import stop_scheduler
+
     stop_scheduler()
 
 

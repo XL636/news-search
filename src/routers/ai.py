@@ -44,41 +44,65 @@ def get_api_key() -> str:
 # ========== Domain Classification Maps ==========
 
 QUERY_DOMAIN_MAP = {
-    'cloud': 'Cloud', '云': 'Cloud', '云计算': 'Cloud',
-    'ai': 'AI/ML', '人工智能': 'AI/ML', 'ml': 'AI/ML', 'llm': 'AI/ML',
-    'security': 'Security', '安全': 'Security', '漏洞': 'Security',
-    'web': 'Web', '前端': 'Web', 'frontend': 'Web',
-    'devtools': 'DevTools', '开发工具': 'DevTools',
-    'mobile': 'Mobile', '移动': 'Mobile',
-    'data': 'Data', '数据': 'Data',
-    'blockchain': 'Blockchain', '区块链': 'Blockchain',
-    'hardware': 'Hardware', '硬件': 'Hardware',
-    'biotech': 'Biotech', '生物': 'Biotech',
+    "cloud": "Cloud",
+    "云": "Cloud",
+    "云计算": "Cloud",
+    "ai": "AI/ML",
+    "人工智能": "AI/ML",
+    "ml": "AI/ML",
+    "llm": "AI/ML",
+    "security": "Security",
+    "安全": "Security",
+    "漏洞": "Security",
+    "web": "Web",
+    "前端": "Web",
+    "frontend": "Web",
+    "devtools": "DevTools",
+    "开发工具": "DevTools",
+    "mobile": "Mobile",
+    "移动": "Mobile",
+    "data": "Data",
+    "数据": "Data",
+    "blockchain": "Blockchain",
+    "区块链": "Blockchain",
+    "hardware": "Hardware",
+    "硬件": "Hardware",
+    "biotech": "Biotech",
+    "生物": "Biotech",
 }
 
 _DOMAIN_URL_MAP = {
-    'github.com': 'DevTools', 'gitlab.com': 'DevTools', 'npmjs.com': 'DevTools',
-    'arxiv.org': 'AI/ML', 'huggingface.co': 'AI/ML', 'openai.com': 'AI/ML',
-    'cloud.google.com': 'Cloud', 'aws.amazon.com': 'Cloud', 'azure.microsoft.com': 'Cloud',
-    'developer.apple.com': 'Mobile', 'developer.android.com': 'Mobile',
-    'cve.org': 'Security', 'nvd.nist.gov': 'Security',
+    "github.com": "DevTools",
+    "gitlab.com": "DevTools",
+    "npmjs.com": "DevTools",
+    "arxiv.org": "AI/ML",
+    "huggingface.co": "AI/ML",
+    "openai.com": "AI/ML",
+    "cloud.google.com": "Cloud",
+    "aws.amazon.com": "Cloud",
+    "azure.microsoft.com": "Cloud",
+    "developer.apple.com": "Mobile",
+    "developer.android.com": "Mobile",
+    "cve.org": "Security",
+    "nvd.nist.gov": "Security",
 }
 
 _DOMAIN_KEYWORD_MAP = {
-    'AI/ML': ['ai', 'ml', 'llm', 'gpt', 'model', 'neural', 'deep learning', '大模型', '人工智能', '机器学习'],
-    'Security': ['security', 'vulnerability', 'cve', 'exploit', '安全', '漏洞', '攻击'],
-    'Cloud': ['cloud', 'kubernetes', 'k8s', 'docker', 'aws', 'azure', '云', '容器'],
-    'DevTools': ['developer', 'ide', 'compiler', 'framework', 'sdk', '工具', '开发'],
-    'Web': ['frontend', 'react', 'vue', 'css', 'browser', '前端', '网页'],
-    'Mobile': ['ios', 'android', 'mobile', 'app', '移动', '手机'],
-    'Data': ['database', 'sql', 'analytics', 'data', '数据', '数据库'],
-    'Blockchain': ['blockchain', 'crypto', 'web3', 'defi', '区块链', '加密'],
-    'Biotech': ['biotech', 'genomics', 'crispr', '生物', '基因'],
-    'Hardware': ['chip', 'semiconductor', 'cpu', 'gpu', '芯片', '硬件'],
+    "AI/ML": ["ai", "ml", "llm", "gpt", "model", "neural", "deep learning", "大模型", "人工智能", "机器学习"],
+    "Security": ["security", "vulnerability", "cve", "exploit", "安全", "漏洞", "攻击"],
+    "Cloud": ["cloud", "kubernetes", "k8s", "docker", "aws", "azure", "云", "容器"],
+    "DevTools": ["developer", "ide", "compiler", "framework", "sdk", "工具", "开发"],
+    "Web": ["frontend", "react", "vue", "css", "browser", "前端", "网页"],
+    "Mobile": ["ios", "android", "mobile", "app", "移动", "手机"],
+    "Data": ["database", "sql", "analytics", "data", "数据", "数据库"],
+    "Blockchain": ["blockchain", "crypto", "web3", "defi", "区块链", "加密"],
+    "Biotech": ["biotech", "genomics", "crispr", "生物", "基因"],
+    "Hardware": ["chip", "semiconductor", "cpu", "gpu", "芯片", "硬件"],
 }
 
 
 # ========== Helper Functions ==========
+
 
 def classify_web_result_domain(title: str, url: str, content: str) -> str:
     """Classify a web search result into a domain category."""
@@ -116,14 +140,14 @@ def _row_to_item(r) -> dict:
 def search_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[dict]:
     """Search classified_items with smart tokenization + domain mapping + fallback."""
     with get_db() as conn:
-        tokens = re.findall(r'[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+', query)
+        tokens = re.findall(r"[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+", query)
 
         expanded = []
         for tok in tokens:
             expanded.append(tok)
-            if re.match(r'[\u4e00-\u9fff]', tok) and len(tok) > 2:
+            if re.match(r"[\u4e00-\u9fff]", tok) and len(tok) > 2:
                 for i in range(len(tok) - 1):
-                    expanded.append(tok[i:i+2])
+                    expanded.append(tok[i : i + 2])
 
         conditions = []
         params: list = []
@@ -164,14 +188,14 @@ def search_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[di
 async def asearch_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> list[dict]:
     """Async search classified_items with smart tokenization + domain mapping + fallback."""
     async with aget_db() as conn:
-        tokens = re.findall(r'[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+', query)
+        tokens = re.findall(r"[a-zA-Z0-9/._-]+|[\u4e00-\u9fff]+", query)
 
         expanded = []
         for tok in tokens:
             expanded.append(tok)
-            if re.match(r'[\u4e00-\u9fff]', tok) and len(tok) > 2:
+            if re.match(r"[\u4e00-\u9fff]", tok) and len(tok) > 2:
                 for i in range(len(tok) - 1):
-                    expanded.append(tok[i:i+2])
+                    expanded.append(tok[i : i + 2])
 
         conditions = []
         params: list = []
@@ -213,11 +237,11 @@ async def asearch_items_for_ai(query: str, limit: int = AI_SEARCH_MAX_ITEMS) -> 
 
 async def aget_top_items(limit: int = 20) -> list[dict]:
     """Async get top items by heat_index for trending summary."""
-    async with aget_db() as conn:
-        async with conn.execute(
-            "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]
-        ) as cursor:
-            rows = await cursor.fetchall()
+    async with (
+        aget_db() as conn,
+        conn.execute("SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]) as cursor,
+    ):
+        rows = await cursor.fetchall()
     return [_row_to_item(r) for r in rows]
 
 
@@ -239,10 +263,7 @@ def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
     )
 
     if not items:
-        user_msg = (
-            f"用户问题：{query}\n\n"
-            f"本地数据库中没有相关数据。请使用联网搜索获取最新信息并回答。"
-        )
+        user_msg = f"用户问题：{query}\n\n本地数据库中没有相关数据。请使用联网搜索获取最新信息并回答。"
     else:
         source_lines = []
         for i, item in enumerate(items, 1):
@@ -355,17 +376,23 @@ def build_chat_prompt(article_data: dict, initial_analysis: str, messages: list[
 def build_image_extract_prompt(image_base64: str) -> list[dict]:
     """Build multimodal prompt for image keyword extraction using VL model."""
     return [
-        {"role": "user", "content": [
-            {"type": "image_url", "image_url": {"url": image_base64}},
-            {"type": "text", "text": (
-                "分析这张图片，提取与科技/开源/编程相关的关键词。\n"
-                "返回 JSON 格式：{\"keywords\": [\"关键词1\", \"关键词2\", ...], \"summary\": \"一句话描述图片内容\"}\n"
-                "规则：\n"
-                "1. keywords 提取 3-8 个关键词，优先英文技术术语\n"
-                "2. summary 用中文简述图片主要内容，20字以内\n"
-                "3. 只返回 JSON，不要其他文字"
-            )},
-        ]},
+        {
+            "role": "user",
+            "content": [
+                {"type": "image_url", "image_url": {"url": image_base64}},
+                {
+                    "type": "text",
+                    "text": (
+                        "分析这张图片，提取与科技/开源/编程相关的关键词。\n"
+                        '返回 JSON 格式：{"keywords": ["关键词1", "关键词2", ...], "summary": "一句话描述图片内容"}\n'
+                        "规则：\n"
+                        "1. keywords 提取 3-8 个关键词，优先英文技术术语\n"
+                        "2. summary 用中文简述图片主要内容，20字以内\n"
+                        "3. 只返回 JSON，不要其他文字"
+                    ),
+                },
+            ],
+        },
     ]
 
 
@@ -378,8 +405,7 @@ def build_image_search_prompt(summary: str, keywords: list[str], items: list[dic
         system_parts.append("并附带了文字描述")
     system_parts.append("，你需要根据图片内容和用户意图找到相关的科技新闻和开源项目。\n")
     system = (
-        "".join(system_parts)
-        + "规则：\n"
+        "".join(system_parts) + "规则：\n"
         "1. 用 [N] 引用来源（N 从 1 开始），关键观点必须有引用\n"
         "2. 中文回答，技术术语可保留英文\n"
         "3. 用 Markdown 格式，### 做小标题分组\n"
@@ -399,10 +425,7 @@ def build_image_search_prompt(summary: str, keywords: list[str], items: list[dic
     context_header = "\n".join(context_parts)
 
     if not items:
-        user_msg = (
-            f"{context_header}\n\n"
-            f"本地数据库中没有相关数据。请使用联网搜索获取最新信息并回答。"
-        )
+        user_msg = f"{context_header}\n\n本地数据库中没有相关数据。请使用联网搜索获取最新信息并回答。"
     else:
         source_lines = []
         for i, item in enumerate(items, 1):
@@ -416,12 +439,13 @@ def build_image_search_prompt(summary: str, keywords: list[str], items: list[dic
                 f"  描述: {desc}\n"
                 f"  URL: {item['url']}"
             )
-        tail = "请根据用户描述、图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。" if user_query else "请根据图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。"
+        tail = (
+            "请根据用户描述、图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。"
+            if user_query
+            else "请根据图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。"
+        )
         user_msg = (
-            f"{context_header}\n\n"
-            f"相关数据（共 {len(items)} 条）：\n\n"
-            + "\n\n".join(source_lines)
-            + f"\n\n{tail}"
+            f"{context_header}\n\n相关数据（共 {len(items)} 条）：\n\n" + "\n\n".join(source_lines) + f"\n\n{tail}"
         )
 
     return [
@@ -453,31 +477,31 @@ async def _stream_qwen(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            async with client.stream(
-                "POST", QWEN_BASE_URL, json=payload, headers=headers
-            ) as resp:
-                if resp.status_code != 200:
-                    body = await resp.aread()
-                    logger.error("Qwen API error %s: %s", resp.status_code, body[:500])
-                    yield f'event: error\ndata: {{"error": "AI 服务返回错误 ({resp.status_code})"}}\n\n'
-                    return
+        async with (
+            httpx.AsyncClient(timeout=60) as client,
+            client.stream("POST", QWEN_BASE_URL, json=payload, headers=headers) as resp,
+        ):
+            if resp.status_code != 200:
+                body = await resp.aread()
+                logger.error("Qwen API error %s: %s", resp.status_code, body[:500])
+                yield f'event: error\ndata: {{"error": "AI 服务返回错误 ({resp.status_code})"}}\n\n'
+                return
 
-                async for line in resp.aiter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    data_str = line[6:]
-                    if data_str.strip() == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data_str)
-                        delta = chunk.get("choices", [{}])[0].get("delta", {})
-                        content = delta.get("content", "")
-                        if content:
-                            chunk_data = json.dumps({"text": content}, ensure_ascii=False)
-                            yield f"data: {chunk_data}\n\n"
-                    except (json.JSONDecodeError, IndexError, KeyError):
-                        continue
+            async for line in resp.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                data_str = line[6:]
+                if data_str.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    content = delta.get("content", "")
+                    if content:
+                        chunk_data = json.dumps({"text": content}, ensure_ascii=False)
+                        yield f"data: {chunk_data}\n\n"
+                except (json.JSONDecodeError, IndexError, KeyError):
+                    continue
 
     except httpx.TimeoutException:
         yield 'event: error\ndata: {"error": "AI 服务请求超时，请稍后重试"}\n\n'
@@ -535,35 +559,41 @@ def _process_web_sources(raw_ws: list[dict]) -> list[dict]:
             domain = classify_web_result_domain(title, link or "", content)
             if link:
                 insert_web_search_item(
-                    conn, title=title, url=link, content=content, media=media, domain=domain,
+                    conn,
+                    title=title,
+                    url=link,
+                    content=content,
+                    media=media,
+                    domain=domain,
                 )
-            formatted.append({
-                "title": title,
-                "url": link or "",
-                "description": content[:200] if content else "",
-                "domain": domain,
-                "tags": [],
-                "heat_index": 30,
-                "heat_reason": "网络搜索结果",
-                "stars": 0,
-                "comments_count": 0,
-                "sources": ["web_search"],
-                "published_at": None,
-                "refer": refer,
-            })
+            formatted.append(
+                {
+                    "title": title,
+                    "url": link or "",
+                    "description": content[:200] if content else "",
+                    "domain": domain,
+                    "tags": [],
+                    "heat_index": 30,
+                    "heat_reason": "网络搜索结果",
+                    "stars": 0,
+                    "comments_count": 0,
+                    "sources": ["web_search"],
+                    "published_at": None,
+                    "refer": refer,
+                }
+            )
     return formatted
 
 
 def get_top_items(limit: int = 20) -> list[dict]:
     """Get top items by heat_index for trending summary."""
     with get_db() as conn:
-        rows = conn.execute(
-            "SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM classified_items ORDER BY heat_index DESC LIMIT ?", [limit]).fetchall()
     return [_row_to_item(r) for r in rows]
 
 
 # ========== Pydantic Models ==========
+
 
 class AISearchRequest(BaseModel):
     query: str = Field(..., max_length=500)
@@ -604,6 +634,7 @@ class AIImageSearchRequest(BaseModel):
 
 # ========== Endpoints ==========
 
+
 @router.get("/ai-config")
 def api_ai_config_get():
     """Check if AI API key is configured."""
@@ -623,6 +654,7 @@ def api_ai_config_post(req: AIConfigRequest):
         return {"status": "error", "message": "API key 不能为空"}
     # Import save function from server module
     from src.server import _save_api_key
+
     _save_api_key(key)
     # Also update local runtime key
     set_api_key(key)
@@ -635,7 +667,7 @@ async def api_ai_search(request: Request, req: AISearchRequest):
     """AI search with streaming SSE response."""
     if not _ai_search_semaphore._value:
         return StreamingResponse(
-            iter(["event: error\ndata: {\"error\": \"服务繁忙，请稍后再试\"}\n\n"]),
+            iter(['event: error\ndata: {"error": "服务繁忙，请稍后再试"}\n\n']),
             media_type="text/event-stream",
             status_code=429,
         )
@@ -674,7 +706,7 @@ async def api_ai_analyze(request: Request, req: AIAnalyzeRequest):
     """Article deep analysis with streaming SSE response."""
     if not _ai_search_semaphore._value:
         return StreamingResponse(
-            iter(["event: error\ndata: {\"error\": \"服务繁忙，请稍后再试\"}\n\n"]),
+            iter(['event: error\ndata: {"error": "服务繁忙，请稍后再试"}\n\n']),
             media_type="text/event-stream",
             status_code=429,
         )
@@ -699,7 +731,7 @@ async def api_ai_latest(request: Request):
     """Trending news AI summary with streaming SSE response."""
     if not _ai_search_semaphore._value:
         return StreamingResponse(
-            iter(["event: error\ndata: {\"error\": \"服务繁忙，请稍后再试\"}\n\n"]),
+            iter(['event: error\ndata: {"error": "服务繁忙，请稍后再试"}\n\n']),
             media_type="text/event-stream",
             status_code=429,
         )
@@ -744,7 +776,7 @@ async def api_ai_chat(request: Request, req: AIChatRequest):
     """Article follow-up chat with streaming SSE response."""
     if not _ai_search_semaphore._value:
         return StreamingResponse(
-            iter(["event: error\ndata: {\"error\": \"服务繁忙，请稍后再试\"}\n\n"]),
+            iter(['event: error\ndata: {"error": "服务繁忙，请稍后再试"}\n\n']),
             media_type="text/event-stream",
             status_code=429,
         )
@@ -792,7 +824,11 @@ async def api_ai_image_search(request: Request, req: AIImageSearchRequest):
         )
     if decoded_size > IMAGE_MAX_SIZE_BYTES:
         return StreamingResponse(
-            iter([f'event: error\ndata: {{"error": "图片过大（{decoded_size // 1024 // 1024}MB），请上传 4MB 以内的图片"}}\n\n']),
+            iter(
+                [
+                    f'event: error\ndata: {{"error": "图片过大（{decoded_size // 1024 // 1024}MB），请上传 4MB 以内的图片"}}\n\n'
+                ]
+            ),
             media_type="text/event-stream",
             status_code=400,
         )
@@ -805,14 +841,14 @@ async def api_ai_image_search(request: Request, req: AIImageSearchRequest):
                 return
 
             # Hint to frontend
-            yield f'data: {json.dumps({"text": ""}, ensure_ascii=False)}\n\n'
+            yield f"data: {json.dumps({'text': ''}, ensure_ascii=False)}\n\n"
 
             # Stage 1: Extract keywords from image using VL model
             vl_messages = build_image_extract_prompt(image_data)
             result = await _call_qwen_sync(api_key, vl_messages, model=QWEN_VL_MODEL, max_tokens=256)
 
             if "error" in result:
-                yield f'event: error\ndata: {json.dumps({"error": result["error"]}, ensure_ascii=False)}\n\n'
+                yield f"event: error\ndata: {json.dumps({'error': result['error']}, ensure_ascii=False)}\n\n"
                 return
 
             # Parse keywords from VL response
@@ -821,7 +857,7 @@ async def api_ai_image_search(request: Request, req: AIImageSearchRequest):
             summary = ""
             try:
                 # Try to extract JSON from the response
-                json_match = re.search(r'\{[^}]+\}', content)
+                json_match = re.search(r"\{[^}]+\}", content)
                 if json_match:
                     parsed = json.loads(json_match.group())
                     keywords = parsed.get("keywords", [])

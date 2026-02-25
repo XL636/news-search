@@ -37,13 +37,19 @@ class BaseCollector(abc.ABC):
                     delay = self.base_delay * (2 ** (attempt - 1))
                     logger.warning(
                         "%s: attempt %d/%d failed (%s), retrying in %.1fs...",
-                        self.name, attempt, self.max_retries, e, delay,
+                        self.name,
+                        attempt,
+                        self.max_retries,
+                        e,
+                        delay,
                     )
                     await asyncio.sleep(delay)
                 else:
                     logger.error(
                         "%s: all %d attempts failed. Last error: %s",
-                        self.name, self.max_retries, e,
+                        self.name,
+                        self.max_retries,
+                        e,
                     )
         raise last_exc  # type: ignore[misc]
 

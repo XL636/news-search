@@ -3,7 +3,7 @@
 import json
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import feedparser
 import httpx
@@ -52,11 +52,7 @@ class ArXivCollector(BaseCollector):
         """Build the ArXiv API query URL."""
         cat_query = " OR ".join(f"cat:{cat}" for cat in ARXIV_CATEGORIES)
         params = (
-            f"search_query={cat_query}"
-            f"&start=0"
-            f"&max_results={ARXIV_MAX_ITEMS}"
-            f"&sortBy=submittedDate"
-            f"&sortOrder=descending"
+            f"search_query={cat_query}&start=0&max_results={ARXIV_MAX_ITEMS}&sortBy=submittedDate&sortOrder=descending"
         )
         return f"{ARXIV_API_URL}?{params}"
 
@@ -65,9 +61,7 @@ class ArXivCollector(BaseCollector):
         url = self._build_query_url()
 
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
-            resp = await client.get(
-                url, headers={"User-Agent": HTTP_USER_AGENT}
-            )
+            resp = await client.get(url, headers={"User-Agent": HTTP_USER_AGENT})
             resp.raise_for_status()
             feed_text = resp.text
 
@@ -107,20 +101,22 @@ class ArXivCollector(BaseCollector):
 
             published = self._parse_date(entry)
 
-            items.append(RawItem(
-                source="arxiv",
-                source_id=f"arxiv:{arxiv_id}",
-                title=title,
-                url=abs_url,
-                description=summary,
-                author=first_author,
-                tags=tags,
-                published_at=published,
-                raw_json=json.dumps(
-                    {"arxiv_id": arxiv_id, "title": title, "link": abs_url},
-                    default=str,
-                ),
-            ))
+            items.append(
+                RawItem(
+                    source="arxiv",
+                    source_id=f"arxiv:{arxiv_id}",
+                    title=title,
+                    url=abs_url,
+                    description=summary,
+                    author=first_author,
+                    tags=tags,
+                    published_at=published,
+                    raw_json=json.dumps(
+                        {"arxiv_id": arxiv_id, "title": title, "link": abs_url},
+                        default=str,
+                    ),
+                )
+            )
 
         logger.info("ArXiv: collected %d papers", len(items))
         return items
