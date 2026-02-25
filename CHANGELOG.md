@@ -4,6 +4,14 @@
 
 ---
 
+## [0.23.1] - 2026-02-25
+
+### Fixed
+- **WebSocket 404**: `requirements.txt` 中 `uvicorn` 改为 `uvicorn[standard]`，包含 `websockets`/`httptools`/`uvloop` 等标准依赖
+- **favicon.ico 404**: `server.py` 新增 `GET /favicon.ico` 路由返回 204 No Content
+
+---
+
 ## [0.23.0] - 2026-02-20
 
 ### Fixed

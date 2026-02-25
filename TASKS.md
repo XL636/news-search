@@ -97,6 +97,7 @@
 | 87 | 导出内容不完整修复 | 2026-02-20 | exportSingleArticle async + /api/fetch-content 按需抓取全文，fallback 到 description |
 | 88 | AI 搜索引用编号不匹配修复 | 2026-02-20 | filterCitedSources 重写：模糊匹配→直接索引 localSources[N-1]，删除 tokenize/computeMatchScore |
 | 89 | AI 搜索重复渲染修复 | 2026-02-20 | 删除 doAISearch/doLatestSearch onDone 中多余 renderFinalMarkdown 调用 |
+| 90 | WebSocket 404 + favicon 404 修复 | 2026-02-25 | uvicorn→uvicorn[standard] 补 websockets 依赖 + /favicon.ico 返回 204 |
 
 ### 进行中 🔄
 

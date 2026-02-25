@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -118,6 +118,12 @@ app.add_exception_handler(Exception, general_exception_handler)
 app.include_router(data.router)
 app.include_router(ai.router)
 app.include_router(translate.router)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Return empty favicon to avoid 404."""
+    return Response(status_code=204)
 
 
 @app.get("/", response_class=HTMLResponse)
