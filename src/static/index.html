@@ -219,6 +219,7 @@
     .ai-search-box::before { content: ''; position: absolute; inset: -1px; border-radius: calc(var(--radius-lg) + 1px); background: conic-gradient(from 0deg, transparent 0%, rgba(217,119,6,.3) 25%, transparent 50%, rgba(251,191,36,.2) 75%, transparent 100%); opacity: 0; transition: opacity var(--duration-slow); pointer-events: none; z-index: -1; }
     .ai-search-box:focus-within { border-color: rgba(217,119,6,.4); box-shadow: 0 0 0 3px rgba(217,119,6,.08), 0 0 0 1px rgba(217,119,6,.2), var(--elevation-3); transform: scale(1.01); }
     .ai-search-box:focus-within::before { opacity: 1; animation: searchGlow 3s linear infinite; }
+    .ai-search-box.drag-over { border-color: rgba(217,119,6,.5); box-shadow: 0 0 0 3px rgba(217,119,6,.12), 0 0 0 1px rgba(217,119,6,.3), var(--elevation-3); background: rgba(217,119,6,.05); }
     @keyframes searchGlow { to { transform: rotate(360deg); } }
     .ai-search-input { background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 15px; width: 100%; }
     .ai-search-input::placeholder { color: #57534e; }
@@ -1229,45 +1230,37 @@
       document.getElementById('ai-image-input').click();
     }
 
-    async function handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      // Validate type
-      if (!file.type.startsWith('image/')) {
+    // Shared handler for file select, paste, and drag-drop
+    async function processImageFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
         showToast(t().aiImageInvalid, 'error');
-        event.target.value = '';
         return;
       }
-
-      // Validate size (4MB max)
       if (file.size > 4 * 1024 * 1024) {
         showToast(t().aiImageTooLarge, 'error');
-        event.target.value = '';
         return;
       }
 
       pendingImageFile = file;
-
-      // Compress if > 2MB, otherwise convert directly
-      if (file.size > 2 * 1024 * 1024) {
-        pendingImageBase64 = await compressImage(file);
-      } else {
-        pendingImageBase64 = await fileToBase64(file);
-      }
+      pendingImageBase64 = file.size > 2 * 1024 * 1024
+        ? await compressImage(file) : await fileToBase64(file);
 
       // Show preview
       const preview = document.getElementById('ai-image-preview');
       document.getElementById('ai-image-thumb').src = URL.createObjectURL(file);
-      document.getElementById('ai-image-name').textContent = file.name;
+      document.getElementById('ai-image-name').textContent = file.name || 'pasted-image.png';
       document.getElementById('ai-image-size').textContent = formatFileSize(file.size);
       preview.classList.remove('hidden');
-
-      // Update button state
       document.getElementById('ai-image-btn').classList.add('has-image');
 
-      // Auto-trigger image search
       doImageSearch();
+    }
+
+    async function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      await processImageFile(file);
+      event.target.value = '';
     }
 
     function clearImageUpload() {
@@ -2863,6 +2856,41 @@
       loadFeedHealth();
       checkSystemHealth();
       setInterval(checkSystemHealth, 60000);
+
+      // Paste image support: Ctrl+V in search input
+      const searchInput = document.getElementById('ai-search-input');
+      searchInput.addEventListener('paste', (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            e.preventDefault();
+            processImageFile(item.getAsFile());
+            return;
+          }
+        }
+      });
+
+      // Drag & drop image support on search box
+      const searchBox = document.querySelector('.ai-search-box');
+      searchBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        searchBox.classList.add('drag-over');
+      });
+      searchBox.addEventListener('dragleave', (e) => {
+        if (!searchBox.contains(e.relatedTarget)) {
+          searchBox.classList.remove('drag-over');
+        }
+      });
+      searchBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        searchBox.classList.remove('drag-over');
+        const file = e.dataTransfer?.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+          processImageFile(file);
+        }
+      });
+
       connectWebSocket();
     })();
   </script>
