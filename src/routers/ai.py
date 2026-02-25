@@ -16,9 +16,9 @@ from slowapi.util import get_remote_address
 from src.config import (
     AI_SEARCH_MAX_ITEMS,
     IMAGE_MAX_SIZE_BYTES,
-    ZHIPUAI_BASE_URL,
-    ZHIPUAI_MODEL,
-    ZHIPUAI_VL_MODEL,
+    QWEN_BASE_URL,
+    QWEN_MODEL,
+    QWEN_VL_MODEL,
 )
 from src.storage.store import aget_db, get_db, insert_web_search_item
 
@@ -222,7 +222,7 @@ async def aget_top_items(limit: int = 20) -> list[dict]:
 
 
 def build_ai_prompt(query: str, items: list[dict]) -> list[dict]:
-    """Build messages for GLM-4-Plus API."""
+    """Build messages for Qwen API."""
     system = (
         "你是 InsightRadar AI 搜索助手，专门分析科技新闻和开源项目情报。\n"
         "根据用户问题和提供的新闻数据，生成简洁有洞察力的中文摘要。\n"
@@ -415,44 +415,36 @@ def build_image_search_prompt(summary: str, keywords: list[str], items: list[dic
     ]
 
 
-async def _stream_glm(
+async def _stream_qwen(
     api_key: str,
     messages: list[dict],
     enable_search: bool = False,
     model: str | None = None,
     max_tokens: int = 1024,
 ):
-    """Shared async generator: call GLM API and yield SSE chunks."""
+    """Shared async generator: call Qwen API (OpenAI-compatible) and yield SSE chunks."""
     payload = {
-        "model": model or ZHIPUAI_MODEL,
+        "model": model or QWEN_MODEL,
         "messages": messages,
         "stream": True,
         "temperature": 0.7,
         "max_tokens": max_tokens,
     }
     if enable_search:
-        payload["tools"] = [{
-            "type": "web_search",
-            "web_search": {
-                "enable": True,
-                "search_result": True,
-            },
-        }]
+        payload["enable_search"] = True
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
-    web_results: list[dict] = []
-
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             async with client.stream(
-                "POST", ZHIPUAI_BASE_URL, json=payload, headers=headers
+                "POST", QWEN_BASE_URL, json=payload, headers=headers
             ) as resp:
                 if resp.status_code != 200:
                     body = await resp.aread()
-                    logger.error("GLM API error %s: %s", resp.status_code, body[:500])
+                    logger.error("Qwen API error %s: %s", resp.status_code, body[:500])
                     yield f'event: error\ndata: {{"error": "AI 服务返回错误 ({resp.status_code})"}}\n\n'
                     return
 
@@ -464,13 +456,6 @@ async def _stream_glm(
                         break
                     try:
                         chunk = json.loads(data_str)
-                        logger.debug("GLM raw chunk keys: %s", list(chunk.keys()))
-
-                        ws = chunk.get("web_search")
-                        if ws and isinstance(ws, list):
-                            logger.debug("GLM web_search results (%d): %s", len(ws), json.dumps(ws, ensure_ascii=False)[:500])
-                            web_results.extend(ws)
-
                         delta = chunk.get("choices", [{}])[0].get("delta", {})
                         content = delta.get("content", "")
                         if content:
@@ -483,18 +468,15 @@ async def _stream_glm(
         yield 'event: error\ndata: {"error": "AI 服务请求超时，请稍后重试"}\n\n'
         return
     except Exception as e:
-        logger.exception("GLM stream error")
+        logger.exception("Qwen stream error")
         yield f'event: error\ndata: {{"error": "AI 服务异常: {str(e)[:100]}"}}\n\n'
         return
-
-    if web_results:
-        yield f"event: web_sources\ndata: {json.dumps(web_results, ensure_ascii=False)}\n\n"
 
     yield "event: done\ndata: {}\n\n"
 
 
-async def _call_glm_sync(api_key: str, messages: list[dict], model: str, max_tokens: int = 256) -> dict:
-    """Non-streaming GLM API call for quick tasks like keyword extraction."""
+async def _call_qwen_sync(api_key: str, messages: list[dict], model: str, max_tokens: int = 256) -> dict:
+    """Non-streaming Qwen API call for quick tasks like keyword extraction."""
     payload = {
         "model": model,
         "messages": messages,
@@ -508,9 +490,9 @@ async def _call_glm_sync(api_key: str, messages: list[dict], model: str, max_tok
     }
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(ZHIPUAI_BASE_URL, json=payload, headers=headers)
+            resp = await client.post(QWEN_BASE_URL, json=payload, headers=headers)
             if resp.status_code != 200:
-                logger.error("GLM sync API error %s: %s", resp.status_code, resp.text[:500])
+                logger.error("Qwen sync API error %s: %s", resp.status_code, resp.text[:500])
                 return {"error": f"AI 服务返回错误 ({resp.status_code})"}
             data = resp.json()
             content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
@@ -518,7 +500,7 @@ async def _call_glm_sync(api_key: str, messages: list[dict], model: str, max_tok
     except httpx.TimeoutException:
         return {"error": "AI 服务请求超时"}
     except Exception as e:
-        logger.exception("GLM sync call error")
+        logger.exception("Qwen sync call error")
         return {"error": f"AI 服务异常: {str(e)[:100]}"}
 
 
@@ -654,7 +636,7 @@ async def api_ai_search(request: Request, req: AISearchRequest):
             yield f"event: sources\ndata: {sources_data}\n\n"
 
             messages = build_ai_prompt(req.query, items)
-            async for chunk in _stream_glm(api_key, messages, enable_search=True):
+            async for chunk in _stream_qwen(api_key, messages, enable_search=True):
                 if chunk.startswith("event: web_sources\n"):
                     try:
                         data_line = chunk.split("data: ", 1)[1].split("\n")[0]
@@ -689,7 +671,7 @@ async def api_ai_analyze(request: Request, req: AIAnalyzeRequest):
                 return
 
             messages = build_analysis_prompt(req.model_dump())
-            async for chunk in _stream_glm(api_key, messages, enable_search=True):
+            async for chunk in _stream_qwen(api_key, messages, enable_search=True):
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -724,7 +706,7 @@ async def api_ai_latest(request: Request):
 
             query = "今日最热科技新闻与开源动态"
             messages = build_ai_prompt(query, items)
-            async for chunk in _stream_glm(api_key, messages, enable_search=True):
+            async for chunk in _stream_qwen(api_key, messages, enable_search=True):
                 if chunk.startswith("event: web_sources\n"):
                     try:
                         data_line = chunk.split("data: ", 1)[1].split("\n")[0]
@@ -763,7 +745,7 @@ async def api_ai_chat(request: Request, req: AIChatRequest):
                 req.initial_analysis,
                 [m.model_dump() for m in req.messages],
             )
-            async for chunk in _stream_glm(api_key, messages, enable_search=True):
+            async for chunk in _stream_qwen(api_key, messages, enable_search=True):
                 yield chunk
 
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -811,7 +793,7 @@ async def api_ai_image_search(request: Request, req: AIImageSearchRequest):
 
             # Stage 1: Extract keywords from image using VL model
             vl_messages = build_image_extract_prompt(image_data)
-            result = await _call_glm_sync(api_key, vl_messages, model=ZHIPUAI_VL_MODEL, max_tokens=256)
+            result = await _call_qwen_sync(api_key, vl_messages, model=QWEN_VL_MODEL, max_tokens=256)
 
             if "error" in result:
                 yield f'event: error\ndata: {json.dumps({"error": result["error"]}, ensure_ascii=False)}\n\n'
@@ -850,9 +832,9 @@ async def api_ai_image_search(request: Request, req: AIImageSearchRequest):
             sources_data = json.dumps(items, ensure_ascii=False)
             yield f"event: sources\ndata: {sources_data}\n\n"
 
-            # Stage 3: Stream AI analysis using GLM-4-Plus
+            # Stage 3: Stream AI analysis using Qwen
             messages = build_image_search_prompt(summary, keywords, items)
-            async for chunk in _stream_glm(api_key, messages, enable_search=True):
+            async for chunk in _stream_qwen(api_key, messages, enable_search=True):
                 if chunk.startswith("event: web_sources\n"):
                     try:
                         data_line = chunk.split("data: ", 1)[1].split("\n")[0]

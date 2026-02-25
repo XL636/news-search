@@ -91,11 +91,11 @@ SOURCE_AUTHORITY = {
 HTTP_TIMEOUT = 30  # seconds
 HTTP_USER_AGENT = "InsightRadar/0.1 (https://github.com/insight-radar)"
 
-# ZhipuAI GLM-5 / GLM-4.6V
-ZHIPUAI_API_KEY = os.environ.get("ZHIPUAI_API_KEY", "")
-ZHIPUAI_BASE_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-ZHIPUAI_MODEL = "glm-5"
-ZHIPUAI_VL_MODEL = "glm-4.6v"
+# Qwen (通义千问) — DashScope OpenAI-compatible API
+QWEN_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
+QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+QWEN_MODEL = "qwen-plus"
+QWEN_VL_MODEL = "qwen-vl-plus"
 AI_SEARCH_MAX_ITEMS = 20
 IMAGE_MAX_SIZE_MB = 4
 IMAGE_MAX_SIZE_BYTES = IMAGE_MAX_SIZE_MB * 1024 * 1024

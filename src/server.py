@@ -16,7 +16,7 @@ from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
-from src.config import ZHIPUAI_API_KEY
+from src.config import QWEN_API_KEY
 from src.routers import ai, data, translate
 from src.routers.errors import general_exception_handler, validation_exception_handler
 from src.storage.store import get_connection, init_db
@@ -27,12 +27,13 @@ SETTINGS_FILE = Path(__file__).parent.parent / "data" / "settings.json"
 
 def _load_api_key() -> str:
     """Load API key from env var or settings file."""
-    if ZHIPUAI_API_KEY:
-        return ZHIPUAI_API_KEY
+    if QWEN_API_KEY:
+        return QWEN_API_KEY
     if SETTINGS_FILE.exists():
         try:
-            data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-            return data.get("zhipuai_api_key", "")
+            settings = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+            # Try new key first, fallback to legacy key
+            return settings.get("qwen_api_key", "") or settings.get("zhipuai_api_key", "")
         except (json.JSONDecodeError, OSError):
             pass
     return ""
@@ -47,7 +48,7 @@ def _save_api_key(key: str):
             existing = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             pass
-    existing["zhipuai_api_key"] = key
+    existing["qwen_api_key"] = key
     SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
     SETTINGS_FILE.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
 

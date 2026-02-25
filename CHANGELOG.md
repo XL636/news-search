@@ -4,6 +4,21 @@
 
 ---
 
+## [0.25.0] - 2026-02-25
+
+### Changed
+- **AI 后端从智谱 GLM 切换到通义千问 (Qwen)**
+  - 文本模型: `glm-5` → `qwen-plus`（DashScope OpenAI-compatible API）
+  - 视觉模型: `glm-4.6v` → `qwen-vl-plus`（支持 base64 图片）
+  - API 端点: `open.bigmodel.cn` → `dashscope.aliyuncs.com/compatible-mode/v1`
+  - 联网搜索: GLM `tools.web_search` → Qwen `enable_search: true`
+  - 环境变量: `ZHIPUAI_API_KEY` → `DASHSCOPE_API_KEY`
+  - settings.json: `zhipuai_api_key` → `qwen_api_key`（兼容读取旧 key）
+  - 前端 API Key 配置提示更新为通义千问
+  - `_stream_glm` → `_stream_qwen`，`_call_glm_sync` → `_call_qwen_sync`
+
+---
+
 ## [0.24.2] - 2026-02-25
 
 ### Changed

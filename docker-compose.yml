@@ -7,6 +7,6 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - ZHIPUAI_API_KEY=${ZHIPUAI_API_KEY:-}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8000}
     restart: unless-stopped

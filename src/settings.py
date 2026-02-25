@@ -12,10 +12,10 @@ class Settings(BaseSettings):
     github_token: str = ""
     github_max_items: int = 30
 
-    # ZhipuAI
-    zhipuai_api_key: str = ""
-    zhipuai_base_url: str = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-    zhipuai_model: str = "glm-4-plus"
+    # Qwen (通义千问)
+    dashscope_api_key: str = ""
+    qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    qwen_model: str = "qwen-plus"
     ai_search_max_items: int = 15
 
     # Server

@@ -1,0 +1,11 @@
+{
+  "zhipuai_api_key": "22237f0174354b969ae2b64b2af92e7f.gCmlFVN6dnq0B4iy",
+  "qwen_api_key": "sk-a48d4b35b40141e0a5711b830e22c9cc",
+  "preferences": {
+    "language": "zh",
+    "theme": "warm",
+    "default_view": "ai-search",
+    "default_sort": "heat",
+    "items_per_page": 20
+  }
+}
