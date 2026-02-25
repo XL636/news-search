@@ -4,6 +4,33 @@
 
 ---
 
+## [0.26.0] - 2026-02-25
+
+### Changed
+- **图片搜索交互改造**: 取消图片上传自动搜索，改为先上传图片、再输入文字描述、最后点搜索按钮统一触发
+  - 前端 `processImageFile()` 删除自动触发 `doImageSearch()`
+  - 前端 `doAISearch()` 有图片时传递 query 文本到 `doImageSearch(query)`
+  - 前端 `doImageSearch(query)` 接收 query 参数，请求体增加 `query` 字段
+  - 后端 `AIImageSearchRequest` 新增 `query: str` 字段（可选，最长 500）
+  - 后端图片搜索端点: 用户文字优先 + VL 关键词补充组合搜索
+  - 后端 `build_image_search_prompt()` 整合 `user_query`，系统提示提及用户描述
+
+- **浅色主题改造 (Claude 暖米色风格)**
+  - `:root` CSS 变量全面替换: 深色背景 → 暖米色浅色背景 (`#f5f0e8`)
+  - 文字颜色: 浅色文字 → 深色文字 (`#2d2a24` / `#5c5650` / `#9c9590`)
+  - 强调色: `#fbbf24` → `#b45309`（浅背景上深化 amber）
+  - Glass 效果: 深色毛玻璃 → 白色半透明毛玻璃
+  - Elevation 阴影系统: 降低透明度适配浅色背景
+  - Ambient Orb: opacity `.12` → `.04`，噪点纹理 `.015` → `.008`
+  - 所有 CSS 硬编码颜色批量替换（搜索框/答案面板/来源卡片/芯片/标签/KPI/骨架屏/聊天区等）
+  - Tailwind 类替换: `text-white` → `text-stone-800`，`bg-stone-900/50` → `bg-white/60` 等
+  - JS 颜色常量: `DOMAIN_COLORS` 文字色深化，`SOURCE_STYLES` 文字色深化
+  - Toast 样式: 深色 → 浅色背景（`bg-emerald-100/80` 等）
+  - 搜索按钮/Tab active 的 amber 渐变保留不变
+  - 红/绿/黄状态指示/IR logo 品牌渐变色保留不变
+
+---
+
 ## [0.25.0] - 2026-02-25
 
 ### Changed

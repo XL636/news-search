@@ -101,6 +101,27 @@
 | 图片粘贴 & 拖拽上传 | ✅ 完成 | 100% |
 | AI 模型升级 GLM-5 + GLM-4.6V | ✅ 完成 | 100% |
 | AI 后端切换到通义千问 (Qwen) | ✅ 完成 | 100% |
+| 图片搜索交互改造 (图片+文本同时发送) | ✅ 完成 | 100% |
+| 浅色主题改造 (Claude 暖米色风格) | ✅ 完成 | 100% |
+
+### 图片搜索改造 + 浅色主题 (v0.26.0) — 2026-02-25
+
+```
+图片搜索交互改造：
+  取消图片上传自动搜索，改为先上传→输入文字→点搜索统一触发
+  前端 doImageSearch(query) 接收用户文本，请求体含 image + query
+  后端 AIImageSearchRequest 增加 query 字段
+  后端组合搜索：用户文字优先 + VL 关键词补充
+  后端 build_image_search_prompt() 整合 user_query 到 prompt
+
+浅色主题改造 (Claude 暖米色风格)：
+  :root CSS 变量：深色→暖米色浅色 (#f5f0e8 背景，#2d2a24 文字)
+  Glass 效果：深色毛玻璃→白色半透明毛玻璃
+  DOMAIN_COLORS / SOURCE_STYLES 文字色深化
+  Toast / 卡片 / 搜索框 / 骨架屏等全面浅色化
+  Ambient Orb opacity .12→.04，噪点 .015→.008
+  保留：amber 按钮渐变、状态指示色、IR logo
+```
 
 ### 图片粘贴 & 拖拽上传 (v0.24.1) — 2026-02-25
 

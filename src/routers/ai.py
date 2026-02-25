@@ -369,11 +369,17 @@ def build_image_extract_prompt(image_base64: str) -> list[dict]:
     ]
 
 
-def build_image_search_prompt(summary: str, keywords: list[str], items: list[dict]) -> list[dict]:
+def build_image_search_prompt(summary: str, keywords: list[str], items: list[dict], user_query: str = "") -> list[dict]:
     """Build prompt for image-based article search analysis."""
+    system_parts = [
+        "你是 InsightRadar AI 搜索助手，用户上传了一张图片",
+    ]
+    if user_query:
+        system_parts.append("并附带了文字描述")
+    system_parts.append("，你需要根据图片内容和用户意图找到相关的科技新闻和开源项目。\n")
     system = (
-        "你是 InsightRadar AI 搜索助手，用户上传了一张图片，你需要根据图片内容找到相关的科技新闻和开源项目。\n"
-        "规则：\n"
+        "".join(system_parts)
+        + "规则：\n"
         "1. 用 [N] 引用来源（N 从 1 开始），关键观点必须有引用\n"
         "2. 中文回答，技术术语可保留英文\n"
         "3. 用 Markdown 格式，### 做小标题分组\n"
@@ -384,9 +390,17 @@ def build_image_search_prompt(summary: str, keywords: list[str], items: list[dic
     )
 
     kw_str = ", ".join(keywords)
+    # Build context header: user query first (search intent), then VL analysis
+    context_parts = []
+    if user_query:
+        context_parts.append(f"用户描述：{user_query}")
+    context_parts.append(f"图片描述：{summary}")
+    context_parts.append(f"识别关键词：{kw_str}")
+    context_header = "\n".join(context_parts)
+
     if not items:
         user_msg = (
-            f"图片描述：{summary}\n关键词：{kw_str}\n\n"
+            f"{context_header}\n\n"
             f"本地数据库中没有相关数据。请使用联网搜索获取最新信息并回答。"
         )
     else:
@@ -402,11 +416,12 @@ def build_image_search_prompt(summary: str, keywords: list[str], items: list[dic
                 f"  描述: {desc}\n"
                 f"  URL: {item['url']}"
             )
+        tail = "请根据用户描述、图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。" if user_query else "请根据图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。"
         user_msg = (
-            f"图片描述：{summary}\n关键词：{kw_str}\n\n"
+            f"{context_header}\n\n"
             f"相关数据（共 {len(items)} 条）：\n\n"
             + "\n\n".join(source_lines)
-            + "\n\n请根据图片内容和以上数据，分析推荐相关文章，使用 [N] 引用。"
+            + f"\n\n{tail}"
         )
 
     return [
@@ -584,6 +599,7 @@ class AIConfigRequest(BaseModel):
 
 class AIImageSearchRequest(BaseModel):
     image: str = Field(..., description="Base64 data URI of the image")
+    query: str = Field("", max_length=500, description="Optional user text query")
 
 
 # ========== Endpoints ==========
@@ -826,14 +842,15 @@ async def api_ai_image_search(request: Request, req: AIImageSearchRequest):
             analysis_data = json.dumps({"keywords": keywords, "summary": summary}, ensure_ascii=False)
             yield f"event: image_analysis\ndata: {analysis_data}\n\n"
 
-            # Stage 2: Search local DB with extracted keywords
-            search_query = " ".join(keywords[:5])
+            # Stage 2: Combined search — user text takes priority + VL keywords supplement
+            vl_query = " ".join(keywords[:5])
+            search_query = f"{req.query} {vl_query}" if req.query else vl_query
             items = await asearch_items_for_ai(search_query)
             sources_data = json.dumps(items, ensure_ascii=False)
             yield f"event: sources\ndata: {sources_data}\n\n"
 
-            # Stage 3: Stream AI analysis using Qwen
-            messages = build_image_search_prompt(summary, keywords, items)
+            # Stage 3: Stream AI analysis using Qwen (pass user_query for context)
+            messages = build_image_search_prompt(summary, keywords, items, user_query=req.query)
             async for chunk in _stream_qwen(api_key, messages, enable_search=True):
                 if chunk.startswith("event: web_sources\n"):
                     try:
