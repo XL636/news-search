@@ -29,6 +29,16 @@
   - 搜索按钮/Tab active 的 amber 渐变保留不变
   - 红/绿/黄状态指示/IR logo 品牌渐变色保留不变
 
+### Fixed
+- **CI ruff lint + format 全量修复**: 修复 17 个 Python 文件共 63 个 lint 错误
+  - UP017: `datetime.timezone.utc` → `datetime.UTC`
+  - UP045: `Optional[X]` → `X | None`
+  - I001: import 排序
+  - F401: 未使用的 import 移除
+  - F841: 未使用变量移除
+  - SIM105: `try/except/pass` → `contextlib.suppress()`
+  - ruff format 格式化 15 个文件
+
 ---
 
 ## [0.25.0] - 2026-02-25
